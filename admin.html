@@ -30,6 +30,28 @@
         .sidebar-menu a.active i { color: var(--primary); }
         
         .main-content { margin-left: 250px; padding: 40px; }
+        
+        /* Breadcrumb Navigation */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+        .breadcrumb a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .breadcrumb a:hover { color: var(--primary); }
+        .breadcrumb .separator { font-size: 0.75rem; color: #4a4a5a; }
+        .breadcrumb .current { color: var(--text-light); font-weight: 600; }
+
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid #2a2a35; padding-bottom: 20px;}
         .header h1 { margin: 0; font-size: 2rem; }
         
@@ -65,11 +87,20 @@
         <h2>DJ GREY <br><span style="color:#fff; font-size: 1rem;">Admin</span></h2>
         <ul class="sidebar-menu">
             <li><a href="#" class="active"><i class="fa-solid fa-chart-pie"></i> Analytics & Upload</a></li>
-            <li><a href="index.html" target="_blank"><i class="fa-solid fa-globe"></i> View Live Site</a></li>
+            <li><a href="/" target="_blank"><i class="fa-solid fa-globe"></i> View Live Site</a></li>
         </ul>
     </nav>
 
     <main class="main-content">
+        <!-- Breadcrumb Menu -->
+        <nav class="breadcrumb">
+            <a href="/"><i class="fa-solid fa-house"></i> Home</a>
+            <i class="fa-solid fa-chevron-right separator"></i>
+            <a href="#">Admin</a>
+            <i class="fa-solid fa-chevron-right separator"></i>
+            <span class="current">Dashboard</span>
+        </nav>
+
         <header class="header">
             <h1>Platform Control Center</h1>
             <p id="date-display" style="color: var(--text-muted);"></p>
@@ -196,7 +227,7 @@
                 if (res.ok) {
                     alert('Mix published successfully!');
                     document.getElementById('add-mix-form').reset();
-                    loadAdminData(); // Refresh table
+                    loadAdminData();
                 } else {
                     alert('Failed to publish mix.');
                 }
@@ -212,7 +243,7 @@
             try {
                 const res = await fetch(`${API_URL}/mixes/${id}`, { method: 'DELETE' });
                 if (res.ok) {
-                    loadAdminData(); // Refresh table
+                    loadAdminData();
                 } else {
                     alert('Failed to delete mix.');
                 }
