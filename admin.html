@@ -25,6 +25,12 @@
             background-color: var(--surface); padding: 30px 20px; border-right: 1px solid #2a2a35;
             z-index: 1000; transition: transform 0.3s ease;
         }
+        
+        /* Collapsed Sidebar State */
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
         .sidebar h2 { margin-top: 0; color: var(--primary); font-size: 1.5rem; letter-spacing: 2px; text-transform: uppercase;}
         .sidebar-menu { list-style: none; padding: 0; margin-top: 40px; }
         .sidebar-menu li { margin-bottom: 20px; }
@@ -34,6 +40,11 @@
         
         .main-content { margin-left: 250px; padding: 40px; transition: margin-left 0.3s ease; }
         
+        /* Full width content when sidebar is collapsed */
+        .main-content.expanded {
+            margin-left: 0;
+        }
+
         /* Top Navigation & Hamburger Menu */
         .top-bar {
             display: flex;
@@ -103,13 +114,6 @@
         .badge { background: rgba(255,0,85,0.1); color: var(--primary); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; display: inline-flex; align-items: center; gap: 5px;}
         .btn-delete { color: #ff4444; background: rgba(255,68,68,0.1); border: 1px solid rgba(255,68,68,0.3); padding: 6px 12px; border-radius: 4px; cursor: pointer; transition: 0.3s; }
         .btn-delete:hover { background: #ff4444; color: #fff; }
-
-        /* Responsive Sidebar State */
-        @media (max-width: 768px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.active { transform: translateX(0); }
-            .main-content { margin-left: 0; padding: 20px; }
-        }
     </style>
 </head>
 <body>
@@ -122,7 +126,7 @@
         </ul>
     </nav>
 
-    <main class="main-content">
+    <main class="main-content" id="main-content">
         <!-- Top Bar with Hamburger & Breadcrumb -->
         <div class="top-bar">
             <button class="hamburger" id="hamburger-btn" aria-label="Toggle Sidebar">
@@ -203,12 +207,14 @@
     <script>
         const API_URL = 'https://dj-grey.onrender.com/api'; 
 
-        // Hamburger Menu Toggle
+        // Desktop & Mobile Sidebar Toggle
         const hamburgerBtn = document.getElementById('hamburger-btn');
         const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('main-content');
 
         hamburgerBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('active');
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
         });
 
         document.getElementById('date-display').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
