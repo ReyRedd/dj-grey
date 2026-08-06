@@ -9,8 +9,6 @@ app.use(express.json());
 app.use('/media', express.static('media'));
 
 // Database connection
-const { Pool } = require('pg');
-
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/dj_grey_db',
     ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
@@ -53,6 +51,7 @@ app.post('/api/mixes/:id/download', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
 // 1. ADD A NEW MIX (Admin)
 app.post('/api/mixes', async (req, res) => {
     let { title, audio_url, artwork_url } = req.body;
@@ -89,7 +88,8 @@ app.delete('/api/mixes/:id', async (req, res) => {
     }
 });
 
-const PORT = 3000;
+// Listen on environment PORT for Render, or 3000 locally
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🔥 DJ Grey Backend running on http://localhost:${PORT}`);
+    console.log(`🔥 DJ Grey Backend running on port ${PORT}`);
 });
