@@ -16,7 +16,6 @@ const pool = new Pool({
     ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
-// Secret key for generating login tokens (In production, this is stored in Render Environment Variables)
 const JWT_SECRET = process.env.JWT_SECRET || 'dj-grey-super-secret-key-2026';
 
 // ---------------------------------------------------------
@@ -24,7 +23,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dj-grey-super-secret-key-2026';
 // ---------------------------------------------------------
 function authenticateAdmin(req, res, next) {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Extract token from "Bearer <token>"
+    const token = authHeader && authHeader.split(' ')[1]; 
     
     if (!token) return res.status(401).json({ error: 'Access denied. Please log in.' });
 
@@ -33,33 +32,42 @@ function authenticateAdmin(req, res, next) {
         if (user.role !== 'admin') return res.status(403).json({ error: 'Admin privileges required.' });
         
         req.user = user;
-        next(); // Token is valid and user is admin, allow them to proceed!
+        next(); 
+    });
+}
+
+function authenticateUser(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    if (!token) return res.status(401).json({ error: 'Please log in to perform this action.' });
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) return res.status(403).json({ error: 'Invalid or expired login token.' });
+        req.user = user;
+        next(); 
     });
 }
 
 // ---------------------------------------------------------
 // 🔑 AUTHENTICATION ROUTES (LOGIN / REGISTER)
 // ---------------------------------------------------------
-
-// Temporary Registration Route (So you can create your master admin account)
 app.post('/api/auth/register', async (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ error: 'Username and password required.' });
+    const { username, email, password } = req.body;
+    if (!username || !email || !password) return res.status(400).json({ error: 'Username, email, and password required.' });
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
-        // We default to 'admin' here so your first account has full control
         const result = await pool.query(
-            'INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3) RETURNING id, username, role',
-            [username, hashedPassword, 'admin']
+            'INSERT INTO users (username, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, role',
+            [username, email, hashedPassword, 'user'] // Now registers as standard fan
         );
         res.status(201).json(result.rows[0]);
     } catch (err) {
-        res.status(500).json({ error: 'Username might already exist or database error.' });
+        res.status(500).json({ error: 'Username or Email might already exist.' });
     }
 });
 
-// Login Route
 app.post('/api/auth/login', async (req, res) => {
     const { username, password } = req.body;
     
@@ -67,12 +75,10 @@ app.post('/api/auth/login', async (req, res) => {
         const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
         const user = result.rows[0];
 
-        // Check if user exists AND if the password matches the hashed password
         if (!user || !(await bcrypt.compare(password, user.password_hash))) {
             return res.status(401).json({ error: 'Invalid username or password' });
         }
 
-        // Generate a 24-hour digital key for this user
         const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
         res.json({ token, username: user.username, role: user.role });
     } catch (err) {
@@ -81,7 +87,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // ---------------------------------------------------------
-// 🌍 PUBLIC MUSIC ROUTES (Anyone can view, like, and download)
+// 🌍 PUBLIC MUSIC ROUTES (Streaming is open)
 // ---------------------------------------------------------
 app.get('/api/mixes', async (req, res) => {
     try {
@@ -92,7 +98,8 @@ app.get('/api/mixes', async (req, res) => {
     }
 });
 
-app.post('/api/mixes/:id/like', async (req, res) => {
+// 🔒 PROTECTED FAN ROUTES (Likes & Downloads)
+app.post('/api/mixes/:id/like', authenticateUser, async (req, res) => {
     try {
         const { id } = req.params;
         const result = await pool.query('UPDATE mixes SET likes_count = likes_count + 1 WHERE id = $1 RETURNING likes_count', [id]);
@@ -102,7 +109,7 @@ app.post('/api/mixes/:id/like', async (req, res) => {
     }
 });
 
-app.post('/api/mixes/:id/download', async (req, res) => {
+app.post('/api/mixes/:id/download', authenticateUser, async (req, res) => {
     try {
         const { id } = req.params;
         const result = await pool.query('UPDATE mixes SET downloads_count = downloads_count + 1 WHERE id = $1 RETURNING downloads_count', [id]);
@@ -115,8 +122,6 @@ app.post('/api/mixes/:id/download', async (req, res) => {
 // ---------------------------------------------------------
 // 🛡️ PROTECTED ADMIN ROUTES (Requires Admin Token)
 // ---------------------------------------------------------
-
-// ADD A NEW MIX (Notice the 'authenticateAdmin' middleware injected here)
 app.post('/api/mixes', authenticateAdmin, async (req, res) => {
     let { title, audio_url, artwork_url } = req.body;
 
@@ -137,7 +142,6 @@ app.post('/api/mixes', authenticateAdmin, async (req, res) => {
     }
 });
 
-// DELETE A MIX
 app.delete('/api/mixes/:id', authenticateAdmin, async (req, res) => {
     const { id } = req.params;
     try {

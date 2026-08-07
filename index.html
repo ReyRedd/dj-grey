@@ -5,115 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>His Majesty DJ GREY</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --bg: #0a0a0c;
-            --surface: #1a1a20;
-            --primary: #00a8ff; 
-            --text-main: #ffffff;
-            --text-muted: #a0a0a0;
-            --border-color: #2a2a35;
-            --font-main: 'Segoe UI', system-ui, sans-serif;
-        }
-
-        [data-theme="light"] {
-            --bg: #f0f2f5;
-            --surface: #ffffff;
-            --primary: #0056b3; 
-            --text-main: #1c1e21;
-            --text-muted: #606770;
-            --border-color: #ccd0d5;
-        }
-
-        *, *::before, *::after { box-sizing: border-box; }
-
-        /* Added a smooth transition for fullscreen mode */
-        body {
-            margin: 0; padding: 0 0 100px 0; 
-            background-color: var(--bg); color: var(--text-main); 
-            font-family: var(--font-main); transition: background-color 0.3s, color 0.3s;
-        }
-
-        header {
-            text-align: center; padding: 60px 20px; border-bottom: 1px solid var(--border-color);
-            position: relative;
-        }
-        h1 { font-size: 3rem; margin: 0; letter-spacing: 2px; }
-        .subtitle { color: var(--text-muted); letter-spacing: 5px; text-transform: uppercase; font-size: 0.9rem; margin-top: 10px; }
-        
-        .theme-toggle-btn {
-            position: absolute; top: 20px; right: 20px;
-            background: var(--surface); border: 1px solid var(--border-color);
-            color: var(--text-main); font-size: 1.2rem; padding: 10px 14px;
-            border-radius: 8px; cursor: pointer; transition: 0.3s;
-        }
-        .theme-toggle-btn:hover { color: var(--primary); border-color: var(--primary); }
-
-        .container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
-        .section-title { border-left: 4px solid var(--primary); padding-left: 15px; font-size: 1.5rem; margin-bottom: 30px; }
-        
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px; }
-        .card { 
-            background: var(--surface); border-radius: 12px; overflow: hidden; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: transform 0.3s, box-shadow 0.3s; 
-        }
-        .card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0, 168, 255, 0.2); }
-        .card-img { width: 100%; height: 250px; object-fit: cover; border-bottom: 3px solid var(--primary); }
-        .card-content { padding: 20px; }
-        .card-title { font-size: 1.1rem; font-weight: bold; margin: 0 0 15px 0; line-height: 1.4; height: 45px; overflow: hidden; }
-        
-        .card-actions { display: flex; justify-content: space-between; align-items: center; }
-        .btn-play { background: var(--primary); color: #fff; border: none; padding: 8px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .btn-play:hover { opacity: 0.8; }
-        
-        .stats { display: flex; gap: 15px; color: var(--text-muted); font-size: 0.9rem; }
-        .stats i { cursor: pointer; transition: color 0.3s; }
-        .stats i:hover { color: var(--primary); }
-
-        /* Bottom Player */
-        .player-bar {
-            position: fixed; bottom: 0; left: 0; width: 100%;
-            background: var(--surface); border-top: 1px solid var(--border-color);
-            padding: 15px 30px; display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.2); z-index: 1000;
-        }
-
-        .now-playing { display: flex; align-items: center; gap: 15px; width: 30%; }
-        .now-playing img { width: 50px; height: 50px; border-radius: 6px; object-fit: cover; background: #333; }
-        .now-playing-info { display: flex; flex-direction: column; }
-        .now-playing-title { font-weight: bold; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px;}
-        .now-playing-dj { color: var(--text-muted); font-size: 0.8rem; }
-
-        .player-controls-wrapper { display: flex; flex-direction: column; align-items: center; width: 40%; gap: 10px; }
-        .media-buttons { display: flex; align-items: center; gap: 20px; }
-        .media-btn { background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; transition: 0.2s; }
-        .media-btn:hover { color: var(--primary); }
-        .btn-main-play { font-size: 2rem; color: var(--primary); }
-        .btn-main-play:hover { transform: scale(1.1); }
-        
-        audio { width: 100%; height: 30px; outline: none; }
-        audio::-webkit-media-controls-enclosure { background-color: transparent; }
-        audio::-webkit-media-controls-panel { background-color: var(--bg); border-radius: 5px;}
-        audio::-webkit-media-controls-current-time-display, 
-        audio::-webkit-media-controls-time-remaining-display { color: var(--text-main); }
-
-        .extra-controls { display: flex; align-items: center; justify-content: flex-end; gap: 15px; width: 30%; color: var(--text-muted); }
-        .extra-controls i { cursor: pointer; transition: 0.2s; }
-        .extra-controls i:hover { color: var(--primary); }
-        .volume-slider { width: 80px; accent-color: var(--primary); cursor: pointer; }
-
-        @media (max-width: 768px) {
-            .player-bar { flex-direction: column; gap: 15px; padding: 15px; }
-            .now-playing, .player-controls-wrapper, .extra-controls { width: 100%; justify-content: center; }
-            .now-playing-title { max-width: 200px; }
-            .extra-controls { display: none; } 
-            body { padding-bottom: 150px; }
-        }
-    </style>
+    <link rel="stylesheet" href="index.css">
 </head>
 <body>
 
     <header>
+        <div class="auth-container" id="auth-section"></div>
         <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle Theme">
             <i class="fa-solid fa-sun"></i>
         </button>
@@ -124,15 +21,15 @@
     <div class="container">
         <h2 class="section-title">LATEST DROPS</h2>
         <div class="grid" id="mixes-grid">
-            <p>Loading the latest mixes from the vault...</p>
+            <p style="font-size: 1.2rem; text-shadow: 0 0 10px var(--primary-glow);">Initializing the vault...</p>
         </div>
     </div>
 
-    <!-- Advanced Bottom Player Bar -->
-    <div class="player-bar">
+    <!-- Glass Bottom Player Bar (TARGET FOR FULLSCREEN) -->
+    <div class="player-bar" id="player-ui">
         
         <div class="now-playing">
-            <img id="np-art" src="https://via.placeholder.com/50/1a1a20/00a8ff?text=DJ" alt="Artwork">
+            <img id="np-art" src="https://via.placeholder.com/55/1a1a20/00a8ff?text=DJ" alt="Artwork">
             <div class="now-playing-info">
                 <span class="now-playing-title" id="np-title">Select a Mix</span>
                 <span class="now-playing-dj">DJ Grey</span>
@@ -141,7 +38,6 @@
 
         <div class="player-controls-wrapper">
             <div class="media-buttons">
-                <!-- WIRED UP BUTTONS -->
                 <button class="media-btn" title="Shuffle" onclick="toggleShuffle()" id="shuffle-btn"><i class="fa-solid fa-shuffle"></i></button>
                 <button class="media-btn" title="Previous" onclick="playPrev()"><i class="fa-solid fa-backward-step"></i></button>
                 <button class="media-btn btn-main-play" title="Play/Pause" id="custom-play-btn" onclick="togglePlay()"><i class="fa-solid fa-circle-play"></i></button>
@@ -153,7 +49,6 @@
         </div>
 
         <div class="extra-controls">
-            <!-- WIRED UP EXTRAS -->
             <i class="fa-solid fa-list" title="Back to Playlist" onclick="scrollToPlaylist()"></i>
             <i class="fa-solid fa-sliders" title="Equalizer" onclick="showEQMessage()"></i>
             <i class="fa-solid fa-volume-high" id="mute-icon" onclick="toggleMute()"></i>
@@ -167,10 +62,34 @@
         const audioPlayer = document.getElementById('audio-player');
         const customPlayBtn = document.getElementById('custom-play-btn');
 
-        // Playlist State Variables
         let playlist = [];
         let currentTrackIndex = -1;
         let isShuffle = false;
+        let repeatState = 0; // 0: Off, 1: Repeat Playlist, 2: Repeat Track (1)
+
+        // --- AUTH LOGIC ---
+        const token = localStorage.getItem('dj_grey_token');
+        const username = localStorage.getItem('dj_grey_user');
+        const authSection = document.getElementById('auth-section');
+
+        if (token && username) {
+            authSection.innerHTML = `
+                <span class="user-greeting">Welcome, ${username}</span>
+                <button class="auth-btn" onclick="logout()">Logout</button>
+            `;
+        } else {
+            authSection.innerHTML = `<a href="/login.html" class="auth-btn">Login / Fan Registration</a>`;
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.reload();
+        }
+
+        const getAuthHeaders = () => ({
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        });
 
         // Theme Toggle Logic
         const themeToggleBtn = document.getElementById('theme-toggle');
@@ -194,13 +113,13 @@
         async function loadMixes() {
             try {
                 const res = await fetch(`${API_URL}/mixes`);
-                playlist = await res.json(); // Save to global playlist
+                playlist = await res.json(); 
                 
                 const grid = document.getElementById('mixes-grid');
                 grid.innerHTML = '';
 
                 playlist.forEach((mix, index) => {
-                    const fallbackArt = 'https://via.placeholder.com/300x250/1a1a20/00a8ff?text=DJ+Grey';
+                    const fallbackArt = 'https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1';
                     const art = mix.artwork_url || fallbackArt;
                     const safeTitle = mix.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
@@ -228,14 +147,12 @@
             }
         }
 
-        // --- PLAYLIST LOGIC (Next, Prev, Shuffle) ---
-
         function playMix(index) {
             if (index < 0 || index >= playlist.length) return;
             currentTrackIndex = index;
             const mix = playlist[currentTrackIndex];
             
-            const fallbackArt = 'https://via.placeholder.com/300x250/1a1a20/00a8ff?text=DJ+Grey';
+            const fallbackArt = 'https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1';
             const art = mix.artwork_url || fallbackArt;
 
             document.getElementById('np-title').innerText = mix.title;
@@ -247,13 +164,12 @@
 
         function playNext() {
             if (playlist.length === 0) return;
-            
             let nextIndex;
             if (isShuffle) {
                 nextIndex = Math.floor(Math.random() * playlist.length);
             } else {
                 nextIndex = currentTrackIndex + 1;
-                if (nextIndex >= playlist.length) nextIndex = 0; // Loop back to start
+                if (nextIndex >= playlist.length) nextIndex = 0;
             }
             playMix(nextIndex);
         }
@@ -261,16 +177,16 @@
         function playPrev() {
             if (playlist.length === 0) return;
             let prevIndex = currentTrackIndex - 1;
-            if (prevIndex < 0) prevIndex = playlist.length - 1; // Loop to end
+            if (prevIndex < 0) prevIndex = playlist.length - 1; 
             playMix(prevIndex);
         }
 
-        // Auto-play next track when current finishes
         audioPlayer.addEventListener('ended', () => {
-            if (!audioPlayer.loop) playNext();
+            if (audioPlayer.loop) return; // Native loop handles itself natively for Repeat 1
+            if (repeatState === 1 || currentTrackIndex < playlist.length - 1) {
+                playNext(); 
+            }
         });
-
-        // --- MEDIA CONTROLS ---
 
         function togglePlay() {
             if (audioPlayer.paused && audioPlayer.src) {
@@ -285,24 +201,39 @@
             audioPlayer.currentTime = 0;
         }
 
+        // 3-WAY REPEAT LOGIC
         function toggleLoop() {
-            audioPlayer.loop = !audioPlayer.loop;
-            document.getElementById('loop-btn').style.color = audioPlayer.loop ? 'var(--primary)' : 'var(--text-muted)';
+            repeatState = (repeatState + 1) % 3;
+            const loopBtn = document.getElementById('loop-btn');
+            
+            if (repeatState === 0) {
+                loopBtn.innerHTML = '<i class="fa-solid fa-repeat"></i>';
+                loopBtn.style.color = 'var(--text-main)';
+                audioPlayer.loop = false;
+            } else if (repeatState === 1) {
+                loopBtn.innerHTML = '<i class="fa-solid fa-repeat"></i>';
+                loopBtn.style.color = 'var(--primary)';
+                audioPlayer.loop = false;
+            } else if (repeatState === 2) {
+                loopBtn.innerHTML = '<i class="fa-solid fa-repeat"></i><sup style="font-size:0.6em;">1</sup>';
+                loopBtn.style.color = 'var(--primary)';
+                audioPlayer.loop = true;
+            }
         }
 
         function toggleShuffle() {
             isShuffle = !isShuffle;
-            document.getElementById('shuffle-btn').style.color = isShuffle ? 'var(--primary)' : 'var(--text-muted)';
+            document.getElementById('shuffle-btn').style.color = isShuffle ? 'var(--primary)' : 'var(--text-main)';
         }
 
         audioPlayer.addEventListener('play', () => customPlayBtn.innerHTML = '<i class="fa-solid fa-circle-pause"></i>');
         audioPlayer.addEventListener('pause', () => customPlayBtn.innerHTML = '<i class="fa-solid fa-circle-play"></i>');
 
-        // --- EXTRA CONTROLS (Fullscreen, Playlist, EQ) ---
-
+        // --- IMMERSIVE FULLSCREEN LOGIC ---
         function toggleFullScreen() {
+            const playerUI = document.getElementById('player-ui');
             if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
+                playerUI.requestFullscreen().catch(err => {
                     alert(`Error attempting to enable fullscreen mode: ${err.message}`);
                 });
             } else {
@@ -312,7 +243,18 @@
             }
         }
 
+        document.addEventListener("fullscreenchange", function() {
+            if (document.fullscreenElement) {
+                document.getElementById('player-ui').classList.add('is-fullscreen');
+            } else {
+                document.getElementById('player-ui').classList.remove('is-fullscreen');
+            }
+        });
+
         function scrollToPlaylist() {
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            }
             document.getElementById('mixes-grid').scrollIntoView({ behavior: 'smooth' });
         }
 
@@ -320,7 +262,6 @@
             alert("Advanced Equalizer controls coming in the next platform update!");
         }
 
-        // Volume Controls
         const volumeSlider = document.getElementById('volume-slider');
         const muteIcon = document.getElementById('mute-icon');
 
@@ -340,10 +281,11 @@
             else muteIcon.className = 'fa-solid fa-volume-high';
         }
 
-        // --- INTERACTION FUNCTIONS (Like/Download) ---
+        // --- PROTECTED INTERACTIONS ---
         async function likeMix(id, element) {
+            if (!token) return alert("Hey there! Please login or create a free fan account to like tracks.");
             try {
-                const res = await fetch(`${API_URL}/mixes/${id}/like`, { method: 'POST' });
+                const res = await fetch(`${API_URL}/mixes/${id}/like`, { method: 'POST', headers: getAuthHeaders() });
                 const data = await res.json();
                 if (data.success) {
                     element.innerHTML = `<i class="fa-solid fa-heart" style="color: var(--primary);"></i> ${data.newLikes}`;
@@ -352,13 +294,13 @@
         }
 
         async function downloadMix(id, url) {
+            if (!token) return alert("Hey there! Please login or create a free fan account to download tracks.");
             try {
-                await fetch(`${API_URL}/mixes/${id}/download`, { method: 'POST' });
-                window.open(url, '_blank');
+                const res = await fetch(`${API_URL}/mixes/${id}/download`, { method: 'POST', headers: getAuthHeaders() });
+                if (res.ok) window.open(url, '_blank');
             } catch (err) { console.error("Error downloading mix:", err); }
         }
 
-        // Initialize
         window.onload = loadMixes;
     </script>
 </body>
