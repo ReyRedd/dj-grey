@@ -68,13 +68,21 @@
         let repeatState = 0; // 0: Off, 1: Repeat Playlist, 2: Repeat Track (1)
 
         // --- AUTH LOGIC ---
+        // --- AUTH LOGIC ---
         const token = localStorage.getItem('dj_grey_token');
         const username = localStorage.getItem('dj_grey_user');
+        const role = localStorage.getItem('dj_grey_role'); // Check the user's role
         const authSection = document.getElementById('auth-section');
 
         if (token && username) {
+            // If the user is an admin, generate a Dashboard button for them
+            const adminButton = role === 'admin' 
+                ? `<a href="/admin.html" class="auth-btn" style="background: var(--primary); color: #fff; border-color: var(--primary);"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>` 
+                : '';
+
             authSection.innerHTML = `
                 <span class="user-greeting">Welcome, ${username}</span>
+                ${adminButton}
                 <button class="auth-btn" onclick="logout()">Logout</button>
             `;
         } else {
