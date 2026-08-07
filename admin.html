@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,132 +7,113 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
+            /* Dark Theme (Default) */
             --bg: #0a0a0c;
             --surface: #1a1a20;
-            --primary: #ff0055;
-            --text-light: #ffffff;
+            --primary: #00a8ff; /* New Blue Theme */
+            --text-main: #ffffff;
             --text-muted: #a0a0a0;
+            --border-color: #2a2a35;
+            --input-bg: #0a0a0c;
+            --danger-bg: rgba(255,68,68,0.1);
+            --danger-text: #ff4444;
             --font-main: 'Segoe UI', system-ui, sans-serif;
             --sidebar-width: 260px;
         }
 
-        *, *::before, *::after {
-            box-sizing: border-box;
+        [data-theme="light"] {
+            /* Light Theme */
+            --bg: #f0f2f5;
+            --surface: #ffffff;
+            --primary: #0056b3; 
+            --text-main: #1c1e21;
+            --text-muted: #606770;
+            --border-color: #ccd0d5;
+            --input-bg: #ffffff;
+            --danger-bg: #ffebee;
+            --danger-text: #d32f2f;
         }
+
+        *, *::before, *::after { box-sizing: border-box; }
 
         body {
             margin: 0; padding: 0;
-            background-color: var(--bg); color: var(--text-light); font-family: var(--font-main);
-            overflow-x: hidden;
+            background-color: var(--bg); color: var(--text-main); font-family: var(--font-main);
+            overflow-x: hidden; transition: background-color 0.3s, color 0.3s;
         }
 
         /* Sidebar Styles */
         .sidebar {
             position: fixed; top: 0; left: 0; height: 100vh; width: var(--sidebar-width);
-            background-color: var(--surface); padding: 35px 25px; border-right: 1px solid #2a2a35;
-            z-index: 1000; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 5px 0 25px rgba(0,0,0,0.5);
+            background-color: var(--surface); padding: 35px 25px; border-right: 1px solid var(--border-color);
+            z-index: 1000; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s, border-color 0.3s;
+            box-shadow: 5px 0 25px rgba(0,0,0,0.1);
         }
         
-        /* Collapsed Sidebar State */
-        .sidebar.collapsed {
-            transform: translateX(-100%);
-        }
+        .sidebar.collapsed { transform: translateX(-100%); }
 
         .sidebar h2 { margin-top: 0; color: var(--primary); font-size: 1.5rem; letter-spacing: 2px; text-transform: uppercase;}
         .sidebar-menu { list-style: none; padding: 0; margin-top: 40px; }
         .sidebar-menu li { margin-bottom: 20px; }
         .sidebar-menu a { color: var(--text-muted); text-decoration: none; font-size: 1.1rem; transition: 0.3s; display: flex; align-items: center; gap: 12px;}
-        .sidebar-menu a:hover, .sidebar-menu a.active { color: var(--text-light); }
+        .sidebar-menu a:hover, .sidebar-menu a.active { color: var(--text-main); }
         .sidebar-menu a.active i { color: var(--primary); }
         
-        /* Main Content Layout with Spacing */
+        /* Main Content Layout */
         .main-content { 
-            margin-left: var(--sidebar-width); 
-            padding: 40px 50px; 
-            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            min-height: 100vh;
+            margin-left: var(--sidebar-width); padding: 40px 50px; 
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1); min-height: 100vh;
         }
+        .main-content.expanded { margin-left: 0; padding: 40px 50px; }
+
+        /* Top Navigation & Hamburger Menu */
+        .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; padding-bottom: 10px; }
+        .nav-left { display: flex; align-items: center; gap: 20px; }
         
-        /* Full width content with inner spacing when sidebar collapses */
-        .main-content.expanded {
-            margin-left: 0;
-            padding: 40px 50px;
+        .btn-icon {
+            display: flex; align-items: center; justify-content: center;
+            background: var(--surface); border: 1px solid var(--border-color);
+            color: var(--text-main); font-size: 1.2rem; padding: 10px 14px;
+            border-radius: 8px; cursor: pointer; transition: 0.3s;
         }
-
-        /* Top Navigation & Hamburger Menu Spacing */
-        .top-bar {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            margin-bottom: 30px;
-            padding-bottom: 10px;
-        }
-
-        .hamburger {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--surface);
-            border: 1px solid #2a2a35;
-            color: var(--text-light);
-            font-size: 1.2rem;
-            padding: 10px 14px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        .hamburger:hover { color: var(--primary); border-color: var(--primary); background: #22222a; }
+        .btn-icon:hover { color: var(--primary); border-color: var(--primary); }
 
         /* Breadcrumb Navigation */
-        .breadcrumb {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.95rem;
-            color: var(--text-muted);
-        }
-        .breadcrumb a {
-            color: var(--text-muted);
-            text-decoration: none;
-            transition: color 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+        .breadcrumb { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; color: var(--text-muted); }
+        .breadcrumb a { color: var(--text-muted); text-decoration: none; transition: color 0.3s; display: flex; align-items: center; gap: 6px; }
         .breadcrumb a:hover { color: var(--primary); }
-        .breadcrumb .separator { font-size: 0.75rem; color: #4a4a5a; }
-        .breadcrumb .current { color: var(--text-light); font-weight: 600; }
+        .breadcrumb .separator { font-size: 0.75rem; color: var(--text-muted); }
+        .breadcrumb .current { color: var(--text-main); font-weight: 600; }
 
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 35px; border-bottom: 1px solid #2a2a35; padding-bottom: 20px;}
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 35px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px;}
         .header h1 { margin: 0; font-size: 2.2rem; }
         
-        /* Dashboard Component Spacing */
+        /* Dashboard Components */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 25px; margin-bottom: 35px; }
-        .stat-card { background: var(--surface); padding: 25px; border-radius: 12px; border-left: 4px solid var(--primary); box-shadow: 0 4px 15px rgba(0,0,0,0.3);}
+        .stat-card { background: var(--surface); padding: 25px; border-radius: 12px; border-left: 4px solid var(--primary); box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: 0.3s;}
         .stat-title { color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 1px; }
         .stat-value { font-size: 2.4rem; font-weight: bold; margin: 0; }
         
-        .card { background: var(--surface); border-radius: 12px; padding: 30px; margin-bottom: 35px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        .card h3 { margin-top: 0; margin-bottom: 25px; color: var(--text-light); border-left: 3px solid var(--primary); padding-left: 12px; font-size: 1.3rem; }
+        .card { background: var(--surface); border-radius: 12px; padding: 30px; margin-bottom: 35px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: 0.3s;}
+        .card h3 { margin-top: 0; margin-bottom: 25px; color: var(--text-main); border-left: 3px solid var(--primary); padding-left: 12px; font-size: 1.3rem; }
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
         .form-group { display: flex; flex-direction: column; gap: 10px; }
         .form-group label { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-        .form-group input { background: #0a0a0c; border: 1px solid #2a2a35; color: #fff; padding: 14px; border-radius: 8px; font-family: inherit; font-size: 0.95rem; }
+        .form-group input { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 14px; border-radius: 8px; font-family: inherit; font-size: 0.95rem; transition: 0.3s;}
         .form-group input:focus { border-color: var(--primary); outline: none; }
+        
         .btn-submit { background: var(--primary); color: #fff; border: none; padding: 14px 28px; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.3s; margin-top: 20px; font-size: 0.95rem; }
-        .btn-submit:hover { box-shadow: 0 0 15px rgba(255, 0, 85, 0.6); transform: translateY(-2px); }
+        .btn-submit:hover { opacity: 0.9; transform: translateY(-2px); }
 
-        .table-container { background: var(--surface); border-radius: 12px; overflow: hidden; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .table-container { background: var(--surface); border-radius: 12px; overflow: hidden; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: 0.3s;}
         table { width: 100%; border-collapse: collapse; text-align: left; }
-        th { color: var(--text-muted); padding: 18px; border-bottom: 1px solid #2a2a35; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;}
-        td { padding: 18px; border-bottom: 1px solid #2a2a35; vertical-align: middle; }
+        th { color: var(--text-muted); padding: 18px; border-bottom: 1px solid var(--border-color); text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;}
+        td { padding: 18px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
         .art-thumb { width: 48px; height: 48px; border-radius: 6px; object-fit: cover; }
-        .badge { background: rgba(255,0,85,0.1); color: var(--primary); padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; display: inline-flex; align-items: center; gap: 6px;}
-        .btn-delete { color: #ff4444; background: rgba(255,68,68,0.1); border: 1px solid rgba(255,68,68,0.3); padding: 8px 14px; border-radius: 6px; cursor: pointer; transition: 0.3s; font-weight: 600; }
-        .btn-delete:hover { background: #ff4444; color: #fff; }
+        .badge { background: rgba(0, 168, 255, 0.1); color: var(--primary); padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; display: inline-flex; align-items: center; gap: 6px;}
+        .btn-delete { color: var(--danger-text); background: var(--danger-bg); border: 1px solid var(--danger-text); padding: 8px 14px; border-radius: 6px; cursor: pointer; transition: 0.3s; font-weight: 600; }
+        .btn-delete:hover { background: var(--danger-text); color: #fff; }
 
-        /* Responsive spacing for smaller screens */
         @media (max-width: 768px) {
             .main-content, .main-content.expanded { padding: 20px; }
             .top-bar { margin-bottom: 20px; }
@@ -142,7 +123,7 @@
 <body>
 
     <nav class="sidebar" id="sidebar">
-        <h2>DJ GREY <br><span style="color:#fff; font-size: 1rem;">Admin</span></h2>
+        <h2>DJ GREY <br><span style="color:var(--text-main); font-size: 1rem;">Admin</span></h2>
         <ul class="sidebar-menu">
             <li><a href="#" class="active"><i class="fa-solid fa-chart-pie"></i> Analytics & Upload</a></li>
             <li><a href="/" target="_blank"><i class="fa-solid fa-globe"></i> View Live Site</a></li>
@@ -150,18 +131,24 @@
     </nav>
 
     <main class="main-content" id="main-content">
-        <!-- Top Bar with Hamburger & Breadcrumb -->
+        <!-- Top Bar with Hamburger, Breadcrumb & Theme Toggle -->
         <div class="top-bar">
-            <button class="hamburger" id="hamburger-btn" aria-label="Toggle Sidebar">
-                <i class="fa-solid fa-bars"></i>
+            <div class="nav-left">
+                <button class="btn-icon" id="hamburger-btn" aria-label="Toggle Sidebar">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <nav class="breadcrumb">
+                    <a href="/"><i class="fa-solid fa-house"></i> Home</a>
+                    <i class="fa-solid fa-chevron-right separator"></i>
+                    <a href="#">Admin</a>
+                    <i class="fa-solid fa-chevron-right separator"></i>
+                    <span class="current">Dashboard</span>
+                </nav>
+            </div>
+            
+            <button class="btn-icon" id="theme-toggle" aria-label="Toggle Theme">
+                <i class="fa-solid fa-sun"></i>
             </button>
-            <nav class="breadcrumb">
-                <a href="/"><i class="fa-solid fa-house"></i> Home</a>
-                <i class="fa-solid fa-chevron-right separator"></i>
-                <a href="#">Admin</a>
-                <i class="fa-solid fa-chevron-right separator"></i>
-                <span class="current">Dashboard</span>
-            </nav>
         </div>
 
         <header class="header">
@@ -230,7 +217,25 @@
     <script>
         const API_URL = 'https://dj-grey.onrender.com/api'; 
 
-        // Toggle Sidebar & Adjust Spacing
+        // Theme Toggle Logic
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const currentTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        updateThemeIcon(currentTheme);
+
+        themeToggleBtn.addEventListener('click', () => {
+            let theme = document.documentElement.getAttribute('data-theme');
+            let newTheme = theme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        });
+
+        function updateThemeIcon(theme) {
+            themeToggleBtn.innerHTML = theme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+        }
+
+        // Toggle Sidebar
         const hamburgerBtn = document.getElementById('hamburger-btn');
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('main-content');
@@ -260,7 +265,7 @@
 
                     tableBody.innerHTML += `
                         <tr>
-                            <td><img src="${mix.artwork_url}" class="art-thumb" onerror="this.src='https://via.placeholder.com/45/1a1a20/ff0055?text=Art'"></td>
+                            <td><img src="${mix.artwork_url}" class="art-thumb" onerror="this.src='https://via.placeholder.com/45/1a1a20/00a8ff?text=Art'"></td>
                             <td style="font-weight: bold;">${mix.title}</td>
                             <td><span class="badge"><i class="fa-solid fa-heart"></i> ${mix.likes_count}</span></td>
                             <td><span class="badge"><i class="fa-solid fa-download"></i> ${mix.downloads_count}</span></td>
