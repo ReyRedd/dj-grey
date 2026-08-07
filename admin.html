@@ -127,6 +127,7 @@
         <ul class="sidebar-menu">
             <li><a href="#" class="active"><i class="fa-solid fa-chart-pie"></i> Analytics & Upload</a></li>
             <li><a href="/" target="_blank"><i class="fa-solid fa-globe"></i> View Live Site</a></li>
+            <li><a href="#" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
         </ul>
     </nav>
 
@@ -217,6 +218,25 @@
     <script>
         const API_URL = 'https://dj-grey.onrender.com/api'; 
 
+        // 1. SECURITY CHECK: Check for token immediately
+        const token = localStorage.getItem('dj_grey_token');
+        if (!token) {
+            window.location.href = '/login.html'; // Kick unauthorized users out!
+        }
+
+        // Helper function to attach the authorization token to requests
+        const getAuthHeaders = () => ({
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        });
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('dj_grey_token');
+            localStorage.removeItem('dj_grey_user');
+            window.location.href = '/login.html';
+        }
+
         // Theme Toggle Logic
         const themeToggleBtn = document.getElementById('theme-toggle');
         const currentTheme = localStorage.getItem('theme') || 'dark';
@@ -250,13 +270,13 @@
         // Load data into stats & table
         async function loadAdminData() {
             try {
-                const res = await fetch(`${API_URL}/mixes`);
+                const res = await fetch(`${API_URL}/mixes`); // Public route, no token needed
                 const mixes = await res.json();
-                
+
                 const tableBody = document.getElementById('admin-table-body');
                 let totalLikes = 0;
                 let totalDownloads = 0;
-                
+
                 tableBody.innerHTML = '';
 
                 mixes.forEach(mix => {
@@ -284,11 +304,10 @@
 
             } catch (error) {
                 console.error("Error loading admin data:", error);
-                document.getElementById('admin-table-body').innerHTML = `<tr><td colspan="5" style="color: var(--primary);">Failed to load database. Is the server running?</td></tr>`;
             }
         }
 
-        // Add mix
+        // Add mix - NOW SECURED
         document.getElementById('add-mix-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const title = document.getElementById('mix-title').value;
@@ -298,7 +317,7 @@
             try {
                 const res = await fetch(`${API_URL}/mixes`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(), // <-- Sending the secure token
                     body: JSON.stringify({ title, audio_url, artwork_url })
                 });
 
@@ -307,23 +326,31 @@
                     document.getElementById('add-mix-form').reset();
                     loadAdminData();
                 } else {
-                    alert('Failed to publish mix.');
+                    const data = await res.json();
+                    alert(`Failed: ${data.error}`);
+                    if (res.status === 401 || res.status === 403) logout(); // Kick out if token expired
                 }
             } catch (err) {
                 console.error("Error publishing mix:", err);
             }
         });
 
-        // Delete mix
+        // Delete mix - NOW SECURED
         async function deleteMix(id, title) {
             if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
 
             try {
-                const res = await fetch(`${API_URL}/mixes/${id}`, { method: 'DELETE' });
+                const res = await fetch(`${API_URL}/mixes/${id}`, { 
+                    method: 'DELETE',
+                    headers: getAuthHeaders() // <-- Sending the secure token
+                });
+
                 if (res.ok) {
                     loadAdminData();
                 } else {
-                    alert('Failed to delete mix.');
+                    const data = await res.json();
+                    alert(`Failed: ${data.error}`);
+                    if (res.status === 401 || res.status === 403) logout(); // Kick out if token expired
                 }
             } catch (err) {
                 console.error("Error deleting mix:", err);

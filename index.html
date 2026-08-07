@@ -7,10 +7,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            /* Dark Theme (Default) */
             --bg: #0a0a0c;
             --surface: #1a1a20;
-            --primary: #00a8ff; /* Blue Theme */
+            --primary: #00a8ff; 
             --text-main: #ffffff;
             --text-muted: #a0a0a0;
             --border-color: #2a2a35;
@@ -18,7 +17,6 @@
         }
 
         [data-theme="light"] {
-            /* Light Theme */
             --bg: #f0f2f5;
             --surface: #ffffff;
             --primary: #0056b3; 
@@ -29,13 +27,13 @@
 
         *, *::before, *::after { box-sizing: border-box; }
 
+        /* Added a smooth transition for fullscreen mode */
         body {
-            margin: 0; padding: 0 0 100px 0; /* Padding for bottom player */
+            margin: 0; padding: 0 0 100px 0; 
             background-color: var(--bg); color: var(--text-main); 
             font-family: var(--font-main); transition: background-color 0.3s, color 0.3s;
         }
 
-        /* Header & Theme Toggle */
         header {
             text-align: center; padding: 60px 20px; border-bottom: 1px solid var(--border-color);
             position: relative;
@@ -51,7 +49,6 @@
         }
         .theme-toggle-btn:hover { color: var(--primary); border-color: var(--primary); }
 
-        /* Mixes Grid */
         .container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
         .section-title { border-left: 4px solid var(--primary); padding-left: 15px; font-size: 1.5rem; margin-bottom: 30px; }
         
@@ -73,7 +70,7 @@
         .stats i { cursor: pointer; transition: color 0.3s; }
         .stats i:hover { color: var(--primary); }
 
-        /* Advanced Bottom Player */
+        /* Bottom Player */
         .player-bar {
             position: fixed; bottom: 0; left: 0; width: 100%;
             background: var(--surface); border-top: 1px solid var(--border-color);
@@ -81,14 +78,12 @@
             box-shadow: 0 -5px 20px rgba(0,0,0,0.2); z-index: 1000;
         }
 
-        /* 1. Now Playing Section (Left) */
         .now-playing { display: flex; align-items: center; gap: 15px; width: 30%; }
         .now-playing img { width: 50px; height: 50px; border-radius: 6px; object-fit: cover; background: #333; }
         .now-playing-info { display: flex; flex-direction: column; }
         .now-playing-title { font-weight: bold; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px;}
         .now-playing-dj { color: var(--text-muted); font-size: 0.8rem; }
 
-        /* 2. Media Controls (Center) */
         .player-controls-wrapper { display: flex; flex-direction: column; align-items: center; width: 40%; gap: 10px; }
         .media-buttons { display: flex; align-items: center; gap: 20px; }
         .media-btn { background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; transition: 0.2s; }
@@ -96,14 +91,12 @@
         .btn-main-play { font-size: 2rem; color: var(--primary); }
         .btn-main-play:hover { transform: scale(1.1); }
         
-        /* Audio Element (Hidden default controls) */
         audio { width: 100%; height: 30px; outline: none; }
         audio::-webkit-media-controls-enclosure { background-color: transparent; }
         audio::-webkit-media-controls-panel { background-color: var(--bg); border-radius: 5px;}
         audio::-webkit-media-controls-current-time-display, 
         audio::-webkit-media-controls-time-remaining-display { color: var(--text-main); }
 
-        /* 3. Extra Controls (Right) */
         .extra-controls { display: flex; align-items: center; justify-content: flex-end; gap: 15px; width: 30%; color: var(--text-muted); }
         .extra-controls i { cursor: pointer; transition: 0.2s; }
         .extra-controls i:hover { color: var(--primary); }
@@ -113,7 +106,7 @@
             .player-bar { flex-direction: column; gap: 15px; padding: 15px; }
             .now-playing, .player-controls-wrapper, .extra-controls { width: 100%; justify-content: center; }
             .now-playing-title { max-width: 200px; }
-            .extra-controls { display: none; } /* Hide volume on mobile to save space */
+            .extra-controls { display: none; } 
             body { padding-bottom: 150px; }
         }
     </style>
@@ -138,7 +131,6 @@
     <!-- Advanced Bottom Player Bar -->
     <div class="player-bar">
         
-        <!-- Now Playing Info -->
         <div class="now-playing">
             <img id="np-art" src="https://via.placeholder.com/50/1a1a20/00a8ff?text=DJ" alt="Artwork">
             <div class="now-playing-info">
@@ -147,26 +139,26 @@
             </div>
         </div>
 
-        <!-- Media Controls & Native Audio -->
         <div class="player-controls-wrapper">
             <div class="media-buttons">
-                <button class="media-btn" title="Shuffle"><i class="fa-solid fa-shuffle"></i></button>
-                <button class="media-btn" title="Previous"><i class="fa-solid fa-backward-step"></i></button>
+                <!-- WIRED UP BUTTONS -->
+                <button class="media-btn" title="Shuffle" onclick="toggleShuffle()" id="shuffle-btn"><i class="fa-solid fa-shuffle"></i></button>
+                <button class="media-btn" title="Previous" onclick="playPrev()"><i class="fa-solid fa-backward-step"></i></button>
                 <button class="media-btn btn-main-play" title="Play/Pause" id="custom-play-btn" onclick="togglePlay()"><i class="fa-solid fa-circle-play"></i></button>
                 <button class="media-btn" title="Stop" onclick="stopAudio()"><i class="fa-solid fa-stop"></i></button>
-                <button class="media-btn" title="Next"><i class="fa-solid fa-forward-step"></i></button>
+                <button class="media-btn" title="Next" onclick="playNext()"><i class="fa-solid fa-forward-step"></i></button>
                 <button class="media-btn" title="Repeat" onclick="toggleLoop()" id="loop-btn"><i class="fa-solid fa-repeat"></i></button>
             </div>
             <audio id="audio-player" controls controlsList="nodownload"></audio>
         </div>
 
-        <!-- Volume & Extras -->
         <div class="extra-controls">
-            <i class="fa-solid fa-list" title="Playlist"></i>
-            <i class="fa-solid fa-sliders" title="Equalizer"></i>
+            <!-- WIRED UP EXTRAS -->
+            <i class="fa-solid fa-list" title="Back to Playlist" onclick="scrollToPlaylist()"></i>
+            <i class="fa-solid fa-sliders" title="Equalizer" onclick="showEQMessage()"></i>
             <i class="fa-solid fa-volume-high" id="mute-icon" onclick="toggleMute()"></i>
             <input type="range" class="volume-slider" id="volume-slider" min="0" max="1" step="0.01" value="1">
-            <i class="fa-solid fa-expand" title="Fullscreen"></i>
+            <i class="fa-solid fa-expand" title="Fullscreen" onclick="toggleFullScreen()"></i>
         </div>
     </div>
 
@@ -174,6 +166,11 @@
         const API_URL = 'https://dj-grey.onrender.com/api';
         const audioPlayer = document.getElementById('audio-player');
         const customPlayBtn = document.getElementById('custom-play-btn');
+
+        // Playlist State Variables
+        let playlist = [];
+        let currentTrackIndex = -1;
+        let isShuffle = false;
 
         // Theme Toggle Logic
         const themeToggleBtn = document.getElementById('theme-toggle');
@@ -197,15 +194,14 @@
         async function loadMixes() {
             try {
                 const res = await fetch(`${API_URL}/mixes`);
-                const mixes = await res.json();
+                playlist = await res.json(); // Save to global playlist
+                
                 const grid = document.getElementById('mixes-grid');
                 grid.innerHTML = '';
 
-                mixes.forEach(mix => {
+                playlist.forEach((mix, index) => {
                     const fallbackArt = 'https://via.placeholder.com/300x250/1a1a20/00a8ff?text=DJ+Grey';
                     const art = mix.artwork_url || fallbackArt;
-                    
-                    // Escape quotes for inline JS function
                     const safeTitle = mix.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
                     grid.innerHTML += `
@@ -214,7 +210,7 @@
                             <div class="card-content">
                                 <h3 class="card-title">${mix.title}</h3>
                                 <div class="card-actions">
-                                    <button class="btn-play" onclick="playMix('${mix.audio_url}', '${safeTitle}', '${art}')">
+                                    <button class="btn-play" onclick="playMix(${index})">
                                         <i class="fa-solid fa-play"></i> PLAY
                                     </button>
                                     <div class="stats">
@@ -232,17 +228,49 @@
             }
         }
 
-        // --- NEW DYNAMIC PLAYER FUNCTIONS ---
+        // --- PLAYLIST LOGIC (Next, Prev, Shuffle) ---
 
-        function playMix(url, title, art) {
-            // Update Now Playing UI
-            document.getElementById('np-title').innerText = title;
+        function playMix(index) {
+            if (index < 0 || index >= playlist.length) return;
+            currentTrackIndex = index;
+            const mix = playlist[currentTrackIndex];
+            
+            const fallbackArt = 'https://via.placeholder.com/300x250/1a1a20/00a8ff?text=DJ+Grey';
+            const art = mix.artwork_url || fallbackArt;
+
+            document.getElementById('np-title').innerText = mix.title;
             document.getElementById('np-art').src = art;
 
-            // Play Audio
-            audioPlayer.src = url;
+            audioPlayer.src = mix.audio_url;
             audioPlayer.play();
         }
+
+        function playNext() {
+            if (playlist.length === 0) return;
+            
+            let nextIndex;
+            if (isShuffle) {
+                nextIndex = Math.floor(Math.random() * playlist.length);
+            } else {
+                nextIndex = currentTrackIndex + 1;
+                if (nextIndex >= playlist.length) nextIndex = 0; // Loop back to start
+            }
+            playMix(nextIndex);
+        }
+
+        function playPrev() {
+            if (playlist.length === 0) return;
+            let prevIndex = currentTrackIndex - 1;
+            if (prevIndex < 0) prevIndex = playlist.length - 1; // Loop to end
+            playMix(prevIndex);
+        }
+
+        // Auto-play next track when current finishes
+        audioPlayer.addEventListener('ended', () => {
+            if (!audioPlayer.loop) playNext();
+        });
+
+        // --- MEDIA CONTROLS ---
 
         function togglePlay() {
             if (audioPlayer.paused && audioPlayer.src) {
@@ -262,9 +290,35 @@
             document.getElementById('loop-btn').style.color = audioPlayer.loop ? 'var(--primary)' : 'var(--text-muted)';
         }
 
-        // Sync custom play button with actual audio state
+        function toggleShuffle() {
+            isShuffle = !isShuffle;
+            document.getElementById('shuffle-btn').style.color = isShuffle ? 'var(--primary)' : 'var(--text-muted)';
+        }
+
         audioPlayer.addEventListener('play', () => customPlayBtn.innerHTML = '<i class="fa-solid fa-circle-pause"></i>');
         audioPlayer.addEventListener('pause', () => customPlayBtn.innerHTML = '<i class="fa-solid fa-circle-play"></i>');
+
+        // --- EXTRA CONTROLS (Fullscreen, Playlist, EQ) ---
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    alert(`Error attempting to enable fullscreen mode: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        function scrollToPlaylist() {
+            document.getElementById('mixes-grid').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showEQMessage() {
+            alert("Advanced Equalizer controls coming in the next platform update!");
+        }
 
         // Volume Controls
         const volumeSlider = document.getElementById('volume-slider');
@@ -287,7 +341,6 @@
         }
 
         // --- INTERACTION FUNCTIONS (Like/Download) ---
-
         async function likeMix(id, element) {
             try {
                 const res = await fetch(`${API_URL}/mixes/${id}/like`, { method: 'POST' });
@@ -295,25 +348,14 @@
                 if (data.success) {
                     element.innerHTML = `<i class="fa-solid fa-heart" style="color: var(--primary);"></i> ${data.newLikes}`;
                 }
-            } catch (err) {
-                console.error("Error liking mix:", err);
-            }
+            } catch (err) { console.error("Error liking mix:", err); }
         }
 
         async function downloadMix(id, url) {
             try {
-                // Register download in database
-                const res = await fetch(`${API_URL}/mixes/${id}/download`, { method: 'POST' });
-                const data = await res.json();
-                
-                // Refresh grid to show new count (optional, can also just update DOM element directly like likes)
-                loadMixes(); 
-                
-                // Trigger actual file download in new tab
+                await fetch(`${API_URL}/mixes/${id}/download`, { method: 'POST' });
                 window.open(url, '_blank');
-            } catch (err) {
-                console.error("Error downloading mix:", err);
-            }
+            } catch (err) { console.error("Error downloading mix:", err); }
         }
 
         // Initialize

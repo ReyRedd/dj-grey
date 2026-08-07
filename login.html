@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DJ Grey | Secure Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #0a0a0c; --surface: #1a1a20; --primary: #00a8ff; 
+            --text-main: #ffffff; --text-muted: #a0a0a0; --border-color: #2a2a35;
+            --font-main: 'Segoe UI', system-ui, sans-serif;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 0; display: flex; justify-content: center; align-items: center;
+            height: 100vh; background-color: var(--bg); color: var(--text-main); font-family: var(--font-main);
+        }
+        .login-card {
+            background: var(--surface); padding: 40px; border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100%; max-width: 400px;
+            border-top: 4px solid var(--primary); text-align: center;
+        }
+        .login-card h2 { margin-top: 0; color: var(--primary); font-size: 2rem; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 2px;}
+        .login-card p { color: var(--text-muted); margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; text-align: left; }
+        .form-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; }
+        .form-group input { 
+            width: 100%; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);
+            background: var(--bg); color: var(--text-main); font-size: 1rem;
+        }
+        .form-group input:focus { outline: none; border-color: var(--primary); }
+        .btn { 
+            width: 100%; background: var(--primary); color: #fff; border: none; 
+            padding: 14px; border-radius: 8px; font-weight: bold; font-size: 1rem; 
+            cursor: pointer; transition: 0.3s; text-transform: uppercase; margin-top: 10px;
+        }
+        .btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        .toggle-mode { margin-top: 20px; font-size: 0.85rem; color: var(--text-muted); cursor: pointer; }
+        .toggle-mode:hover { color: var(--primary); }
+        #error-msg { color: #ff4444; font-size: 0.9rem; margin-bottom: 15px; display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <h2>DJ GREY</h2>
+        <p id="form-subtitle">Admin Control Center</p>
+        
+        <div id="error-msg"></div>
+
+        <form id="auth-form">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="username" required placeholder="Enter username">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" required placeholder="Enter password">
+            </div>
+            <button type="submit" class="btn" id="submit-btn"><i class="fa-solid fa-lock"></i> Login</button>
+        </form>
+
+        <!-- Temporary toggle to allow you to register your first account -->
+        <div class="toggle-mode" onclick="toggleRegisterMode()" id="mode-text">First time here? Register Master Admin</div>
+    </div>
+
+    <script>
+        const API_URL = 'https://dj-grey.onrender.com/api/auth';
+        let isRegisterMode = false;
+
+        function toggleRegisterMode() {
+            isRegisterMode = !isRegisterMode;
+            document.getElementById('submit-btn').innerHTML = isRegisterMode ? '<i class="fa-solid fa-user-plus"></i> Create Account' : '<i class="fa-solid fa-lock"></i> Login';
+            document.getElementById('form-subtitle').innerText = isRegisterMode ? 'Register Master Account' : 'Admin Control Center';
+            document.getElementById('mode-text').innerText = isRegisterMode ? 'Back to Login' : 'First time here? Register Master Admin';
+            document.getElementById('error-msg').style.display = 'none';
+        }
+
+        document.getElementById('auth-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('error-msg');
+
+            const endpoint = isRegisterMode ? '/register' : '/login';
+
+            try {
+                const res = await fetch(`${API_URL}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    errorMsg.innerText = data.error || 'Authentication failed.';
+                    errorMsg.style.display = 'block';
+                    return;
+                }
+
+                if (isRegisterMode) {
+                    alert('Account created! You can now log in.');
+                    toggleRegisterMode();
+                    document.getElementById('password').value = '';
+                } else {
+                    // LOGIN SUCCESS! Save the digital key to local storage
+                    localStorage.setItem('dj_grey_token', data.token);
+                    localStorage.setItem('dj_grey_user', data.username);
+                    window.location.href = '/admin.html'; // Redirect to dashboard
+                }
+            } catch (err) {
+                errorMsg.innerText = 'Server error. Is the backend running?';
+                errorMsg.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
