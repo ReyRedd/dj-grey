@@ -1,84 +1,158 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" data-theme="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>His Majesty DJ GREY</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="index.css">
-</head>
-<body>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
 
     <header>
-        <div class="auth-container" id="auth-section"></div>
-        <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle Theme">
-            <i class="fa-solid fa-sun"></i>
-        </button>
-        <h1>His Majesty DJ GREY</h1>
-        <div class="subtitle">The Ultimate Experience</div>
+      <div class="auth-container" id="auth-section"></div>
+      <button
+        class="theme-toggle-btn"
+        id="theme-toggle"
+        aria-label="Toggle Theme"
+      >
+        <i class="fa-solid fa-sun"></i>
+      </button>
+      <h1>His Majesty DJ GREY</h1>
+      <div class="subtitle">The Ultimate Experience</div>
     </header>
 
-    <div class="container">
-        <h2 class="section-title">LATEST DROPS</h2>
-        <div class="grid" id="mixes-grid">
-            <p style="font-size: 1.2rem; text-shadow: 0 0 10px var(--primary-glow);">Initializing the vault...</p>
+    <!-- Fan Vault Sidebar -->
+    <div class="vault-sidebar" id="vault-sidebar">
+        <div class="vault-header">
+            <h3><i class="fa-solid fa-vault"></i> My Vault</h3>
+            <button class="close-vault" onclick="toggleVault()"><i class="fa-solid fa-xmark"></i></button>
         </div>
+        <div id="vault-list">
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Loading your downloaded tracks...</p>
+        </div>
+    </div>
+
+    <div class="container">
+      <h2 class="section-title">LATEST DROPS</h2>
+      <div class="grid" id="mixes-grid">
+        <p style="font-size: 1.2rem; text-shadow: 0 0 10px var(--primary-glow)">
+          Initializing the vault...
+        </p>
+      </div>
     </div>
 
     <!-- Glass Bottom Player Bar (TARGET FOR FULLSCREEN) -->
     <div class="player-bar" id="player-ui">
-        
-        <div class="now-playing">
-            <img id="np-art" src="https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1" alt="Artwork">
-            <div class="now-playing-info">
-                <span class="now-playing-title" id="np-title">Select a Mix</span>
-                <span class="now-playing-dj">DJ Grey</span>
-            </div>
+      <div class="now-playing">
+        <img
+          id="np-art"
+          src="https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1"
+          alt="Artwork"
+        />
+        <div class="now-playing-info">
+          <span class="now-playing-title" id="np-title">Select a Mix</span>
+          <span class="now-playing-dj">DJ Grey</span>
         </div>
+      </div>
 
-        <div class="player-controls-wrapper">
-            <div class="media-buttons">
-                <button class="media-btn" title="Shuffle" onclick="toggleShuffle()" id="shuffle-btn"><i class="fa-solid fa-shuffle"></i></button>
-                <button class="media-btn" title="Previous" onclick="playPrev()"><i class="fa-solid fa-backward-step"></i></button>
-                <button class="media-btn btn-main-play" title="Play/Pause" id="custom-play-btn" onclick="togglePlay()"><i class="fa-solid fa-circle-play"></i></button>
-                <button class="media-btn" title="Stop" onclick="stopAudio()"><i class="fa-solid fa-stop"></i></button>
-                <button class="media-btn" title="Next" onclick="playNext()"><i class="fa-solid fa-forward-step"></i></button>
-                <button class="media-btn" title="Repeat" onclick="toggleLoop()" id="loop-btn"><i class="fa-solid fa-repeat"></i></button>
-            </div>
-            <audio id="audio-player" controls controlsList="nodownload"></audio>
+      <div class="player-controls-wrapper">
+        <div class="media-buttons">
+          <button
+            class="media-btn"
+            title="Shuffle"
+            onclick="toggleShuffle()"
+            id="shuffle-btn"
+          >
+            <i class="fa-solid fa-shuffle"></i>
+          </button>
+          <button class="media-btn" title="Previous" onclick="playPrev()">
+            <i class="fa-solid fa-backward-step"></i>
+          </button>
+          <button
+            class="media-btn btn-main-play"
+            title="Play/Pause"
+            id="custom-play-btn"
+            onclick="togglePlay()"
+          >
+            <i class="fa-solid fa-circle-play"></i>
+          </button>
+          <button class="media-btn" title="Stop" onclick="stopAudio()">
+            <i class="fa-solid fa-stop"></i>
+          </button>
+          <button class="media-btn" title="Next" onclick="playNext()">
+            <i class="fa-solid fa-forward-step"></i>
+          </button>
+          <button
+            class="media-btn"
+            title="Repeat"
+            onclick="toggleLoop()"
+            id="loop-btn"
+          >
+            <i class="fa-solid fa-repeat"></i>
+          </button>
         </div>
+        <audio id="audio-player" controls controlsList="nodownload"></audio>
+      </div>
 
-        <div class="extra-controls">
-            <i class="fa-solid fa-list" title="Back to Playlist" onclick="scrollToPlaylist()"></i>
-            <i class="fa-solid fa-sliders" title="Equalizer" onclick="showEQMessage()"></i>
-            <i class="fa-solid fa-volume-high" id="mute-icon" onclick="toggleMute()"></i>
-            <input type="range" class="volume-slider" id="volume-slider" min="0" max="1" step="0.01" value="1">
-            <i class="fa-solid fa-expand" title="Fullscreen" onclick="toggleFullScreen()"></i>
-        </div>
+      <div class="extra-controls">
+        <i
+          class="fa-solid fa-list"
+          title="Back to Playlist"
+          onclick="scrollToPlaylist()"
+        ></i>
+        <i
+          class="fa-solid fa-sliders"
+          title="Equalizer"
+          onclick="showEQMessage()"
+        ></i>
+        <i
+          class="fa-solid fa-volume-high"
+          id="mute-icon"
+          onclick="toggleMute()"
+        ></i>
+        <input
+          type="range"
+          class="volume-slider"
+          id="volume-slider"
+          min="0"
+          max="1"
+          step="0.01"
+          value="1"
+        />
+        <i
+          class="fa-solid fa-expand"
+          title="Fullscreen"
+          onclick="toggleFullScreen()"
+        ></i>
+      </div>
     </div>
 
     <script>
-        const API_URL = 'https://dj-grey.onrender.com/api';
-        const audioPlayer = document.getElementById('audio-player');
-        const customPlayBtn = document.getElementById('custom-play-btn');
+      const API_URL = "https://dj-grey.onrender.com/api";
+      const audioPlayer = document.getElementById("audio-player");
+      const customPlayBtn = document.getElementById("custom-play-btn");
 
-        let playlist = [];
-        let currentTrackIndex = -1;
-        let isShuffle = false;
-        let repeatState = 0; // 0: Off, 1: Repeat Playlist, 2: Repeat Track (1)
+      const DEFAULT_ARTWORK = "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1";
+      
+      let playlist = [];
+      let currentTrackIndex = -1;
+      let isShuffle = false;
+      let repeatState = 0; // 0: Off, 1: Repeat Playlist, 2: Repeat Track (1)
 
-        // --- AUTH LOGIC ---
-        // --- AUTH LOGIC ---
-        const token = localStorage.getItem('dj_grey_token');
-        const username = localStorage.getItem('dj_grey_user');
-        const role = localStorage.getItem('dj_grey_role'); // Check the user's role
-        const authSection = document.getElementById('auth-section');
+      // --- AUTH LOGIC ---
+      const token = localStorage.getItem("dj_grey_token");
+      const username = localStorage.getItem("dj_grey_user");
+      const role = localStorage.getItem("dj_grey_role"); // Check the user's role
+      const authSection = document.getElementById("auth-section");
 
-        if (token && username) {
-            // If the user is an admin, generate a Dashboard button for them
+      if (token && username) {
             const adminButton = role === 'admin' 
                 ? `<a href="/admin.html" class="auth-btn" style="background: var(--primary); color: #fff; border-color: var(--primary);"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>` 
-                : '';
+                : `<button onclick="toggleVault()" class="auth-btn"><i class="fa-solid fa-vault"></i> My Vault</button>`; // FAN VAULT BUTTON
 
             authSection.innerHTML = `
                 <span class="user-greeting">Welcome, ${username}</span>
@@ -86,230 +160,433 @@
                 <button class="auth-btn" onclick="logout()">Logout</button>
             `;
         } else {
-            authSection.innerHTML = `<a href="/login.html" class="auth-btn">Login / Fan Registration</a>`;
-        }
+        authSection.innerHTML = `<a href="/login.html" class="auth-btn">Login / Fan Registration</a>`;
+      }
 
-        function logout() {
-            localStorage.clear();
-            window.location.reload();
-        }
+      function logout() {
+        localStorage.clear();
+        window.location.reload();
+      }
 
-        const getAuthHeaders = () => ({
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        });
+      const getAuthHeaders = () => ({
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      });
 
-        // Theme Toggle Logic
-        const themeToggleBtn = document.getElementById('theme-toggle');
-        const currentTheme = localStorage.getItem('theme') || 'dark';
-        document.documentElement.setAttribute('data-theme', currentTheme);
-        updateThemeIcon(currentTheme);
+      // --- FAN VAULT LOGIC ---
+      async function toggleVault() {
+          const vault = document.getElementById('vault-sidebar');
+          vault.classList.toggle('open');
+          
+          if (vault.classList.contains('open')) {
+              const list = document.getElementById('vault-list');
+              try {
+                  const res = await fetch(`${API_URL}/users/me/downloads`, { headers: getAuthHeaders() });
+                  if (!res.ok) throw new Error("Failed to load vault");
+                  const downloads = await res.json();
+                  
+                  if (downloads.length === 0) {
+                      list.innerHTML = `<p style="color: var(--text-muted);">You haven't downloaded any mixes yet!</p>`;
+                      return;
+                  }
 
-        themeToggleBtn.addEventListener('click', () => {
-            let theme = document.documentElement.getAttribute('data-theme');
-            let newTheme = theme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeIcon(newTheme);
-        });
+                  list.innerHTML = '';
+                  downloads.forEach(mix => {
+                      const art = mix.artwork_url || DEFAULT_ARTWORK;
+                      list.innerHTML += `
+                          <div class="vault-item">
+                              <img src="${art}" onerror="this.src='${DEFAULT_ARTWORK}'">
+                              <div class="vault-info">
+                                  <h4>${mix.title}</h4>
+                                  <p>Downloaded: ${new Date(mix.downloaded_at).toLocaleDateString()}</p>
+                              </div>
+                              <button class="vault-play-btn" onclick="playVaultMix('${mix.audio_url}', '${mix.title.replace(/'/g, "\\'")}', '${art}')">
+                                  <i class="fa-solid fa-play"></i>
+                              </button>
+                          </div>
+                      `;
+                  });
+              } catch (err) {
+                  console.error("Vault error:", err);
+                  list.innerHTML = `<p style="color: var(--primary);">Error loading your vault. Please log in again.</p>`;
+              }
+          }
+      }
 
-        function updateThemeIcon(theme) {
-            themeToggleBtn.innerHTML = theme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
-        }
+      function playVaultMix(url, title, art) {
+          document.getElementById('np-title').innerText = title;
+          document.getElementById('np-art').src = art || DEFAULT_ARTWORK;
+          audioPlayer.src = url;
+          audioPlayer.play();
+      }
 
-        // Fetch and display mixes
-        async function loadMixes() {
-            try {
-                const res = await fetch(`${API_URL}/mixes`);
-                playlist = await res.json(); 
-                
-                const grid = document.getElementById('mixes-grid');
-                grid.innerHTML = '';
+      // Theme Toggle Logic
+      const themeToggleBtn = document.getElementById("theme-toggle");
+      const currentTheme = localStorage.getItem("theme") || "dark";
+      document.documentElement.setAttribute("data-theme", currentTheme);
+      updateThemeIcon(currentTheme);
 
-                playlist.forEach((mix, index) => {
-                    const fallbackArt = 'https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1';
-                    const art = mix.artwork_url || fallbackArt;
-                    const safeTitle = mix.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      themeToggleBtn.addEventListener("click", () => {
+        let theme = document.documentElement.getAttribute("data-theme");
+        let newTheme = theme === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", newTheme);
+        localStorage.setItem("theme", newTheme);
+        updateThemeIcon(newTheme);
+      });
 
-                    grid.innerHTML += `
-                        <div class="card">
-                            <img src="${art}" class="card-img" alt="Artwork" onerror="this.src='${fallbackArt}'">
-                            <div class="card-content">
-                                <h3 class="card-title">${mix.title}</h3>
-                                <div class="card-actions">
-                                    <button class="btn-play" onclick="playMix(${index})">
-                                        <i class="fa-solid fa-play"></i> PLAY
-                                    </button>
-                                    <div class="stats">
-                                        <span onclick="likeMix(${mix.id}, this)"><i class="fa-solid fa-heart"></i> ${mix.likes_count}</span>
-                                        <span onclick="downloadMix(${mix.id}, '${mix.audio_url}')"><i class="fa-solid fa-download"></i> ${mix.downloads_count}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-            } catch (error) {
-                console.error("Error loading mixes:", error);
-                document.getElementById('mixes-grid').innerHTML = '<p style="color: var(--primary);">Failed to connect to the DJ Grey servers. Please try again later.</p>';
-            }
-        }
+      function updateThemeIcon(theme) {
+        themeToggleBtn.innerHTML =
+          theme === "dark"
+            ? '<i class="fa-solid fa-sun"></i>'
+            : '<i class="fa-solid fa-moon"></i>';
+      }
 
-        function playMix(index) {
-            if (index < 0 || index >= playlist.length) return;
-            currentTrackIndex = index;
-            const mix = playlist[currentTrackIndex];
-            
-            const fallbackArt = 'https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1';
+      // Fetch and render mixes along with comment sections
+      async function loadMixes() {
+        try {
+          const res = await fetch(`${API_URL}/mixes`);
+          playlist = await res.json();
+
+          const grid = document.getElementById("mixes-grid");
+          grid.innerHTML = "";
+
+          for (let index = 0; index < playlist.length; index++) {
+            const mix = playlist[index];
+            const fallbackArt = DEFAULT_ARTWORK;
             const art = mix.artwork_url || fallbackArt;
 
-            document.getElementById('np-title').innerText = mix.title;
-            document.getElementById('np-art').src = art;
+            grid.innerHTML += `
+                <div class="card">
+                    <img src="${art}" class="card-img" alt="Artwork" onerror="this.src='${fallbackArt}'">
+                    <div class="card-content">
+                        <h3 class="card-title">${mix.title}</h3>
+                        <div class="card-actions">
+                            <button class="btn-play" onclick="playMix(${index})">
+                                <i class="fa-solid fa-play"></i> PLAY
+                            </button>
+                            <div class="stats">
+                                <span onclick="likeMix(${mix.id}, this)"><i class="fa-solid fa-heart"></i> ${mix.likes_count}</span>
+                                <span onclick="downloadMix(${mix.id}, '${mix.audio_url}')"><i class="fa-solid fa-download"></i> ${mix.downloads_count}</span>
+                            </div>
+                        </div>
 
-            audioPlayer.src = mix.audio_url;
-            audioPlayer.play();
+                        <!-- Comments Section -->
+                        <div class="comments-drawer">
+                            <button class="comments-toggle-btn" onclick="toggleCommentsSection(${mix.id})">
+                                <i class="fa-solid fa-comments"></i> Comments
+                            </button>
+                            <div class="comments-container" id="comments-box-${mix.id}">
+                                <div class="comment-input-box">
+                                    <input type="text" id="input-mix-${mix.id}" placeholder="Write a comment...">
+                                    <button onclick="postComment(${mix.id})">Post</button>
+                                </div>
+                                <div id="comments-list-${mix.id}">Loading comments...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+          }
+        } catch (error) {
+          console.error("Error loading mixes:", error);
         }
+      }
 
-        function playNext() {
-            if (playlist.length === 0) return;
-            let nextIndex;
-            if (isShuffle) {
-                nextIndex = Math.floor(Math.random() * playlist.length);
-            } else {
-                nextIndex = currentTrackIndex + 1;
-                if (nextIndex >= playlist.length) nextIndex = 0;
-            }
-            playMix(nextIndex);
+      // Toggle comments visibility & load comments
+      async function toggleCommentsSection(mixId) {
+        const box = document.getElementById(`comments-box-${mixId}`);
+        box.classList.toggle("open");
+        if (box.classList.contains("open")) {
+          await fetchComments(mixId);
         }
+      }
 
-        function playPrev() {
-            if (playlist.length === 0) return;
-            let prevIndex = currentTrackIndex - 1;
-            if (prevIndex < 0) prevIndex = playlist.length - 1; 
-            playMix(prevIndex);
+      // Fetch and organize top-level comments and nested replies
+      async function fetchComments(mixId) {
+        const listEl = document.getElementById(`comments-list-${mixId}`);
+        try {
+          const res = await fetch(`${API_URL}/mixes/${mixId}/comments`);
+          const comments = await res.json();
+
+          if (comments.length === 0) {
+            listEl.innerHTML = `<p style="font-size: 0.85rem; color: var(--text-muted);">No comments yet. Be the first!</p>`;
+            return;
+          }
+
+          // Separate top-level comments and replies
+          const topLevel = comments.filter((c) => !c.parent_id);
+          const replies = comments.filter((c) => c.parent_id);
+
+          let html = "";
+          topLevel.forEach((c) => {
+            html += renderCommentHtml(c, false);
+            // Find replies for this comment
+            const childReplies = replies.filter((r) => r.parent_id === c.id);
+            childReplies.forEach((r) => {
+              html += renderCommentHtml(r, true);
+            });
+          });
+
+          listEl.innerHTML = html;
+        } catch (err) {
+          listEl.innerHTML = `<p style="font-size: 0.85rem; color: var(--primary);">Failed to load comments.</p>`;
         }
+      }
 
-        audioPlayer.addEventListener('ended', () => {
-            if (audioPlayer.loop) return; // Native loop handles itself natively for Repeat 1
-            if (repeatState === 1 || currentTrackIndex < playlist.length - 1) {
-                playNext(); 
-            }
-        });
+      function renderCommentHtml(c, isReply) {
+        const timeFormatted = new Date(c.created_at).toLocaleDateString();
+        return `
+        <div class="comment-card ${isReply ? "reply" : ""}" id="comment-${c.id}">
+            <div class="comment-header">
+                <span class="comment-author">${c.username}</span>
+                <span>${timeFormatted}</span>
+            </div>
+            <div class="comment-body">${c.content}</div>
+            <div class="comment-actions">
+                <span class="comment-action-btn" onclick="likeComment(${c.id}, ${c.mix_id})">
+                    <i class="fa-solid fa-thumbs-up"></i> <span id="comment-likes-${c.id}">${c.likes_count}</span>
+                </span>
+                ${!isReply ? `<span class="comment-action-btn" onclick="toggleReplyBox(${c.id})"><i class="fa-solid fa-reply"></i> Reply</span>` : ""}
+            </div>
+            <div class="comment-input-box reply-form-wrapper" id="reply-box-${c.id}">
+                <input type="text" id="reply-input-${c.id}" placeholder="Write a reply...">
+                <button onclick="postComment(${c.mix_id}, ${c.id})">Reply</button>
+            </div>
+        </div>
+    `;
+      }
 
-        function togglePlay() {
-            if (audioPlayer.paused && audioPlayer.src) {
-                audioPlayer.play();
-            } else if (!audioPlayer.paused) {
-                audioPlayer.pause();
-            }
+      function toggleReplyBox(commentId) {
+        const box = document.getElementById(`reply-box-${commentId}`);
+        box.classList.toggle("open");
+      }
+
+      // Post comment or reply
+      async function postComment(mixId, parentId = null) {
+        if (!token) return alert("Please log in to post a comment or reply.");
+
+        const inputId = parentId
+          ? `reply-input-${parentId}`
+          : `input-mix-${mixId}`;
+        const inputEl = document.getElementById(inputId);
+        const content = inputEl.value;
+
+        if (!content.trim()) return;
+
+        try {
+          const res = await fetch(`${API_URL}/mixes/${mixId}/comments`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ content, parent_id: parentId }),
+          });
+
+          if (res.ok) {
+            inputEl.value = "";
+            await fetchComments(mixId);
+          } else {
+            const data = await res.json();
+            alert(data.error || "Failed to post comment.");
+          }
+        } catch (err) {
+          console.error("Error posting comment:", err);
         }
+      }
 
-        function stopAudio() {
-            audioPlayer.pause();
-            audioPlayer.currentTime = 0;
+      // Like a comment
+      async function likeComment(commentId, mixId) {
+        if (!token) return alert("Please log in to like comments.");
+        try {
+          const res = await fetch(`${API_URL}/comments/${commentId}/like`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+          });
+          const data = await res.json();
+          if (data.success) {
+            document.getElementById(`comment-likes-${commentId}`).innerText =
+              data.likes_count;
+          }
+        } catch (err) {
+          console.error("Error liking comment:", err);
         }
+      }
 
-        // 3-WAY REPEAT LOGIC
-        function toggleLoop() {
-            repeatState = (repeatState + 1) % 3;
-            const loopBtn = document.getElementById('loop-btn');
-            
-            if (repeatState === 0) {
-                loopBtn.innerHTML = '<i class="fa-solid fa-repeat"></i>';
-                loopBtn.style.color = 'var(--text-main)';
-                audioPlayer.loop = false;
-            } else if (repeatState === 1) {
-                loopBtn.innerHTML = '<i class="fa-solid fa-repeat"></i>';
-                loopBtn.style.color = 'var(--primary)';
-                audioPlayer.loop = false;
-            } else if (repeatState === 2) {
-                loopBtn.innerHTML = '<i class="fa-solid fa-repeat"></i><sup style="font-size:0.6em;">1</sup>';
-                loopBtn.style.color = 'var(--primary)';
-                audioPlayer.loop = true;
-            }
+      function playMix(index) {
+        if (index < 0 || index >= playlist.length) return;
+        currentTrackIndex = index;
+        const mix = playlist[currentTrackIndex];
+
+        const fallbackArt = DEFAULT_ARTWORK;
+        const art = mix.artwork_url || fallbackArt;
+
+        document.getElementById("np-title").innerText = mix.title;
+        document.getElementById("np-art").src = art;
+
+        audioPlayer.src = mix.audio_url;
+        audioPlayer.play();
+
+        fetch(`${API_URL}/mixes/${mix.id}/play`, { method: 'POST' }).catch(console.error);
+      }
+
+      function playNext() {
+        if (playlist.length === 0) return;
+        let nextIndex;
+        if (isShuffle) {
+          nextIndex = Math.floor(Math.random() * playlist.length);
+        } else {
+          nextIndex = currentTrackIndex + 1;
+          if (nextIndex >= playlist.length) nextIndex = 0;
         }
+        playMix(nextIndex);
+      }
 
-        function toggleShuffle() {
-            isShuffle = !isShuffle;
-            document.getElementById('shuffle-btn').style.color = isShuffle ? 'var(--primary)' : 'var(--text-main)';
+      function playPrev() {
+        if (playlist.length === 0) return;
+        let prevIndex = currentTrackIndex - 1;
+        if (prevIndex < 0) prevIndex = playlist.length - 1;
+        playMix(prevIndex);
+      }
+
+      audioPlayer.addEventListener("ended", () => {
+        if (audioPlayer.loop) return; // Native loop handles itself natively for Repeat 1
+        if (repeatState === 1 || currentTrackIndex < playlist.length - 1) {
+          playNext();
         }
+      });
 
-        audioPlayer.addEventListener('play', () => customPlayBtn.innerHTML = '<i class="fa-solid fa-circle-pause"></i>');
-        audioPlayer.addEventListener('pause', () => customPlayBtn.innerHTML = '<i class="fa-solid fa-circle-play"></i>');
-
-        // --- IMMERSIVE FULLSCREEN LOGIC ---
-        function toggleFullScreen() {
-            const playerUI = document.getElementById('player-ui');
-            if (!document.fullscreenElement) {
-                playerUI.requestFullscreen().catch(err => {
-                    alert(`Error attempting to enable fullscreen mode: ${err.message}`);
-                });
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                }
-            }
+      function togglePlay() {
+        if (audioPlayer.paused && audioPlayer.src) {
+          audioPlayer.play();
+        } else if (!audioPlayer.paused) {
+          audioPlayer.pause();
         }
+      }
 
-        document.addEventListener("fullscreenchange", function() {
-            if (document.fullscreenElement) {
-                document.getElementById('player-ui').classList.add('is-fullscreen');
-            } else {
-                document.getElementById('player-ui').classList.remove('is-fullscreen');
-            }
-        });
+      function stopAudio() {
+        audioPlayer.pause();
+        audioPlayer.currentTime = 0;
+      }
 
-        function scrollToPlaylist() {
-            if (document.fullscreenElement) {
-                document.exitFullscreen();
-            }
-            document.getElementById('mixes-grid').scrollIntoView({ behavior: 'smooth' });
+      // 3-WAY REPEAT LOGIC
+      function toggleLoop() {
+        repeatState = (repeatState + 1) % 3;
+        const loopBtn = document.getElementById("loop-btn");
+
+        if (repeatState === 0) {
+          loopBtn.innerHTML = '<i class="fa-solid fa-repeat"></i>';
+          loopBtn.style.color = "var(--text-main)";
+          audioPlayer.loop = false;
+        } else if (repeatState === 1) {
+          loopBtn.innerHTML = '<i class="fa-solid fa-repeat"></i>';
+          loopBtn.style.color = "var(--primary)";
+          audioPlayer.loop = false;
+        } else if (repeatState === 2) {
+          loopBtn.innerHTML =
+            '<i class="fa-solid fa-repeat"></i><sup style="font-size:0.6em;">1</sup>';
+          loopBtn.style.color = "var(--primary)";
+          audioPlayer.loop = true;
         }
+      }
 
-        function showEQMessage() {
-            alert("Advanced Equalizer controls coming in the next platform update!");
+      function toggleShuffle() {
+        isShuffle = !isShuffle;
+        document.getElementById("shuffle-btn").style.color = isShuffle
+          ? "var(--primary)"
+          : "var(--text-main)";
+      }
+
+      audioPlayer.addEventListener("play", () =>
+          (customPlayBtn.innerHTML = '<i class="fa-solid fa-circle-pause"></i>'),
+      );
+      audioPlayer.addEventListener("pause", () =>
+          (customPlayBtn.innerHTML = '<i class="fa-solid fa-circle-play"></i>'),
+      );
+
+      // --- IMMERSIVE FULLSCREEN LOGIC ---
+      function toggleFullScreen() {
+        const playerUI = document.getElementById("player-ui");
+        if (!document.fullscreenElement) {
+          playerUI.requestFullscreen().catch((err) => {
+            alert(`Error attempting to enable fullscreen mode: ${err.message}`);
+          });
+        } else {
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          }
         }
+      }
 
-        const volumeSlider = document.getElementById('volume-slider');
-        const muteIcon = document.getElementById('mute-icon');
-
-        volumeSlider.addEventListener('input', (e) => {
-            audioPlayer.volume = e.target.value;
-            updateMuteIcon(audioPlayer.volume);
-        });
-
-        function toggleMute() {
-            audioPlayer.muted = !audioPlayer.muted;
-            updateMuteIcon(audioPlayer.muted ? 0 : audioPlayer.volume);
+      document.addEventListener("fullscreenchange", function () {
+        if (document.fullscreenElement) {
+          document.getElementById("player-ui").classList.add("is-fullscreen");
+        } else {
+          document.getElementById("player-ui").classList.remove("is-fullscreen");
         }
+      });
 
-        function updateMuteIcon(vol) {
-            if (vol == 0 || audioPlayer.muted) muteIcon.className = 'fa-solid fa-volume-xmark';
-            else if (vol < 0.5) muteIcon.className = 'fa-solid fa-volume-low';
-            else muteIcon.className = 'fa-solid fa-volume-high';
+      function scrollToPlaylist() {
+        if (document.fullscreenElement) {
+          document.exitFullscreen();
         }
+        document.getElementById("mixes-grid").scrollIntoView({ behavior: "smooth" });
+      }
 
-        // --- PROTECTED INTERACTIONS ---
-        async function likeMix(id, element) {
-            if (!token) return alert("Hey there! Please login or create a free fan account to like tracks.");
-            try {
-                const res = await fetch(`${API_URL}/mixes/${id}/like`, { method: 'POST', headers: getAuthHeaders() });
-                const data = await res.json();
-                if (data.success) {
-                    element.innerHTML = `<i class="fa-solid fa-heart" style="color: var(--primary);"></i> ${data.newLikes}`;
-                }
-            } catch (err) { console.error("Error liking mix:", err); }
+      function showEQMessage() {
+        alert("Advanced Equalizer controls coming in the next platform update!");
+      }
+
+      const volumeSlider = document.getElementById("volume-slider");
+      const muteIcon = document.getElementById("mute-icon");
+
+      volumeSlider.addEventListener("input", (e) => {
+        audioPlayer.volume = e.target.value;
+        updateMuteIcon(audioPlayer.volume);
+      });
+
+      function toggleMute() {
+        audioPlayer.muted = !audioPlayer.muted;
+        updateMuteIcon(audioPlayer.muted ? 0 : audioPlayer.volume);
+      }
+
+      function updateMuteIcon(vol) {
+        if (vol == 0 || audioPlayer.muted)
+          muteIcon.className = "fa-solid fa-volume-xmark";
+        else if (vol < 0.5) muteIcon.className = "fa-solid fa-volume-low";
+        else muteIcon.className = "fa-solid fa-volume-high";
+      }
+
+      // --- PROTECTED INTERACTIONS ---
+      async function likeMix(id, element) {
+        if (!token)
+          return alert("Hey there! Please login or create a free fan account to like tracks.");
+        try {
+          const res = await fetch(`${API_URL}/mixes/${id}/like`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+          });
+          const data = await res.json();
+          if (data.success) {
+            element.innerHTML = `<i class="fa-solid fa-heart" style="color: var(--primary);"></i> ${data.newLikes}`;
+          }
+        } catch (err) {
+          console.error("Error liking mix:", err);
         }
+      }
 
-        async function downloadMix(id, url) {
-            if (!token) return alert("Hey there! Please login or create a free fan account to download tracks.");
-            try {
-                const res = await fetch(`${API_URL}/mixes/${id}/download`, { method: 'POST', headers: getAuthHeaders() });
-                if (res.ok) window.open(url, '_blank');
-            } catch (err) { console.error("Error downloading mix:", err); }
+      async function downloadMix(id, url) {
+        if (!token)
+          return alert("Hey there! Please login or create a free fan account to download tracks.");
+        try {
+          const res = await fetch(`${API_URL}/mixes/${id}/download`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+          });
+          if (res.ok) window.open(url, "_blank");
+        } catch (err) {
+          console.error("Error downloading mix:", err);
         }
+      }
 
-        window.onload = loadMixes;
+      window.onload = loadMixes;
     </script>
-</body>
+  </body>
 </html>

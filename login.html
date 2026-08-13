@@ -11,7 +11,7 @@
 
     <div class="login-card">
         <h2>DJ GREY</h2>
-        <p id="form-subtitle">System Access</p>
+        <p id="form-subtitle"></p>Access 🔒</p>
         
         <div id="error-msg"></div>
 
@@ -62,6 +62,16 @@
             }
         }
 
+        function closeModalAndLogin() {
+            const modal = document.getElementById('success-modal');
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+                toggleRegisterMode(); // Switch back to login view
+                document.getElementById('password').value = '';
+            }, 400);
+        }
+
         document.getElementById('auth-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('username').value;
@@ -93,9 +103,10 @@
                 }
 
                 if (isRegisterMode) {
-                    alert('Fan Account created! You can now log in.');
-                    toggleRegisterMode();
-                    document.getElementById('password').value = '';
+                    // Show the beautiful custom popup
+                    const modal = document.getElementById('success-modal');
+                    modal.style.display = 'flex';
+                    setTimeout(() => modal.classList.add('show'), 10);
                 } else {
                     localStorage.setItem('dj_grey_token', data.token);
                     localStorage.setItem('dj_grey_user', data.username);
@@ -114,5 +125,14 @@
             }
         });
     </script>
+    <!-- Beautiful Success Modal -->
+    <div id="success-modal" class="success-modal">
+        <div class="success-content">
+            <i class="fa-solid fa-headphones-simple headphones-icon"></i>
+            <h3>Welcome to the VIP Vault</h3>
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px;">Your fan account is locked in. Get ready for the ultimate DJ Grey experience.</p>
+            <button class="btn" onclick="closeModalAndLogin()">Access System</button>
+        </div>
+    </div>
 </body>
 </html>

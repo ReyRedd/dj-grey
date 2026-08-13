@@ -68,6 +68,7 @@ app.post('/api/auth/register', async (req, res) => {
     }
 });
 
+// Login Route
 app.post('/api/auth/login', async (req, res) => {
     const { username, password } = req.body;
     
@@ -77,6 +78,11 @@ app.post('/api/auth/login', async (req, res) => {
 
         if (!user || !(await bcrypt.compare(password, user.password_hash))) {
             return res.status(401).json({ error: 'Invalid username or password' });
+        }
+
+        // 🛑 NEW: Check if account is approved by DJ Grey
+        if (user.status !== 'approved') {
+            return res.status(403).json({ error: 'Your account is pending Admin approval.' });
         }
 
         const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
@@ -109,11 +115,37 @@ app.post('/api/mixes/:id/like', authenticateUser, async (req, res) => {
     }
 });
 
+// 🔒 UPDATED: Track Download for Fan Vault
 app.post('/api/mixes/:id/download', authenticateUser, async (req, res) => {
     try {
         const { id } = req.params;
+        const userId = req.user.id;
+
+        // 1. Increment total downloads on the mix
         const result = await pool.query('UPDATE mixes SET downloads_count = downloads_count + 1 WHERE id = $1 RETURNING downloads_count', [id]);
+        
+        // 2. Add to user's personal vault (ON CONFLICT DO NOTHING prevents duplicates)
+        await pool.query('INSERT INTO user_downloads (user_id, mix_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [userId, id]);
+
         res.json({ success: true, newDownloads: result.rows[0].downloads_count });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 📂 NEW: Fetch logged-in user's downloaded mixes
+app.get('/api/users/me/downloads', authenticateUser, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const query = `
+            SELECT m.*, ud.downloaded_at 
+            FROM user_downloads ud
+            JOIN mixes m ON ud.mix_id = m.id
+            WHERE ud.user_id = $1
+            ORDER BY ud.downloaded_at DESC
+        `;
+        const result = await pool.query(query, [userId]);
+        res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -142,6 +174,41 @@ app.post('/api/mixes', authenticateAdmin, async (req, res) => {
     }
 });
 
+// ---------------------------------------------------------
+// 👥 ADMIN USER MANAGEMENT ROUTES
+// ---------------------------------------------------------
+app.get('/api/admin/users', authenticateAdmin, async (req, res) => {
+    try {
+        // Fetch users, putting 'pending' accounts at the very top
+        const result = await pool.query(`
+            SELECT id, username, email, role, status 
+            FROM users 
+            ORDER BY CASE WHEN status = 'pending' THEN 1 ELSE 2 END, id DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/admin/users/:id/approve', authenticateAdmin, async (req, res) => {
+    try {
+        await pool.query("UPDATE users SET status = 'approved' WHERE id = $1", [req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/admin/users/:id', authenticateAdmin, async (req, res) => {
+    try {
+        await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.delete('/api/mixes/:id', authenticateAdmin, async (req, res) => {
     const { id } = req.params;
     try {
@@ -150,6 +217,136 @@ app.delete('/api/mixes/:id', authenticateAdmin, async (req, res) => {
     } catch (err) {
         console.error("Error deleting mix:", err);
         res.status(500).json({ error: 'Failed to delete mix' });
+    }
+});
+// ---------------------------------------------------------
+// 💬 COMMENT & REPLY ROUTES
+// ---------------------------------------------------------
+
+// Fetch all comments and replies for a specific mix with like counts
+app.get('/api/mixes/:mixId/comments', async (req, res) => {
+    const { mixId } = req.params;
+    try {
+        const query = `
+            SELECT 
+                c.id, c.mix_id, c.parent_id, c.content, c.created_at,
+                u.username,
+                COUNT(cl.id)::int AS likes_count
+            FROM comments c
+            JOIN users u ON c.user_id = u.id
+            LEFT JOIN comment_likes cl ON c.id = cl.comment_id
+            WHERE c.mix_id = $1
+            GROUP BY c.id, u.username
+            ORDER BY c.created_at ASC;
+        `;
+        const result = await pool.query(query, [mixId]);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Post a new comment or reply (Requires logged-in user)
+app.post('/api/mixes/:mixId/comments', authenticateUser, async (req, res) => {
+    const { mixId } = req.params;
+    const { content, parent_id } = req.body;
+    const userId = req.user.id;
+
+    if (!content || !content.trim()) {
+        return res.status(400).json({ error: 'Comment content cannot be empty.' });
+    }
+
+    try {
+        const result = await pool.query(
+            `INSERT INTO comments (mix_id, user_id, parent_id, content) 
+             VALUES ($1, $2, $3, $4) 
+             RETURNING id, mix_id, parent_id, content, created_at`,
+            [mixId, userId, parent_id || null, content.trim()]
+        );
+        res.status(201).json({ ...result.rows[0], username: req.user.username, likes_count: 0 });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Toggle like on a comment (Requires logged-in user)
+app.post('/api/comments/:commentId/like', authenticateUser, async (req, res) => {
+    const { commentId } = req.params;
+    const userId = req.user.id;
+
+    try {
+        // Check if user already liked this comment
+        const existingLike = await pool.query(
+            'SELECT * FROM comment_likes WHERE comment_id = $1 AND user_id = $2',
+            [commentId, userId]
+        );
+
+        if (existingLike.rows.length > 0) {
+            // Unlike
+            await pool.query('DELETE FROM comment_likes WHERE comment_id = $1 AND user_id = $2', [commentId, userId]);
+        } else {
+            // Like
+            await pool.query('INSERT INTO comment_likes (comment_id, user_id) VALUES ($1, $2)', [commentId, userId]);
+        }
+
+        // Get updated like count
+        const countRes = await pool.query('SELECT COUNT(*)::int AS count FROM comment_likes WHERE comment_id = $1', [commentId]);
+        res.json({ success: true, likes_count: countRes.rows[0].count });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 📊 ADMIN ANALYTICS ROUTE
+app.get('/api/admin/analytics', authenticateAdmin, async (req, res) => {
+    try {
+        const mixesCount = await pool.query('SELECT COUNT(*)::int FROM mixes');
+        const likesCount = await pool.query('SELECT COALESCE(SUM(likes_count), 0)::int AS total FROM mixes');
+        const downloadsCount = await pool.query('SELECT COALESCE(SUM(downloads_count), 0)::int AS total FROM mixes');
+        const commentsCount = await pool.query('SELECT COUNT(*)::int FROM comments');
+
+        res.json({
+            totalMixes: mixesCount.rows[0].count,
+            totalLikes: likesCount.rows[0].total,
+            totalDownloads: downloadsCount.rows[0].total,
+            totalComments: commentsCount.rows[0].count,
+            totalPlays: playsCount.rows[0].total
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+// 🎵 NEW: Track a play (Public route, anyone can play a mix)
+app.post('/api/mixes/:id/play', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query('UPDATE mixes SET plays_count = plays_count + 1 WHERE id = $1 RETURNING plays_count', [id]);
+        res.json({ success: true, newPlays: result.rows[0].plays_count });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 📊 UPDATED: Admin Analytics Route
+app.get('/api/admin/analytics', authenticateAdmin, async (req, res) => {
+    try {
+        const mixesCount = await pool.query('SELECT COUNT(*)::int FROM mixes');
+        const likesCount = await pool.query('SELECT COALESCE(SUM(likes_count), 0)::int AS total FROM mixes');
+        const downloadsCount = await pool.query('SELECT COALESCE(SUM(downloads_count), 0)::int AS total FROM mixes');
+        const commentsCount = await pool.query('SELECT COUNT(*)::int FROM comments');
+        
+        // NEW: Fetch Total Plays
+        const playsCount = await pool.query('SELECT COALESCE(SUM(plays_count), 0)::int AS total FROM mixes');
+
+        res.json({
+            totalMixes: mixesCount.rows[0].count,
+            totalLikes: likesCount.rows[0].total,
+            totalDownloads: downloadsCount.rows[0].total,
+            totalComments: commentsCount.rows[0].count,
+            totalPlays: playsCount.rows[0].total // Added to response
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
