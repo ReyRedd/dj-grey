@@ -34,6 +34,16 @@
             overflow-x: hidden; transition: background-color 0.3s, color 0.3s;
         }
 
+        .badge-dot {
+            background: #00a8ff;
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: auto;
+            display: none; /* Hidden by default */
+        }
+        .badge-dot.show { display: inline-block; }
         /* Sidebar Styles */
         .sidebar {
             position: fixed; top: 0; left: 0; height: 100vh; width: var(--sidebar-width);

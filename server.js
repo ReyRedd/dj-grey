@@ -4,6 +4,17 @@ const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const nodemailer = require('nodemailer');
+
+// 📧 SECURE EMAIL SETUP (Pulls from Render Environment Variables)
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER, 
+        pass: process.env.EMAIL_PASS  
+    }
+});
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -50,21 +61,47 @@ function authenticateUser(req, res, next) {
 }
 
 // ---------------------------------------------------------
-// 🔑 AUTHENTICATION ROUTES (LOGIN / REGISTER)
+// 🔑 AUTHENTICATION ROUTES
 // ---------------------------------------------------------
 app.post('/api/auth/register', async (req, res) => {
     const { username, email, password } = req.body;
-    if (!username || !email || !password) return res.status(400).json({ error: 'Username, email, and password required.' });
+    if (!username || !email || !password) return res.status(400).json({ error: 'All fields required.' });
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
+        // Create an email verification token
+        const verificationToken = jwt.sign({ email }, JWT_SECRET, { expiresIn: '1h' });
+
         const result = await pool.query(
-            'INSERT INTO users (username, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, role',
-            [username, email, hashedPassword, 'user'] // Now registers as standard fan
+            "INSERT INTO users (username, email, password_hash, role, status) VALUES ($1, $2, $3, 'user', 'pending') RETURNING id, username, email",
+            [username, email, hashedPassword]
         );
-        res.status(201).json(result.rows[0]);
+
+        // 📧 SEND VERIFICATION EMAIL
+        const verifyLink = `https://dj-grey.onrender.com/api/auth/verify/${verificationToken}`;
+        const mailOptions = {
+            from: '"DJ Grey Vault" <greygeorge929@gmail.com>',
+            to: email,
+            subject: 'Verify your Fan Account - DJ Grey',
+            html: `<h3>Welcome to the VIP Vault, ${username}!</h3><p>Click the link below to verify your account and gain access:</p><a href="${verifyLink}">Verify My Account</a>`
+        };
+        
+        transporter.sendMail(mailOptions).catch(console.error);
+
+        res.status(201).json({ message: "Registration successful. Please check your email to verify your account!" });
     } catch (err) {
-        res.status(500).json({ error: 'Username or Email might already exist.' });
+        res.status(500).json({ error: 'Username or Email already exists.' });
+    }
+});
+
+// 📧 VERIFY EMAIL ROUTE
+app.get('/api/auth/verify/:token', async (req, res) => {
+    try {
+        const decoded = jwt.verify(req.params.token, JWT_SECRET);
+        await pool.query("UPDATE users SET status = 'approved' WHERE email = $1", [decoded.email]);
+        res.send("<h1>Account Verified!</h1><p>You can now close this tab and log in to the DJ Grey platform.</p>");
+    } catch (err) {
+        res.status(400).send("<h1>Verification Link Expired or Invalid.</h1>");
     }
 });
 
@@ -292,6 +329,27 @@ app.post('/api/comments/:commentId/like', authenticateUser, async (req, res) => 
         // Get updated like count
         const countRes = await pool.query('SELECT COUNT(*)::int AS count FROM comment_likes WHERE comment_id = $1', [commentId]);
         res.json({ success: true, likes_count: countRes.rows[0].count });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ---------------------------------------------------------
+// 💬 COMMENTS (Add Delete Route)
+// ---------------------------------------------------------
+app.delete('/api/comments/:id', authenticateUser, async (req, res) => {
+    try {
+        const { id } = req.params;
+        // Ensure the user deleting is the owner of the comment, OR is an admin
+        const comment = await pool.query('SELECT user_id FROM comments WHERE id = $1', [id]);
+        
+        if (comment.rows.length === 0) return res.status(404).json({ error: 'Comment not found' });
+        if (comment.rows[0].user_id !== req.user.id && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Unauthorized to delete this comment' });
+        }
+
+        await pool.query('DELETE FROM comments WHERE id = $1', [id]);
+        res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

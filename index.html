@@ -335,6 +335,9 @@
 
       function renderCommentHtml(c, isReply) {
         const timeFormatted = new Date(c.created_at).toLocaleDateString();
+        // Check if logged in user owns this comment or is an admin
+        const canDelete = (username === c.username || role === 'admin'); 
+
         return `
         <div class="comment-card ${isReply ? "reply" : ""}" id="comment-${c.id}">
             <div class="comment-header">
@@ -346,7 +349,8 @@
                 <span class="comment-action-btn" onclick="likeComment(${c.id}, ${c.mix_id})">
                     <i class="fa-solid fa-thumbs-up"></i> <span id="comment-likes-${c.id}">${c.likes_count}</span>
                 </span>
-                ${!isReply ? `<span class="comment-action-btn" onclick="toggleReplyBox(${c.id})"><i class="fa-solid fa-reply"></i> Reply</span>` : ""}
+                ${!isReply ? `<span class="comment-action-btn" onclick="toggleReplyBox(${c.id}, '${c.username}')"><i class="fa-solid fa-reply"></i> Reply</span>` : ""}
+                ${canDelete ? `<span class="comment-action-btn" onclick="deleteComment(${c.id}, ${c.mix_id})" style="color: #ff4d4d; margin-left: auto;"><i class="fa-solid fa-trash"></i></span>` : ""}
             </div>
             <div class="comment-input-box reply-form-wrapper" id="reply-box-${c.id}">
                 <input type="text" id="reply-input-${c.id}" placeholder="Write a reply...">
@@ -355,10 +359,30 @@
         </div>
     `;
       }
-
-      function toggleReplyBox(commentId) {
+      
+      // Update toggleReplyBox to prepopulate the @username
+      function toggleReplyBox(commentId, replyToUsername) {
         const box = document.getElementById(`reply-box-${commentId}`);
         box.classList.toggle("open");
+        const input = document.getElementById(`reply-input-${commentId}`);
+        if (box.classList.contains("open")) {
+            input.value = `@${replyToUsername} `;
+            input.focus();
+        }
+      }
+
+      // NEW: Function to delete comment
+      async function deleteComment(commentId, mixId) {
+          if (!confirm("Delete this comment?")) return;
+          try {
+              const res = await fetch(`${API_URL}/comments/${commentId}`, {
+                  method: 'DELETE',
+                  headers: getAuthHeaders()
+              });
+              if (res.ok) fetchComments(mixId); // Reload comments
+          } catch (err) {
+              console.error("Error deleting comment:", err);
+          }
       }
 
       // Post comment or reply
@@ -573,14 +597,24 @@
       }
 
       async function downloadMix(id, url) {
-        if (!token)
-          return alert("Hey there! Please login or create a free fan account to download tracks.");
+        if (!token) return alert("Hey there! Please login or create a free fan account to download tracks.");
         try {
           const res = await fetch(`${API_URL}/mixes/${id}/download`, {
             method: "POST",
             headers: getAuthHeaders(),
           });
-          if (res.ok) window.open(url, "_blank");
+          
+          if (res.ok) {
+            alert("Mix saved to your Vault!"); // Provide visual feedback
+            
+            // Stealthily trigger the download without opening a new tab
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = ''; 
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          }
         } catch (err) {
           console.error("Error downloading mix:", err);
         }

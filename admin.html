@@ -24,7 +24,7 @@
         <h2>DJ GREY <br /><span style="color: var(--text-main); font-size: 1rem">Admin</span></h2>
         <ul class="sidebar-menu">
             <li><a href="#" class="tab-link active" onclick="switchTab(event, 'dashboard-tab')"><i class="fa-solid fa-chart-pie"></i> Analytics & Upload</a></li>
-            <li><a href="#" class="tab-link" onclick="switchTab(event, 'users-tab')"><i class="fa-solid fa-users"></i> Fan Management</a></li>
+            <li><a href="#" class="tab-link" onclick="switchTab(event, 'users-tab')"><i class="fa-solid fa-users"></i> Fan Management <span id="pending-badge" class="badge-dot">0</span></a></li>
             <li><a href="/" target="_blank"><i class="fa-solid fa-globe"></i> View Live Site</a></li>
             <li><a href="#" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
         </ul>
@@ -196,8 +196,13 @@
                 const tableBody = document.getElementById('users-table-body');
                 tableBody.innerHTML = '';
 
+                let pendingCount = 0; // NEW: Track pending users
+
                 users.forEach(user => {
                     const isPending = user.status === 'pending';
+
+                    if (isPending) pendingCount++; // NEW: Increment count
+
                     const statusClass = isPending ? 'status-pending' : 'status-approved';
                     const statusText = isPending ? 'Pending' : 'Approved';
 
@@ -216,6 +221,8 @@
                 });
             } catch (error) { console.error("Error loading users:", error); }
         }
+        // Ensure users are loaded in the background immediately so the badge shows up on dashboard load!
+        loadUsers();
 
         async function approveUser(id) {
             try {

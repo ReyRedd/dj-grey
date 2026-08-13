@@ -148,6 +148,7 @@ h1 {
 }
 
 .card {
+  align-self: start; /* THIS FIXES THE COMMENT EXPANSION BUG */
   background: var(--glass-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
