@@ -115,12 +115,27 @@
         </button>
       </div>
 
+      <!-- YouTube-Style Comment Sorting Controls -->
       <div class="comments-sort-bar">
-        <span id="comments-count-label">Comments</span>
-        <select id="comments-sort-select" onchange="fetchComments(currentMixIdForComments)">
-          <option value="newest">Newest</option>
-          <option value="top">Top Comments</option>
-        </select>
+        <span class="comments-count-label" id="comments-count-label">Comments</span>
+        
+        <div class="custom-sort-wrapper">
+          <button class="sort-toggle-btn" onclick="toggleSortMenu()">
+            <i class="fa-solid fa-bars-staggered"></i> Sort by
+          </button>
+          
+          <!-- Custom YouTube-Style Popup Menu -->
+          <div class="sort-menu" id="sort-menu">
+            <div class="sort-option active" id="sort-opt-top" onclick="selectSort('top')">
+              <span class="sort-title">Top</span>
+              <span class="sort-desc">Show featured comments</span>
+            </div>
+            <div class="sort-option" id="sort-opt-newest" onclick="selectSort('newest')">
+              <span class="sort-title">Newest</span>
+              <span class="sort-desc">Show recent comments</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="comment-input-box">

@@ -1,9 +1,43 @@
 let currentMixIdForComments = null;
+let currentSortOrder = 'newest'; // Default sort order
 
+// --- SORT MENU LOGIC ---
+function toggleSortMenu() {
+    document.getElementById('sort-menu').classList.toggle('open');
+}
+
+function selectSort(order) {
+    currentSortOrder = order;
+    
+    // Update active UI state
+    document.querySelectorAll('.sort-option').forEach(el => el.classList.remove('active'));
+    document.getElementById(`sort-opt-${order}`).classList.add('active');
+
+    // Close the menu
+    document.getElementById('sort-menu').classList.remove('open');
+
+    // Re-fetch comments with new sort order
+    if (currentMixIdForComments) {
+        fetchComments(currentMixIdForComments);
+    }
+}
+
+// Close the sort menu if the user clicks outside of it
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('sort-menu');
+    const toggleBtn = document.querySelector('.sort-toggle-btn');
+    if (menu && menu.classList.contains('open')) {
+        if (!menu.contains(e.target) && !toggleBtn.contains(e.target)) {
+            menu.classList.remove('open');
+        }
+    }
+});
+
+
+// --- COMMENTS SIDEBAR LOGIC ---
 function openCommentsSidebar(mixId, mixTitle) {
   currentMixIdForComments = mixId;
-  document.getElementById("sidebar-mix-title").innerHTML =
-    `<i class="fa-solid fa-comments"></i> ${mixTitle}`;
+  document.getElementById("sidebar-mix-title").innerHTML = `<i class="fa-solid fa-comments"></i> ${mixTitle}`;
   document.getElementById("comments-sidebar").classList.add("open");
   fetchComments(mixId);
 }
@@ -16,8 +50,6 @@ function closeCommentsSidebar() {
 async function fetchComments(mixId) {
   if (!mixId) return;
   const listEl = document.getElementById("sidebar-comments-list");
-  const sortSelect = document.getElementById("comments-sort-select");
-  const sortOrder = sortSelect ? sortSelect.value : "newest";
 
   try {
     const res = await fetch(`${API_URL}/mixes/${mixId}/comments`);
@@ -31,7 +63,8 @@ async function fetchComments(mixId) {
     const topLevel = comments.filter((c) => !c.parent_id);
     const replies = comments.filter((c) => c.parent_id);
 
-    if (sortOrder === "top") {
+    // Apply Sorting Logic based on Custom Menu
+    if (currentSortOrder === "top") {
       topLevel.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
     } else {
       topLevel.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -61,7 +94,7 @@ async function fetchComments(mixId) {
     });
     listEl.innerHTML = html;
   } catch (err) {
-    listEl.innerHTML = `<p style="font-size: 0.85rem; color: var(--primary);">Failed to load comments.</p>`;
+    listEl.innerHTML = `<p style="font-size: 0.85rem; color: #ff4d4d;">Failed to load comments.</p>`;
   }
 }
 
@@ -95,7 +128,7 @@ function renderCommentHtml(c, isReply) {
           ${!isReply ? `<span class="comment-action-btn" onclick="toggleReplyBox(${c.id}, '${c.username}')"><i class="fa-solid fa-reply"></i> Reply</span>` : ""}
           ${canDelete ? `<span class="comment-action-btn" onclick="deleteComment(${c.id})" style="color: #ff4d4d; margin-left: auto;"><i class="fa-solid fa-trash"></i></span>` : ""}
       </div>
-      <div class="comment-input-box reply-form-wrapper" id="reply-box-${c.id}">
+      <div class="comment-input-box reply-form-wrapper" id="reply-box-${c.id}" style="display:none;">
           <input type="text" id="reply-input-${c.id}" placeholder="Reply to ${c.username}...">
           <button onclick="postSidebarComment(${c.id})">Post</button>
       </div>
@@ -104,11 +137,14 @@ function renderCommentHtml(c, isReply) {
 
 function toggleReplyBox(commentId, replyToUsername) {
   const box = document.getElementById(`reply-box-${commentId}`);
-  box.classList.toggle("open");
-  if (box.classList.contains("open")) {
-    const input = document.getElementById(`reply-input-${commentId}`);
-    input.value = `@${replyToUsername} `;
-    input.focus();
+  
+  if (box.style.display === "none" || box.style.display === "") {
+      box.style.display = "flex";
+      const input = document.getElementById(`reply-input-${commentId}`);
+      input.value = `@${replyToUsername} `;
+      input.focus();
+  } else {
+      box.style.display = "none";
   }
 }
 
