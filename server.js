@@ -279,6 +279,35 @@ app.delete('/api/admin/users/:id', authenticateAdmin, async (req, res) => {
     }
 });
 
+// 🎧 HEARTHIS.AT INTEGRATION ROUTE
+app.get("/api/hearthis/sync/:username", async (req, res) => {
+  try {
+    const hearthisUsername = req.params.username || "djgrey";
+    const response = await fetch(`https://hearthis.at/api/v2/artists/${hearthisUsername}/tracks/?page=1&count=10`);
+    
+    if (!response.ok) {
+      return res.status(500).json({ error: "Failed to fetch from Hearthis.at API" });
+    }
+
+    const tracks = await response.json();
+    
+    // Formats the response to match DJ Grey mix structure
+    const formattedMixes = tracks.map((track) => ({
+      title: track.title,
+      audio_url: track.stream_url,
+      artwork_url: track.artwork_url,
+      likes_count: parseInt(track.favoritings_count || 0),
+      downloads_count: parseInt(track.download_count || 0),
+      source: "hearthis.at"
+    }));
+
+    res.json({ success: true, count: formattedMixes.length, mixes: formattedMixes });
+  } catch (err) {
+    console.error("Hearthis sync error:", err);
+    res.status(500).json({ error: "Internal server error syncing Hearthis.at" });
+  }
+});
+
 // ---------------------------------------------------------
 // 💬 COMMENT & REPLY ROUTES
 // ---------------------------------------------------------
