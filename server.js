@@ -91,6 +91,41 @@ app.post('/api/auth/register', async (req, res) => {
     }
 });
 
+// ---------------------------------------------------------
+// 📧 VERIFY EMAIL ROUTE
+// ---------------------------------------------------------
+app.get('/api/auth/verify/:token', async (req, res) => {
+    try {
+        const decoded = jwt.verify(req.params.token, JWT_SECRET);
+        
+        // Update the user's status to 'approved' in the database
+        await pool.query("UPDATE users SET status = 'approved' WHERE email = $1", [decoded.email]);
+        
+        // Send a beautiful success page back to their browser
+        res.send(`
+            <body style="background-color: #0a0a0c; color: #ffffff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
+                <div style="text-align: center; padding: 40px; background: #1a1a20; border-radius: 12px; border-top: 4px solid #00a8ff; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                    <h1 style="color: #00a8ff; margin-top: 0;">Account Verified! 🎉</h1>
+                    <p style="color: #a0a0a0; font-size: 1.1rem;">Welcome to the VIP Vault. Your email has been successfully verified.</p>
+                    <p style="margin-top: 30px;">
+                        <a href="https://djgrey.netlify.app/login.html" style="background: #00a8ff; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Log In Now</a>
+                    </p>
+                </div>
+            </body>
+        `);
+    } catch (err) {
+        // Send an error page if the link is expired or broken
+        res.status(400).send(`
+            <body style="background-color: #0a0a0c; color: #ffffff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
+                <div style="text-align: center; padding: 40px; background: #1a1a20; border-radius: 12px; border-top: 4px solid #ff4d4d; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                    <h1 style="color: #ff4d4d; margin-top: 0;">Verification Failed</h1>
+                    <p style="color: #a0a0a0; font-size: 1.1rem;">This verification link is invalid or has expired.</p>
+                </div>
+            </body>
+        `);
+    }
+});
+
 // Login Route
 app.post('/api/auth/login', async (req, res) => {
     const { username, password } = req.body;
