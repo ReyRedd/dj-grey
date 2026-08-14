@@ -495,10 +495,16 @@ audio::-webkit-media-controls-time-remaining-display {
 
 /* Headers */
 .vault-header {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 25px; padding-bottom: 15px;
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center;
+  margin-bottom: 25px; 
+  padding-bottom: 15px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  width: 100%;
+  box-sizing: border-box;
 }
+
 .vault-header h3 { 
   margin: 0; 
   color: #fff; 
@@ -506,21 +512,42 @@ audio::-webkit-media-controls-time-remaining-display {
   letter-spacing: 1px; 
   text-shadow: 0 0 15px var(--primary-glow);
   
-  /* 🛑 NEW: Truncate long titles gracefully */
+  /* 🛑 THE BULLETPROOF FLEXBOX TRUNCATION */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 80%; /* Keeps it away from the X button */
-  display: block; /* Required for the ellipsis to work properly */
+  flex: 1; /* Takes up available space */
+  min-width: 0; /* CRITICAL: Forces flexbox to respect the container width */
+  padding-right: 15px; /* Gap before the X button */
 }
 
-/* Add margin to the icon since we removed 'display: flex' from the h3 */
+/* Add margin to the icon */
 .vault-header h3 i { 
   color: var(--primary); 
   margin-right: 8px;
 }
-.close-vault { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); width: 35px; height: 35px; border-radius: 50%; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; }
-.close-vault:hover { background: rgba(255, 77, 77, 0.2); color: #ff4d4d; border-color: #ff4d4d; transform: rotate(90deg); }
+
+.close-vault { 
+  flex-shrink: 0; /* CRITICAL: Prevents the button from being pushed off screen */
+  background: rgba(255,255,255,0.05); 
+  border: 1px solid rgba(255,255,255,0.1); 
+  color: var(--text-muted); 
+  width: 35px; 
+  height: 35px; 
+  border-radius: 50%; 
+  cursor: pointer; 
+  transition: 0.3s; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+}
+
+.close-vault:hover { 
+  background: rgba(255, 77, 77, 0.2); 
+  color: #ff4d4d; 
+  border-color: #ff4d4d; 
+  transform: rotate(90deg); 
+}
 
 /* Upgraded Comment Input */
 .comments-sidebar .comment-input-box {
