@@ -4,22 +4,6 @@ const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const nodemailer = require('nodemailer');
-
-// 📧 SECURE EMAIL SETUP (Pulls from Render Environment Variables)
-const nodemailer = require('nodemailer');
-
-// 📧 SECURE EMAIL SETUP (Bypasses Render Firewalls)
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    auth: {
-        user: process.env.EMAIL_USER, 
-        pass: process.env.EMAIL_PASS  
-    }
-});
-
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -66,7 +50,7 @@ function authenticateUser(req, res, next) {
 }
 
 // ---------------------------------------------------------
-// 🔑 AUTHENTICATION ROUTES
+// 🔑 AUTHENTICATION ROUTES (Manual Admin Approval)
 // ---------------------------------------------------------
 app.post('/api/auth/register', async (req, res) => {
     const { username, email, password } = req.body;
@@ -74,42 +58,17 @@ app.post('/api/auth/register', async (req, res) => {
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
-        // Create an email verification token
-        const verificationToken = jwt.sign({ email }, JWT_SECRET, { expiresIn: '1h' });
 
-        const result = await pool.query(
-            "INSERT INTO users (username, email, password_hash, role, status) VALUES ($1, $2, $3, 'user', 'pending') RETURNING id, username, email",
+        // Insert new user as 'pending'
+        await pool.query(
+            "INSERT INTO users (username, email, password_hash, role, status) VALUES ($1, $2, $3, 'user', 'pending')",
             [username, email, hashedPassword]
         );
 
-        // 📧 SEND VERIFICATION EMAIL
-        const verifyLink = `https://dj-grey.onrender.com/api/auth/verify/${verificationToken}`;
-        const mailOptions = {
-            from: `"DJ Grey Vault" <${process.env.EMAIL_USER}>`,
-            to: email,
-            subject: 'Verify your Fan Account - DJ Grey',
-            html: `<h3>Welcome to the VIP Vault, ${username}!</h3><p>Click the link below to verify your account and gain access:</p><a href="${verifyLink}">Verify My Account</a>`
-        };
-        
-        // Use AWAIT so if Google blocks it, it throws an error to the frontend!
-        await transporter.sendMail(mailOptions);
-
-        res.status(201).json({ message: "Registration successful. Please check your email to verify your account!" });
+        res.status(201).json({ message: "Registration successful! DJ Grey's team will approve your access shortly." });
     } catch (err) {
-        // This will now catch Gmail errors and send them to your console
         console.error("REGISTER ERROR:", err);
-        res.status(500).json({ error: err.message || 'Registration failed.' });
-    }
-});
-
-// 📧 VERIFY EMAIL ROUTE
-app.get('/api/auth/verify/:token', async (req, res) => {
-    try {
-        const decoded = jwt.verify(req.params.token, JWT_SECRET);
-        await pool.query("UPDATE users SET status = 'approved' WHERE email = $1", [decoded.email]);
-        res.send("<h1>Account Verified!</h1><p>You can now close this tab and log in to the DJ Grey platform.</p>");
-    } catch (err) {
-        res.status(400).send("<h1>Verification Link Expired or Invalid.</h1>");
+        res.status(500).json({ error: 'Username or Email already exists.' });
     }
 });
 
@@ -125,7 +84,6 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid username or password' });
         }
 
-        // 🛑 NEW: Check if account is approved by DJ Grey
         if (user.status !== 'approved') {
             return res.status(403).json({ error: 'Your account is pending Admin approval.' });
         }
@@ -149,6 +107,16 @@ app.get('/api/mixes', async (req, res) => {
     }
 });
 
+app.post('/api/mixes/:id/play', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query('UPDATE mixes SET plays_count = plays_count + 1 WHERE id = $1 RETURNING plays_count', [id]);
+        res.json({ success: true, newPlays: result.rows[0].plays_count });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // 🔒 PROTECTED FAN ROUTES (Likes & Downloads)
 app.post('/api/mixes/:id/like', authenticateUser, async (req, res) => {
     try {
@@ -160,16 +128,12 @@ app.post('/api/mixes/:id/like', authenticateUser, async (req, res) => {
     }
 });
 
-// 🔒 UPDATED: Track Download for Fan Vault
 app.post('/api/mixes/:id/download', authenticateUser, async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
 
-        // 1. Increment total downloads on the mix
         const result = await pool.query('UPDATE mixes SET downloads_count = downloads_count + 1 WHERE id = $1 RETURNING downloads_count', [id]);
-        
-        // 2. Add to user's personal vault (ON CONFLICT DO NOTHING prevents duplicates)
         await pool.query('INSERT INTO user_downloads (user_id, mix_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [userId, id]);
 
         res.json({ success: true, newDownloads: result.rows[0].downloads_count });
@@ -178,7 +142,6 @@ app.post('/api/mixes/:id/download', authenticateUser, async (req, res) => {
     }
 });
 
-// 📂 NEW: Fetch logged-in user's downloaded mixes
 app.get('/api/users/me/downloads', authenticateUser, async (req, res) => {
     try {
         const userId = req.user.id;
@@ -201,7 +164,6 @@ app.get('/api/users/me/downloads', authenticateUser, async (req, res) => {
 // ---------------------------------------------------------
 app.post('/api/mixes', authenticateAdmin, async (req, res) => {
     let { title, audio_url, artwork_url } = req.body;
-
     if (!title || !audio_url) return res.status(400).json({ error: 'Title and Audio URL are required.' });
 
     audio_url = audio_url.replace('dl=0', 'raw=1');
@@ -214,8 +176,17 @@ app.post('/api/mixes', authenticateAdmin, async (req, res) => {
         );
         res.status(201).json(result.rows[0]);
     } catch (err) {
-        console.error("Error adding mix:", err);
         res.status(500).json({ error: 'Database insert failed' });
+    }
+});
+
+app.delete('/api/mixes/:id', authenticateAdmin, async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM mixes WHERE id = $1', [id]);
+        res.json({ message: 'Mix deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to delete mix' });
     }
 });
 
@@ -224,7 +195,6 @@ app.post('/api/mixes', authenticateAdmin, async (req, res) => {
 // ---------------------------------------------------------
 app.get('/api/admin/users', authenticateAdmin, async (req, res) => {
     try {
-        // Fetch users, putting 'pending' accounts at the very top
         const result = await pool.query(`
             SELECT id, username, email, role, status 
             FROM users 
@@ -254,29 +224,14 @@ app.delete('/api/admin/users/:id', authenticateAdmin, async (req, res) => {
     }
 });
 
-app.delete('/api/mixes/:id', authenticateAdmin, async (req, res) => {
-    const { id } = req.params;
-    try {
-        await pool.query('DELETE FROM mixes WHERE id = $1', [id]);
-        res.json({ message: 'Mix deleted successfully' });
-    } catch (err) {
-        console.error("Error deleting mix:", err);
-        res.status(500).json({ error: 'Failed to delete mix' });
-    }
-});
 // ---------------------------------------------------------
 // 💬 COMMENT & REPLY ROUTES
 // ---------------------------------------------------------
-
-// Fetch all comments and replies for a specific mix with like counts
 app.get('/api/mixes/:mixId/comments', async (req, res) => {
     const { mixId } = req.params;
     try {
         const query = `
-            SELECT 
-                c.id, c.mix_id, c.parent_id, c.content, c.created_at,
-                u.username,
-                COUNT(cl.id)::int AS likes_count
+            SELECT c.id, c.mix_id, c.parent_id, c.content, c.created_at, u.username, COUNT(cl.id)::int AS likes_count
             FROM comments c
             JOIN users u ON c.user_id = u.id
             LEFT JOIN comment_likes cl ON c.id = cl.comment_id
@@ -291,21 +246,16 @@ app.get('/api/mixes/:mixId/comments', async (req, res) => {
     }
 });
 
-// Post a new comment or reply (Requires logged-in user)
 app.post('/api/mixes/:mixId/comments', authenticateUser, async (req, res) => {
     const { mixId } = req.params;
     const { content, parent_id } = req.body;
     const userId = req.user.id;
 
-    if (!content || !content.trim()) {
-        return res.status(400).json({ error: 'Comment content cannot be empty.' });
-    }
+    if (!content || !content.trim()) return res.status(400).json({ error: 'Comment content cannot be empty.' });
 
     try {
         const result = await pool.query(
-            `INSERT INTO comments (mix_id, user_id, parent_id, content) 
-             VALUES ($1, $2, $3, $4) 
-             RETURNING id, mix_id, parent_id, content, created_at`,
+            `INSERT INTO comments (mix_id, user_id, parent_id, content) VALUES ($1, $2, $3, $4) RETURNING id, mix_id, parent_id, content, created_at`,
             [mixId, userId, parent_id || null, content.trim()]
         );
         res.status(201).json({ ...result.rows[0], username: req.user.username, likes_count: 0 });
@@ -314,27 +264,19 @@ app.post('/api/mixes/:mixId/comments', authenticateUser, async (req, res) => {
     }
 });
 
-// Toggle like on a comment (Requires logged-in user)
 app.post('/api/comments/:commentId/like', authenticateUser, async (req, res) => {
     const { commentId } = req.params;
     const userId = req.user.id;
 
     try {
-        // Check if user already liked this comment
-        const existingLike = await pool.query(
-            'SELECT * FROM comment_likes WHERE comment_id = $1 AND user_id = $2',
-            [commentId, userId]
-        );
+        const existingLike = await pool.query('SELECT * FROM comment_likes WHERE comment_id = $1 AND user_id = $2', [commentId, userId]);
 
         if (existingLike.rows.length > 0) {
-            // Unlike
             await pool.query('DELETE FROM comment_likes WHERE comment_id = $1 AND user_id = $2', [commentId, userId]);
         } else {
-            // Like
             await pool.query('INSERT INTO comment_likes (comment_id, user_id) VALUES ($1, $2)', [commentId, userId]);
         }
 
-        // Get updated like count
         const countRes = await pool.query('SELECT COUNT(*)::int AS count FROM comment_likes WHERE comment_id = $1', [commentId]);
         res.json({ success: true, likes_count: countRes.rows[0].count });
     } catch (err) {
@@ -342,18 +284,14 @@ app.post('/api/comments/:commentId/like', authenticateUser, async (req, res) => 
     }
 });
 
-// ---------------------------------------------------------
-// 💬 COMMENTS (Add Delete Route)
-// ---------------------------------------------------------
 app.delete('/api/comments/:id', authenticateUser, async (req, res) => {
     try {
         const { id } = req.params;
-        // Ensure the user deleting is the owner of the comment, OR is an admin
         const comment = await pool.query('SELECT user_id FROM comments WHERE id = $1', [id]);
         
         if (comment.rows.length === 0) return res.status(404).json({ error: 'Comment not found' });
         if (comment.rows[0].user_id !== req.user.id && req.user.role !== 'admin') {
-            return res.status(403).json({ error: 'Unauthorized to delete this comment' });
+            return res.status(403).json({ error: 'Unauthorized' });
         }
 
         await pool.query('DELETE FROM comments WHERE id = $1', [id]);
@@ -363,10 +301,11 @@ app.delete('/api/comments/:id', authenticateUser, async (req, res) => {
     }
 });
 
-// 📊 ADMIN ANALYTICS ROUTE
+// ---------------------------------------------------------
+// 📊 BULLETPROOF ADMIN ANALYTICS ROUTE
+// ---------------------------------------------------------
 app.get('/api/admin/analytics', authenticateAdmin, async (req, res) => {
     try {
-        // Bulletproof query that forces nulls to become 0 using COALESCE
         const mixesRes = await pool.query(`
             SELECT 
                 COUNT(*) as count, 
@@ -389,39 +328,6 @@ app.get('/api/admin/analytics', authenticateAdmin, async (req, res) => {
     } catch (err) {
         console.error("🚨 ANALYTICS ERROR:", err);
         res.status(500).json({ error: 'Failed to load analytics' });
-    }
-});
-// 🎵 NEW: Track a play (Public route, anyone can play a mix)
-app.post('/api/mixes/:id/play', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const result = await pool.query('UPDATE mixes SET plays_count = plays_count + 1 WHERE id = $1 RETURNING plays_count', [id]);
-        res.json({ success: true, newPlays: result.rows[0].plays_count });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// 📊 UPDATED: Admin Analytics Route
-app.get('/api/admin/analytics', authenticateAdmin, async (req, res) => {
-    try {
-        const mixesCount = await pool.query('SELECT COUNT(*)::int FROM mixes');
-        const likesCount = await pool.query('SELECT COALESCE(SUM(likes_count), 0)::int AS total FROM mixes');
-        const downloadsCount = await pool.query('SELECT COALESCE(SUM(downloads_count), 0)::int AS total FROM mixes');
-        const commentsCount = await pool.query('SELECT COUNT(*)::int FROM comments');
-        
-        // NEW: Fetch Total Plays
-        const playsCount = await pool.query('SELECT COALESCE(SUM(plays_count), 0)::int AS total FROM mixes');
-
-        res.json({
-            totalMixes: mixesCount.rows[0].count,
-            totalLikes: likesCount.rows[0].total,
-            totalDownloads: downloadsCount.rows[0].total,
-            totalComments: commentsCount.rows[0].count,
-            totalPlays: playsCount.rows[0].total // Added to response
-        });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
     }
 });
 
