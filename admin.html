@@ -97,12 +97,7 @@
             ><i class="fa-solid fa-chart-pie"></i> Analytics & Upload</a
           >
         </li>
-        <li>
-          <a href="#" class="tab-link" onclick="switchTab(event, 'users-tab')">
-            <i class="fa-solid fa-users"></i> Fan Management
-            <span id="pending-badge" class="badge-dot">0</span>
-          </a>
-        </li>
+        <li><a href="#" class="tab-link" onclick="switchTab(event, 'users-tab')"><i class="fa-solid fa-users"></i> Fan Management <span id="pending-badge" class="badge-dot">0</span></a></li>
         <li>
           <a href="/" target="_blank"
             ><i class="fa-solid fa-globe"></i> View Live Site</a
@@ -396,43 +391,48 @@
 
       // Fan & User Management Data
       async function loadUsers() {
-        try {
-          const res = await fetch(`${API_URL}/admin/users`, {
-            headers: getAuthHeaders(),
-          });
-          const users = await res.json();
-          const tableBody = document.getElementById("users-table-body");
-          tableBody.innerHTML = "";
+            try {
+                const res = await fetch(`${API_URL}/admin/users`, { headers: getAuthHeaders() });
+                const users = await res.json();
+                const tableBody = document.getElementById('users-table-body');
+                tableBody.innerHTML = '';
+                
+                let pendingCount = 0; // Track pending users
 
-          let pendingCount = 0; // NEW: Track pending users
+                users.forEach(user => {
+                    const isPending = user.status === 'pending';
+                    if (isPending) pendingCount++; // Increment count if pending
 
-          users.forEach((user) => {
-            const isPending = user.status === "pending";
+                    const statusClass = isPending ? 'status-pending' : 'status-approved';
+                    const statusText = isPending ? 'Pending' : 'Approved';
 
-            if (isPending) pendingCount++; // NEW: Increment count
-
-            const statusClass = isPending
-              ? "status-pending"
-              : "status-approved";
-            const statusText = isPending ? "Pending" : "Approved";
-
-            tableBody.innerHTML += `
+                    tableBody.innerHTML += `
                         <tr>
                             <td style="font-weight: bold; color: var(--text-main);">${user.username}</td>
                             <td>${user.email}</td>
                             <td><span style="text-transform: capitalize;">${user.role}</span></td>
                             <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                             <td>
-                                ${isPending ? `<button class="btn-approve" onclick="approveUser(${user.id})" style="margin-right: 10px;"><i class="fa-solid fa-check"></i> Approve</button>` : ""}
+                                ${isPending ? `<button class="btn-approve" onclick="approveUser(${user.id})" style="margin-right: 10px;"><i class="fa-solid fa-check"></i> Approve</button>` : ''}
                                 <button class="btn-delete" onclick="deleteUser(${user.id}, '${user.username}')"><i class="fa-solid fa-user-xmark"></i> Remove</button>
                             </td>
                         </tr>
                     `;
-          });
-        } catch (error) {
-          console.error("Error loading users:", error);
+                });
+
+                // Update the sidebar badge safely
+                const badge = document.getElementById('pending-badge');
+                if (badge) {
+                    if (pendingCount > 0) {
+                        badge.innerText = pendingCount;
+                        badge.classList.add('show');
+                    } else {
+                        badge.classList.remove('show');
+                    }
+                }
+
+            } catch (error) { console.error("Error loading users:", error); }
         }
-      }
       // Ensure users are loaded in the background immediately so the badge shows up on dashboard load!
       loadUsers();
 
@@ -505,7 +505,11 @@
         }
       }
 
-      window.onload = loadAdminData;
+      // Run BOTH functions on page load so the badge calculates in the background!
+        window.onload = () => {
+            loadAdminData();
+            loadUsers(); 
+        };
     </script>
   </body>
 </html>

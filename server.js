@@ -7,8 +7,13 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
 // 📧 SECURE EMAIL SETUP (Pulls from Render Environment Variables)
+const nodemailer = require('nodemailer');
+
+// 📧 SECURE EMAIL SETUP (Bypasses Render Firewalls)
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: {
         user: process.env.EMAIL_USER, 
         pass: process.env.EMAIL_PASS  
@@ -361,20 +366,29 @@ app.delete('/api/comments/:id', authenticateUser, async (req, res) => {
 // 📊 ADMIN ANALYTICS ROUTE
 app.get('/api/admin/analytics', authenticateAdmin, async (req, res) => {
     try {
-        const mixesCount = await pool.query('SELECT COUNT(*)::int FROM mixes');
-        const likesCount = await pool.query('SELECT COALESCE(SUM(likes_count), 0)::int AS total FROM mixes');
-        const downloadsCount = await pool.query('SELECT COALESCE(SUM(downloads_count), 0)::int AS total FROM mixes');
-        const commentsCount = await pool.query('SELECT COUNT(*)::int FROM comments');
+        // Bulletproof query that forces nulls to become 0 using COALESCE
+        const mixesRes = await pool.query(`
+            SELECT 
+                COUNT(*) as count, 
+                COALESCE(SUM(plays_count), 0) as plays, 
+                COALESCE(SUM(likes_count), 0) as likes, 
+                COALESCE(SUM(downloads_count), 0) as downloads 
+            FROM mixes
+        `);
+        const commentsRes = await pool.query('SELECT COUNT(*) as count FROM comments');
 
-        res.json({
-            totalMixes: mixesCount.rows[0].count,
-            totalLikes: likesCount.rows[0].total,
-            totalDownloads: downloadsCount.rows[0].total,
-            totalComments: commentsCount.rows[0].count,
-            totalPlays: playsCount.rows[0].total
-        });
+        const data = {
+            totalMixes: parseInt(mixesRes.rows[0].count) || 0,
+            totalPlays: parseInt(mixesRes.rows[0].plays) || 0,
+            totalLikes: parseInt(mixesRes.rows[0].likes) || 0,
+            totalDownloads: parseInt(mixesRes.rows[0].downloads) || 0,
+            totalComments: parseInt(commentsRes.rows[0].count) || 0
+        };
+        
+        res.json(data);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error("🚨 ANALYTICS ERROR:", err);
+        res.status(500).json({ error: 'Failed to load analytics' });
     }
 });
 // 🎵 NEW: Track a play (Public route, anyone can play a mix)
