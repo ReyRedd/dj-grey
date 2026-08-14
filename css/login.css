@@ -234,3 +234,41 @@ body {
 .success-modal.show .success-content { transform: scale(1); }
 .headphones-icon { font-size: 4rem; color: var(--primary); margin-bottom: 20px; text-shadow: 0 0 20px var(--primary-glow); }
 .success-content h3 { font-size: 1.5rem; margin-bottom: 10px; }
+
+/* Social Logins */
+.social-login-container {
+    margin-top: 25px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 15px;
+}
+.social-text {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 15px;
+}
+.social-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+.social-btn {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+    background: rgba(0, 0, 0, 0.4);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.social-btn:hover {
+    transform: translateY(-3px);
+}
+.social-btn.google:hover { background: #ea4335; border-color: #ea4335; box-shadow: 0 5px 15px rgba(234, 67, 53, 0.4); }
+.social-btn.apple:hover { background: #ffffff; color: #000; border-color: #ffffff; box-shadow: 0 5px 15px rgba(255, 255, 255, 0.4); }
+.social-btn.facebook:hover { background: #1877f2; border-color: #1877f2; box-shadow: 0 5px 15px rgba(24, 119, 242, 0.4); }

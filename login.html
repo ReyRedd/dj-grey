@@ -40,10 +40,25 @@
                     <i class="fa-solid fa-lock"></i>
                     <input type="password" id="password" required placeholder="Password">
                 </div>
+
+                <div class="input-group" id="confirm-password-group" style="display: none; opacity: 0; transition: opacity 0.3s ease;">
+                    <i class="fa-solid fa-lock-open"></i>
+                    <input type="password" id="confirm-password" placeholder="Confirm Password">
+                </div>
+                
                 <button type="submit" class="btn" id="submit-btn">
                     <i class="fa-solid fa-right-to-bracket"></i> Initialize 🔒
                 </button>
             </form>
+
+            <div class="social-login-container">
+                <p class="social-text">Or continue with</p>
+                <div class="social-buttons">
+                    <button class="social-btn google" title="Google"><i class="fa-brands fa-google"></i></button>
+                    <button class="social-btn apple" title="Apple / iCloud"><i class="fa-brands fa-apple"></i></button>
+                    <button class="social-btn facebook" title="Facebook"><i class="fa-brands fa-facebook-f"></i></button>
+                </div>
+            </div>
 
             <div class="toggle-mode" onclick="toggleRegisterMode()" id="mode-text">
                 No access? <span>Request Invite</span>
