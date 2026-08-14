@@ -39,9 +39,15 @@ body {
 }
 
 @keyframes gradientBG {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 header {
@@ -148,7 +154,7 @@ h1 {
 }
 
 .card {
-  align-self: start; 
+  align-self: start;
   background: var(--glass-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -473,45 +479,77 @@ audio::-webkit-media-controls-time-remaining-display {
 /* ------------------------------------------- */
 /* 💎 PREMIUM SIDEBAR STYLING                  */
 /* ------------------------------------------- */
-.vault-sidebar, .comments-sidebar {
-  position: fixed; top: 0; width: 400px; height: 100vh;
-  background: rgba(15, 15, 20, 0.85); 
-  backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
-  z-index: 2000; padding: 30px 25px; overflow-y: auto;
+.vault-sidebar,
+.comments-sidebar {
+  position: fixed;
+  top: 0;
+  width: 400px;
+  height: 100vh;
+  background: rgba(15, 15, 20, 0.85);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  z-index: 2000;
+  padding: 30px 25px;
+  overflow-y: auto;
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
 }
 
-.vault-sidebar { right: -400px; border-left: 1px solid rgba(0, 168, 255, 0.2); transition: right 0.5s cubic-bezier(0.19, 1, 0.22, 1); }
-.vault-sidebar.open { right: 0; }
+.vault-sidebar {
+  right: -400px;
+  border-left: 1px solid rgba(0, 168, 255, 0.2);
+  transition: right 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.vault-sidebar.open {
+  right: 0;
+}
 
-.comments-sidebar { left: -400px; border-right: 1px solid rgba(0, 168, 255, 0.2); transition: left 0.5s cubic-bezier(0.19, 1, 0.22, 1); }
-.comments-sidebar.open { left: 0; }
+.comments-sidebar {
+  left: -400px;
+  border-right: 1px solid rgba(0, 168, 255, 0.2);
+  transition: left 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+.comments-sidebar.open {
+  left: 0;
+}
 
 /* Custom Sleek Scrollbar */
-.vault-sidebar::-webkit-scrollbar, .comments-sidebar::-webkit-scrollbar { width: 6px; }
-.vault-sidebar::-webkit-scrollbar-track, .comments-sidebar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
-.vault-sidebar::-webkit-scrollbar-thumb, .comments-sidebar::-webkit-scrollbar-thumb { background: rgba(0, 168, 255, 0.5); border-radius: 10px; }
-.vault-sidebar::-webkit-scrollbar-thumb:hover, .comments-sidebar::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+.vault-sidebar::-webkit-scrollbar,
+.comments-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+.vault-sidebar::-webkit-scrollbar-track,
+.comments-sidebar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+.vault-sidebar::-webkit-scrollbar-thumb,
+.comments-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(0, 168, 255, 0.5);
+  border-radius: 10px;
+}
+.vault-sidebar::-webkit-scrollbar-thumb:hover,
+.comments-sidebar::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
 
 /* Headers */
 .vault-header {
-  display: flex; 
-  justify-content: space-between; 
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px; 
+  margin-bottom: 25px;
   padding-bottom: 15px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   width: 100%;
   box-sizing: border-box;
 }
 
-.vault-header h3 { 
-  margin: 0; 
-  color: #fff; 
-  font-size: 1.3rem; 
-  letter-spacing: 1px; 
+.vault-header h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.3rem;
+  letter-spacing: 1px;
   text-shadow: 0 0 15px var(--primary-glow);
-  
+
   /* 🛑 THE BULLETPROOF FLEXBOX TRUNCATION */
   white-space: nowrap;
   overflow: hidden;
@@ -522,47 +560,89 @@ audio::-webkit-media-controls-time-remaining-display {
 }
 
 /* Add margin to the icon */
-.vault-header h3 i { 
-  color: var(--primary); 
+.vault-header h3 i {
+  color: var(--primary);
   margin-right: 8px;
 }
 
-.close-vault { 
+.close-vault {
   flex-shrink: 0; /* CRITICAL: Prevents the button from being pushed off screen */
-  background: rgba(255,255,255,0.05); 
-  border: 1px solid rgba(255,255,255,0.1); 
-  color: var(--text-muted); 
-  width: 35px; 
-  height: 35px; 
-  border-radius: 50%; 
-  cursor: pointer; 
-  transition: 0.3s; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.close-vault:hover { 
-  background: rgba(255, 77, 77, 0.2); 
-  color: #ff4d4d; 
-  border-color: #ff4d4d; 
-  transform: rotate(90deg); 
+.close-vault:hover {
+  background: rgba(255, 77, 77, 0.2);
+  color: #ff4d4d;
+  border-color: #ff4d4d;
+  transform: rotate(90deg);
 }
 
 /* Upgraded Comment Input */
 .comments-sidebar .comment-input-box {
-  background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px; padding: 8px; display: flex; gap: 10px; margin-bottom: 25px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 8px;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 25px;
   transition: 0.3s;
 }
-.comments-sidebar .comment-input-box:focus-within { border-color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); background: rgba(0,0,0,0.6); }
-.comments-sidebar .comment-input-box input { border: none; background: transparent; padding: 10px; flex: 1; color: #fff; outline: none; font-size: 0.95rem; }
-.comments-sidebar .comment-input-box button { background: var(--primary); color: #fff; border: none; padding: 0 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px;}
-.comments-sidebar .comment-input-box button:hover { background: #fff; color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
+.comments-sidebar .comment-input-box:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 15px var(--primary-glow);
+  background: rgba(0, 0, 0, 0.6);
+}
+.comments-sidebar .comment-input-box input {
+  border: none;
+  background: transparent;
+  padding: 10px;
+  flex: 1;
+  color: #fff;
+  outline: none;
+  font-size: 0.95rem;
+}
+.comments-sidebar .comment-input-box button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 0 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+}
+.comments-sidebar .comment-input-box button:hover {
+  background: #fff;
+  color: var(--primary);
+  box-shadow: 0 0 15px var(--primary-glow);
+}
 
 /* Empty States */
-.empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
-.empty-state i { font-size: 3rem; color: rgba(255,255,255,0.1); margin-bottom: 15px; display: block; }
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+.empty-state i {
+  font-size: 3rem;
+  color: rgba(255, 255, 255, 0.1);
+  margin-bottom: 15px;
+  display: block;
+}
 
 .vault-item {
   display: flex;
@@ -610,7 +690,6 @@ audio::-webkit-media-controls-time-remaining-display {
   box-shadow: 0 0 10px var(--primary-glow);
 }
 
-
 /* ------------------------------------------- */
 /* 📱 MOBILE RESPONSIVE STYLES                 */
 /* ------------------------------------------- */
@@ -647,7 +726,49 @@ audio::-webkit-media-controls-time-remaining-display {
     font-size: 2.5rem;
   }
 
-  .vault-sidebar, .comments-sidebar { width: 100%; }
-  .vault-sidebar { right: -100%; border-left: none; }
-  .comments-sidebar { left: -100%; border-right: none; }
+  .vault-sidebar,
+  .comments-sidebar {
+    width: 100%;
+  }
+  .vault-sidebar {
+    right: -100%;
+    border-left: none;
+  }
+  .comments-sidebar {
+    left: -100%;
+    border-right: none;
+  }
+
+  /* Override for ANY header block at the top of the sidebars */
+  .vault-sidebar > div:first-child,
+  .comments-sidebar > div:first-child,
+  .vault-sidebar > header,
+  .comments-sidebar > header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  /* Force ANY title text inside sidebars to shrink */
+  .vault-sidebar h3,
+  .comments-sidebar h3,
+  .vault-sidebar h2,
+  .comments-sidebar h2 {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding-right: 15px !important;
+  }
+
+  /* Protect all close buttons from being pushed away */
+  .close-vault,
+  .close-comments,
+  .comments-sidebar button {
+    flex-shrink: 0 !important;
+  }
 }
