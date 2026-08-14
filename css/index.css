@@ -103,8 +103,16 @@ h1 {
 
 .auth-container {
   display: flex;
-  gap: 12px;
+  gap: 24px; /* Increased from 12px to give proper spacing */
   align-items: center;
+}
+
+/* Optional: Make the welcome text look a bit sharper */
+.auth-container span {
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: var(--text-main);
+  opacity: 0.9;
 }
 
 .auth-btn {
