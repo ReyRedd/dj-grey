@@ -70,10 +70,10 @@ app.post('/api/auth/register', async (req, res) => {
 
         const verifyLink = `https://dj-grey.onrender.com/api/auth/verify/${verificationToken}`;
         
-        // 🚀 Send email via Resend API
+        // 🚀 Send email via Resend API (UPDATED TO CUSTOM DOMAIN)
         const { data, error } = await resend.emails.send({
-            from: 'DJ Grey Vault <onboarding@resend.dev>', // Resend's default testing address
-            to: email, // REMEMBER: Must be your registered Resend email until you add a domain
+            from: 'DJ Grey Vault <vip@djgrey.wezer.me>', // <--- Updated to your new domain!
+            to: email, // This will now send to ANY email address globally!
             subject: 'Verify your Fan Account - DJ Grey',
             html: `<div style="font-family: sans-serif; text-align: center; padding: 20px; background: #0a0a0c; color: #fff;">
                     <h2 style="color: #00a8ff;">Welcome to the VIP Vault, ${username}!</h2>
@@ -101,14 +101,15 @@ app.get('/api/auth/verify/:token', async (req, res) => {
         // Update the user's status to 'approved' in the database
         await pool.query("UPDATE users SET status = 'approved' WHERE email = $1", [decoded.email]);
         
-        // Send a beautiful success page back to their browser
+        // Send a beautiful success page back to their browser (UPDATED TO CUSTOM DOMAIN)
         res.send(`
             <body style="background-color: #0a0a0c; color: #ffffff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
                 <div style="text-align: center; padding: 40px; background: #1a1a20; border-radius: 12px; border-top: 4px solid #00a8ff; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
                     <h1 style="color: #00a8ff; margin-top: 0;">Account Verified! 🎉</h1>
                     <p style="color: #a0a0a0; font-size: 1.1rem;">Welcome to the VIP Vault. Your email has been successfully verified.</p>
                     <p style="margin-top: 30px;">
-                        <a href="https://djgrey.netlify.app/login.html" style="background: #00a8ff; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Log In Now</a>
+                        <!-- 👇 Updated to your new djgrey.wezer.me URL! 👇 -->
+                        <a href="https://djgrey.wezer.me/login.html" style="background: #00a8ff; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Log In Now</a>
                     </p>
                 </div>
             </body>
