@@ -302,7 +302,6 @@ h1 {
 /* ========================================= */
 /* 🎧 AUDIO PLAYER (MINIMIZED & FULLSCREEN)  */
 /* ========================================= */
-
 .player-bar {
   position: fixed;
   bottom: 0;
@@ -316,6 +315,19 @@ h1 {
   justify-content: space-between;
   align-items: center;
   z-index: 2000;
+  
+  /* Hides the player completely off-screen by default */
+  transform: translateY(100%);
+  opacity: 0;
+  visibility: hidden;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+}
+
+/* This class will be added by JS when a mix is played */
+.player-bar.active, .player-bar.is-fullscreen {
+  transform: translateY(0);
+  opacity: 1;
+  visibility: visible;
 }
 
 .now-playing {

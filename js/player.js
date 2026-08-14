@@ -14,6 +14,9 @@ function playMix(index) {
   document.getElementById("np-title").innerText = mix.title;
   document.getElementById("np-art").src = DEFAULT_ARTWORK;
   
+  // 🪄 MAGIC: Reveal the player sliding up from the bottom!
+  document.getElementById("player-ui").classList.add("active");
+
   // Set Fullscreen Backdrop Image
   const backdrop = document.getElementById("fullscreen-backdrop");
   if (backdrop) backdrop.style.backgroundImage = `url('${DEFAULT_ARTWORK}')`;
