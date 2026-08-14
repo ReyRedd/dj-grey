@@ -279,38 +279,51 @@ app.delete('/api/admin/users/:id', authenticateAdmin, async (req, res) => {
     }
 });
 
-// 🎧 HEARTHIS.AT INTEGRATION ROUTE (RSS BYPASS FOR NON-PREMIUM)
+// 🎧 HEARTHIS.AT INTEGRATION ROUTE (ROBUST RSS BYPASS)
 app.get("/api/hearthis/sync/:username", async (req, res) => {
   try {
-    // Defaulting to the correct handle from the profile
     const hearthisUsername = req.params.username || "grey_george"; 
     
-    // Fetch the public Podcast RSS feed instead of the locked API
-    const response = await fetch(`https://hearthis.at/${hearthisUsername}/podcast/`);
+    // 1. Add a standard browser User-Agent so Hearthis doesn't block the backend
+    const response = await fetch(`https://hearthis.at/${hearthisUsername}/podcast/`, {
+        headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+    });
     
     if (!response.ok) {
+      console.error("Hearthis RSS fetch failed with status:", response.status);
       return res.status(500).json({ error: "Failed to fetch from Hearthis.at RSS" });
     }
 
     const xmlText = await response.text();
     
-    // Parse the XML <item> tags manually to avoid needing extra npm packages
-    const items = xmlText.match(/<item>[\s\S]*?<\/item>/g) || [];
+    // 2. Extract all <item> blocks
+    const items = xmlText.match(/<item>[\s\S]*?<\/item>/gi) || [];
     
+    // 3. Use highly flexible Regex to parse the XML tags regardless of attribute order
     const formattedMixes = items.map((item) => {
-      const titleMatch = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/) || item.match(/<title>(.*?)<\/title>/);
-      const urlMatch = item.match(/<enclosure url="(.*?)"/);
-      const artMatch = item.match(/<itunes:image href="(.*?)"/);
+      let title = "Unknown Mix";
+      const cdataMatch = item.match(/<title>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/title>/i);
+      const plainMatch = item.match(/<title>\s*([\s\S]*?)\s*<\/title>/i);
+      
+      if (cdataMatch) title = cdataMatch[1].trim();
+      else if (plainMatch) title = plainMatch[1].trim();
+
+      // Matches url="..." anywhere inside the enclosure tag
+      const urlMatch = item.match(/<enclosure[^>]*url="([^"]+)"/i);
+      // Matches href="..." anywhere inside the image tag
+      const artMatch = item.match(/<itunes:image[^>]*href="([^"]+)"/i);
 
       return {
-        title: titleMatch ? titleMatch[1] : "Unknown Mix",
+        title: title,
         audio_url: urlMatch ? urlMatch[1] : "",
         artwork_url: artMatch ? artMatch[1] : "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1",
-        likes_count: Math.floor(Math.random() * 50) + 10, // Mock stats since RSS hides this
+        likes_count: Math.floor(Math.random() * 50) + 10, // Mock stats since RSS hides them
         downloads_count: Math.floor(Math.random() * 20) + 5,
         source: "hearthis.at"
       };
-    }).filter(mix => mix.audio_url); // Only return valid tracks
+    }).filter(mix => mix.audio_url); // Only return tracks that successfully found an audio URL
 
     res.json({ success: true, count: formattedMixes.length, mixes: formattedMixes });
   } catch (err) {
