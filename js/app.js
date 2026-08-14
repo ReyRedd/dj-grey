@@ -31,8 +31,8 @@ function renderGrid(mixes) {
                         <i class="fa-solid fa-play"></i> PLAY
                     </button>
                     <div class="stats">
-                        <span onclick="likeMix(${mix.id}, this)" title="Like"><i class="fa-solid fa-heart"></i> ${mix.likes_count}</span>
-                        <span onclick="downloadMix(${mix.id}, '${mix.audio_url}')" title="Download"><i class="fa-solid fa-download"></i> ${mix.downloads_count}</span>
+                        <span onclick="likeMix(${mix.id}, this)" title="Like"><i class="fa-solid fa-heart"></i> ${mix.likes_count || 0}</span>
+                        <span onclick="downloadMix(${mix.id}, '${mix.audio_url}')" title="Download"><i class="fa-solid fa-download"></i> ${mix.downloads_count || 0}</span>
                         <span onclick="openShareModal('${mix.title.replace(/'/g, "\\'")}', 'https://djgrey.wezer.me?mix=${mix.id}')" title="Share Mix"><i class="fa-solid fa-share-nodes"></i></span>
                     </div>
                 </div>
@@ -69,7 +69,35 @@ function switchTab(tab) {
   } else if (tab === "history") {
     titleEl.innerText = "🕒 WATCH & LISTEN HISTORY";
     renderGrid(playlist);
+  } else if (tab === "hearthis") {
+    titleEl.innerText = "💿 DJ GREY'S HEARTHIS HUB";
+    fetchHearthisMixes(); // Triggers the live API sync
   }
+
+  // Auto-close menu on mobile after clicking a tab
+  if (window.innerWidth <= 768) {
+      const leftNav = document.getElementById("left-nav");
+      if(leftNav) leftNav.classList.remove("open");
+  }
+}
+
+// Direct Hearthis.at API Sync
+async function fetchHearthisMixes() {
+    const grid = document.getElementById("mixes-grid");
+    grid.innerHTML = `<p style="font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i> Syncing directly with DJ Grey's Hearthis.at account...</p>`;
+    try {
+        // Calls the endpoint we created in server.js pointing directly to 'djgrey'
+        const res = await fetch(`${API_URL}/hearthis/sync/djgrey`); 
+        const data = await res.json();
+        if(data.success && data.mixes.length > 0) {
+            renderGrid(data.mixes);
+        } else {
+            grid.innerHTML = `<p style="color: var(--text-muted);">No public mixes found on Hearthis.at.</p>`;
+        }
+    } catch(e) {
+        console.error(e);
+        grid.innerHTML = `<p style="color: #ff4d4d;">Failed to establish connection to Hearthis.at. Is the backend running?</p>`;
+    }
 }
 
 async function likeMix(id, element) {
@@ -107,5 +135,24 @@ async function downloadMix(id, url) {
     console.error("Error downloading mix:", err);
   }
 }
+
+// --- HAMBURGER MENU TOGGLE ---
+const menuToggle = document.getElementById("menu-toggle");
+const leftNav = document.getElementById("left-nav");
+
+if (menuToggle && leftNav) {
+    menuToggle.addEventListener("click", () => {
+        leftNav.classList.toggle("open");
+    });
+}
+
+// Close mobile nav when clicking outside of it
+document.addEventListener('click', (e) => {
+    if (window.innerWidth <= 768 && leftNav && leftNav.classList.contains('open')) {
+        if (!leftNav.contains(e.target) && !menuToggle.contains(e.target)) {
+            leftNav.classList.remove('open');
+        }
+    }
+});
 
 window.onload = loadMixes;

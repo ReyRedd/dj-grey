@@ -479,6 +479,110 @@ audio {
 .comment-input-box input { border: none; background: transparent; flex: 1; color: #fff; outline: none; }
 .comment-input-box button { background: var(--primary); color: #fff; border: none; padding: 0 16px; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
+/* ========================================= */
+/* 🛠️ UI POLISH & YOUTUBE COMMENTS OVERHAUL */
+/* ========================================= */
+
+/* 1. Fix Hardcoded White Text for Light Mode */
+.vault-header h3, 
+.comment-input-box input, 
+.share-header h3 {
+    color: var(--text-main) !important;
+}
+
+/* 2. Fix the "View Comments" Button */
+.comments-toggle-btn {
+    background: transparent !important;
+    border: none !important;
+    color: var(--primary) !important;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer !important;
+    padding: 8px 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: filter 0.2s;
+}
+.comments-toggle-btn:hover {
+    filter: brightness(1.2);
+}
+
+/* 3. YouTube-Style Comments UI */
+.comment-card {
+    background: transparent !important; /* Removes the boxy background */
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 12px 0 !important;
+    margin-bottom: 5px !important;
+}
+.comment-card.reply {
+    margin-left: 40px !important;
+    border-left: none !important;
+}
+.comment-input-box {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    border-radius: 0 !important;
+    padding: 8px 0 !important;
+}
+
+/* YouTube-Style "View Replies" Pill Button */
+.reply-accordion-btn {
+    background: transparent;
+    border: none;
+    color: #3ea6ff; /* Classic YouTube Blue */
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer !important;
+    padding: 6px 16px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s;
+}
+.reply-accordion-btn:hover {
+    background: rgba(62, 166, 255, 0.15);
+}
+
+/* Sleek Sort Dropdown */
+.comments-sort-bar select {
+    appearance: none;
+    background-color: transparent !important;
+    color: var(--text-main) !important;
+    border: none !important;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer !important;
+    padding-right: 20px;
+    background-image: url('data:image/svg+xml;utf8,<svg fill="%23a0a0a0" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right center;
+}
+.comments-sort-bar select option {
+    background-color: var(--glass-bg);
+    color: var(--text-main);
+}
+
+/* 4. Fix Hamburger Slide-out Menu for Mobile */
+.left-nav {
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@media (max-width: 768px) {
+    .left-nav {
+        position: fixed;
+        height: 100vh;
+        z-index: 2000;
+        transform: translateX(-100%);
+        display: flex !important; /* Overrides previous display:none */
+    }
+    .left-nav.open {
+        transform: translateX(0);
+        box-shadow: 20px 0 50px rgba(0,0,0,0.8);
+    }
+}
 @media (max-width: 768px) {
   .left-nav { display: none; }
   .vault-sidebar, .comments-sidebar { width: 100%; }

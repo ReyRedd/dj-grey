@@ -44,11 +44,11 @@ async function fetchComments(mixId) {
 
       if (childReplies.length > 0) {
         html += `
-          <div style="margin-left: 20px; margin-top: -5px; margin-bottom: 15px;">
-            <button class="comments-toggle-btn" onclick="toggleRepliesAccordion(${c.id})" style="font-size: 0.8rem; color: var(--primary);">
-              <i class="fa-solid fa-caret-down" id="reply-caret-${c.id}"></i> View ${childReplies.length} ${childReplies.length === 1 ? "reply" : "replies"}
+          <div style="margin-left: 40px; margin-top: -5px; margin-bottom: 15px;">
+            <button class="reply-accordion-btn" onclick="toggleRepliesAccordion(${c.id})">
+              <i class="fa-solid fa-caret-down" id="reply-caret-${c.id}"></i> View ${childReplies.length} ${childReplies.length === 1 ? 'reply' : 'replies'}
             </button>
-            <div id="replies-container-${c.id}" style="display: none; margin-top: 8px;">
+            <div id="replies-container-${c.id}" style="display: none; margin-top: 12px;">
         `;
         childReplies.forEach((r) => {
           html += renderCommentHtml(r, true);
