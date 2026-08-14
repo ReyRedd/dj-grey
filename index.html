@@ -18,29 +18,35 @@
       <div class="subtitle">The Ultimate Experience</div>
     </header>
 
-    <!-- Fan Vault Sidebar -->
+    <!-- Upgraded Fan Vault Sidebar -->
     <div class="vault-sidebar" id="vault-sidebar">
         <div class="vault-header">
             <h3><i class="fa-solid fa-vault"></i> My Vault</h3>
             <button class="close-vault" onclick="toggleVault()"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div id="vault-list">
-            <p style="color: var(--text-muted); font-size: 0.9rem;">Loading your downloaded tracks...</p>
+            <div class="empty-state">
+                <i class="fa-solid fa-compact-disc fa-spin-pulse"></i>
+                <p>Loading your exclusive downloads...</p>
+            </div>
         </div>
     </div>
 
-    <!-- Global Comments Sidebar -->
+    <!-- Upgraded Global Comments Sidebar -->
     <div class="comments-sidebar" id="comments-sidebar">
         <div class="vault-header">
-            <h3 id="sidebar-mix-title" style="font-size: 1.2rem;"><i class="fa-solid fa-comments"></i> Comments</h3>
+            <h3 id="sidebar-mix-title"><i class="fa-solid fa-comments"></i> Comments</h3>
             <button class="close-vault" onclick="closeCommentsSidebar()"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <div class="comment-input-box" style="margin-bottom: 25px;">
-            <input type="text" id="global-comment-input" placeholder="Write a comment...">
-            <button onclick="postSidebarComment()">Post</button>
+        <div class="comment-input-box">
+            <input type="text" id="global-comment-input" placeholder="Join the conversation...">
+            <button onclick="postSidebarComment()"><i class="fa-solid fa-paper-plane"></i></button>
         </div>
         <div id="sidebar-comments-list">
-            <p style="color: var(--text-muted); font-size: 0.9rem;">Loading comments...</p>
+            <div class="empty-state">
+                <i class="fa-regular fa-message"></i>
+                <p>No comments yet. Be the first to drop some fire!</p>
+            </div>
         </div>
     </div>
     

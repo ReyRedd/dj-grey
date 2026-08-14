@@ -10,6 +10,9 @@ app.use(express.json());
 
 app.use('/media', express.static('media'));
 
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 // Database connection
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/dj_grey_db',
@@ -50,7 +53,7 @@ function authenticateUser(req, res, next) {
 }
 
 // ---------------------------------------------------------
-// 🔑 AUTHENTICATION ROUTES (Manual Admin Approval)
+// 🔑 AUTHENTICATION ROUTES (Powered by Resend)
 // ---------------------------------------------------------
 app.post('/api/auth/register', async (req, res) => {
     const { username, email, password } = req.body;
@@ -58,17 +61,33 @@ app.post('/api/auth/register', async (req, res) => {
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
+        const verificationToken = jwt.sign({ email }, JWT_SECRET, { expiresIn: '1h' });
 
-        // Insert new user as 'pending'
         await pool.query(
             "INSERT INTO users (username, email, password_hash, role, status) VALUES ($1, $2, $3, 'user', 'pending')",
             [username, email, hashedPassword]
         );
 
-        res.status(201).json({ message: "Registration successful! DJ Grey's team will approve your access shortly." });
+        const verifyLink = `https://dj-grey.onrender.com/api/auth/verify/${verificationToken}`;
+        
+        // 🚀 Send email via Resend API
+        const { data, error } = await resend.emails.send({
+            from: 'DJ Grey Vault <onboarding@resend.dev>', // Resend's default testing address
+            to: email, // REMEMBER: Must be your registered Resend email until you add a domain
+            subject: 'Verify your Fan Account - DJ Grey',
+            html: `<div style="font-family: sans-serif; text-align: center; padding: 20px; background: #0a0a0c; color: #fff;">
+                    <h2 style="color: #00a8ff;">Welcome to the VIP Vault, ${username}!</h2>
+                    <p style="color: #a0a0a0;">Click the button below to verify your account and gain access to exclusive mixes.</p>
+                    <a href="${verifyLink}" style="display: inline-block; padding: 12px 24px; background: #00a8ff; color: #fff; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 20px;">Verify My Account</a>
+                   </div>`
+        });
+
+        if (error) throw new Error(error.message);
+
+        res.status(201).json({ message: "Registration successful! Please check your email to verify your account." });
     } catch (err) {
         console.error("REGISTER ERROR:", err);
-        res.status(500).json({ error: 'Username or Email already exists.' });
+        res.status(500).json({ error: 'Registration failed. Email may already exist or API error.' });
     }
 });
 
