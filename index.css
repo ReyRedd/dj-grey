@@ -613,7 +613,18 @@ audio::-webkit-media-controls-time-remaining-display {
   transform: scale(1.1);
   box-shadow: 0 0 10px var(--primary-glow);
 }
-
+/* ------------------------------------------- */
+/* 💬 COMMENTS SIDEBAR (Slides from Left)      */
+/* ------------------------------------------- */
+.comments-sidebar {
+  position: fixed; top: 0; left: -400px; width: 400px; height: 100vh;
+  background: var(--glass-bg); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  border-right: 1px solid var(--border-color); z-index: 2000;
+  transition: left 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5); padding: 30px 20px; overflow-y: auto;
+}
+.comments-sidebar.open { left: 0; }
+@media (max-width: 768px) { .comments-sidebar { width: 100%; left: -100%; } }
 
 /* ------------------------------------------- */
 /* 📱 MOBILE RESPONSIVE STYLES (Keep at very bottom) */
