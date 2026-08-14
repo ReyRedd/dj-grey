@@ -499,8 +499,26 @@ audio::-webkit-media-controls-time-remaining-display {
   margin-bottom: 25px; padding-bottom: 15px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
-.vault-header h3 { margin: 0; color: #fff; font-size: 1.3rem; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; text-shadow: 0 0 15px var(--primary-glow);}
-.vault-header h3 i { color: var(--primary); }
+.vault-header h3 { 
+  margin: 0; 
+  color: #fff; 
+  font-size: 1.3rem; 
+  letter-spacing: 1px; 
+  text-shadow: 0 0 15px var(--primary-glow);
+  
+  /* 🛑 NEW: Truncate long titles gracefully */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80%; /* Keeps it away from the X button */
+  display: block; /* Required for the ellipsis to work properly */
+}
+
+/* Add margin to the icon since we removed 'display: flex' from the h3 */
+.vault-header h3 i { 
+  color: var(--primary); 
+  margin-right: 8px;
+}
 .close-vault { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); width: 35px; height: 35px; border-radius: 50%; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; }
 .close-vault:hover { background: rgba(255, 77, 77, 0.2); color: #ff4d4d; border-color: #ff4d4d; transform: rotate(90deg); }
 

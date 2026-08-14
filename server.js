@@ -140,7 +140,7 @@ app.post('/api/auth/login', async (req, res) => {
         }
 
         if (user.status !== 'approved') {
-            return res.status(403).json({ error: 'Your account is pending Admin approval.' });
+            return res.status(403).json({ error: 'Your account is pending verification. Please check your email for a verification link.' });
         }
 
         const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
