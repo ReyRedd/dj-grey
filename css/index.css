@@ -570,6 +570,27 @@ audio {
 .left-nav {
     transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
+
+/* ========================================= */
+/* 🍔 DESKTOP HAMBURGER MENU FIX             */
+/* ========================================= */
+
+.left-nav {
+    transition: width 0.3s ease, padding 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
+    overflow-x: hidden; /* Stops text from wrapping weirdly while it closes */
+}
+
+/* When the sidebar is told to collapse on Desktop */
+@media (min-width: 769px) {
+    .left-nav.collapsed {
+        width: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        border-right: none !important;
+        opacity: 0;
+    }
+}
+
 @media (max-width: 768px) {
     .left-nav {
         position: fixed;

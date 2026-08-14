@@ -142,11 +142,17 @@ const leftNav = document.getElementById("left-nav");
 
 if (menuToggle && leftNav) {
     menuToggle.addEventListener("click", () => {
-        leftNav.classList.toggle("open");
+        if (window.innerWidth > 768) {
+            // Desktop behavior: shrink to 0
+            leftNav.classList.toggle("collapsed");
+        } else {
+            // Mobile behavior: slide in from left
+            leftNav.classList.toggle("open");
+        }
     });
 }
 
-// Close mobile nav when clicking outside of it
+// Close mobile nav when clicking outside of it (Only affects mobile)
 document.addEventListener('click', (e) => {
     if (window.innerWidth <= 768 && leftNav && leftNav.classList.contains('open')) {
         if (!leftNav.contains(e.target) && !menuToggle.contains(e.target)) {
