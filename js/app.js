@@ -86,8 +86,8 @@ async function fetchHearthisMixes() {
     const grid = document.getElementById("mixes-grid");
     grid.innerHTML = `<p style="font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i> Syncing directly with DJ Grey's Hearthis.at account...</p>`;
     try {
-        // Calls the endpoint we created in server.js pointing directly to 'djgrey'
-        const res = await fetch(`${API_URL}/hearthis/sync/djgrey`); 
+        // 🚨 FIX: Pass the exact profile handle with the hyphen!
+        const res = await fetch(`${API_URL}/hearthis/sync/grey-george`); 
         const data = await res.json();
         if(data.success && data.mixes.length > 0) {
             renderGrid(data.mixes);

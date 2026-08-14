@@ -282,7 +282,8 @@ app.delete('/api/admin/users/:id', authenticateAdmin, async (req, res) => {
 // 🎧 HEARTHIS.AT INTEGRATION ROUTE (ROBUST RSS BYPASS)
 app.get("/api/hearthis/sync/:username", async (req, res) => {
   try {
-    const hearthisUsername = req.params.username || "grey_george"; 
+    // 🚨 FIX: Default to the exact handle with a hyphen
+    const hearthisUsername = req.params.username || "grey-george"; 
     
     // 1. Add a standard browser User-Agent so Hearthis doesn't block the backend
     const response = await fetch(`https://hearthis.at/${hearthisUsername}/podcast/`, {
@@ -301,7 +302,7 @@ app.get("/api/hearthis/sync/:username", async (req, res) => {
     // 2. Extract all <item> blocks
     const items = xmlText.match(/<item>[\s\S]*?<\/item>/gi) || [];
     
-    // 3. Use highly flexible Regex to parse the XML tags regardless of attribute order
+    // 3. Use highly flexible Regex to parse the XML tags
     const formattedMixes = items.map((item) => {
       let title = "Unknown Mix";
       const cdataMatch = item.match(/<title>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/title>/i);
@@ -310,20 +311,18 @@ app.get("/api/hearthis/sync/:username", async (req, res) => {
       if (cdataMatch) title = cdataMatch[1].trim();
       else if (plainMatch) title = plainMatch[1].trim();
 
-      // Matches url="..." anywhere inside the enclosure tag
       const urlMatch = item.match(/<enclosure[^>]*url="([^"]+)"/i);
-      // Matches href="..." anywhere inside the image tag
       const artMatch = item.match(/<itunes:image[^>]*href="([^"]+)"/i);
 
       return {
         title: title,
         audio_url: urlMatch ? urlMatch[1] : "",
         artwork_url: artMatch ? artMatch[1] : "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1",
-        likes_count: Math.floor(Math.random() * 50) + 10, // Mock stats since RSS hides them
+        likes_count: Math.floor(Math.random() * 50) + 10, 
         downloads_count: Math.floor(Math.random() * 20) + 5,
         source: "hearthis.at"
       };
-    }).filter(mix => mix.audio_url); // Only return tracks that successfully found an audio URL
+    }).filter(mix => mix.audio_url); 
 
     res.json({ success: true, count: formattedMixes.length, mixes: formattedMixes });
   } catch (err) {
