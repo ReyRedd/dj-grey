@@ -1,20 +1,23 @@
 let currentMixIdForComments = null;
-let currentSortOrder = 'newest'; // Default sort order
+let currentSortOrder = 'newest'; // Tracks current sort state
 
-// --- SORT MENU LOGIC ---
+// --- RICH CUSTOM SORT MENU LOGIC ---
 function toggleSortMenu() {
-    document.getElementById('sort-menu').classList.toggle('open');
+    document.getElementById('custom-sort-dropdown').classList.toggle('open');
 }
 
-function selectSort(order) {
+function selectSort(order, labelText) {
     currentSortOrder = order;
     
-    // Update active UI state
-    document.querySelectorAll('.sort-option').forEach(el => el.classList.remove('active'));
+    // Update the button text to show current selection
+    document.getElementById('current-sort-label').innerText = labelText;
+
+    // Update active UI state in the dropdown
+    document.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
     document.getElementById(`sort-opt-${order}`).classList.add('active');
 
     // Close the menu
-    document.getElementById('sort-menu').classList.remove('open');
+    document.getElementById('custom-sort-dropdown').classList.remove('open');
 
     // Re-fetch comments with new sort order
     if (currentMixIdForComments) {
@@ -22,13 +25,12 @@ function selectSort(order) {
     }
 }
 
-// Close the sort menu if the user clicks outside of it
+// Close the sort menu if the user clicks anywhere outside of it
 document.addEventListener('click', (e) => {
-    const menu = document.getElementById('sort-menu');
-    const toggleBtn = document.querySelector('.sort-toggle-btn');
-    if (menu && menu.classList.contains('open')) {
-        if (!menu.contains(e.target) && !toggleBtn.contains(e.target)) {
-            menu.classList.remove('open');
+    const dropdown = document.getElementById('custom-sort-dropdown');
+    if (dropdown && dropdown.classList.contains('open')) {
+        if (!dropdown.contains(e.target)) {
+            dropdown.classList.remove('open');
         }
     }
 });

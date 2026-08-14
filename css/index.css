@@ -576,7 +576,114 @@ audio {
 }
 .reply-accordion-btn:hover { background: rgba(62, 166, 255, 0.15); }
 
+/* ========================================= */
+/* 💬 SIDEBAR LIGHT MODE FIX                 */
+/* ========================================= */
 
+.vault-sidebar, .comments-sidebar {
+    background: var(--glass-bg) !important; /* Forces background to adapt to light/dark mode */
+    color: var(--text-main) !important;
+    box-shadow: -5px 0 30px var(--glass-shadow);
+}
+
+/* ========================================= */
+/* 🎛️ ELEGANT CUSTOM SORT DROPDOWN          */
+/* ========================================= */
+
+.comments-sort-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 0 5px;
+}
+
+.comments-count-label {
+    font-weight: bold; 
+    font-size: 1.1rem;
+    color: var(--text-main);
+}
+
+.custom-dropdown {
+    position: relative;
+}
+
+.dropdown-toggle {
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.dropdown-toggle:hover {
+    background: rgba(150, 150, 150, 0.15);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0; /* Anchors menu to the right so it never breaks out of the sidebar */
+    margin-top: 8px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    min-width: 240px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    
+    /* Smooth animated reveal */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 3000;
+}
+
+/* Toggles visibility when parent gets the 'open' class */
+.custom-dropdown.open .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border-bottom: 1px solid rgba(150, 150, 150, 0.05);
+}
+.dropdown-item:last-child {
+    border-bottom: none;
+}
+.dropdown-item:hover {
+    background: rgba(150, 150, 150, 0.15);
+}
+.dropdown-item.active {
+    background: rgba(0, 168, 255, 0.1);
+    border-left: 3px solid var(--primary);
+}
+
+.item-title {
+    display: block;
+    color: var(--text-main);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+.item-desc {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin-top: 4px;
+}
 /* ========================================= */
 /* 📱 MOBILE RESPONSIVE FIXES                */
 /* ========================================= */

@@ -115,24 +115,23 @@
         </button>
       </div>
 
-      <!-- YouTube-Style Comment Sorting Controls -->
+      <!-- Elegant Custom Sort Dropdown -->
       <div class="comments-sort-bar">
-        <span class="comments-count-label" id="comments-count-label">Comments</span>
+        <span id="comments-count-label" class="comments-count-label">Comments</span>
         
-        <div class="custom-sort-wrapper">
-          <button class="sort-toggle-btn" onclick="toggleSortMenu()">
-            <i class="fa-solid fa-bars-staggered"></i> Sort by
+        <div class="custom-dropdown" id="custom-sort-dropdown">
+          <button class="dropdown-toggle" onclick="toggleSortMenu()">
+            <i class="fa-solid fa-bars-staggered"></i> <span id="current-sort-label">Newest</span>
           </button>
           
-          <!-- Custom YouTube-Style Popup Menu -->
-          <div class="sort-menu" id="sort-menu">
-            <div class="sort-option active" id="sort-opt-top" onclick="selectSort('top')">
-              <span class="sort-title">Top</span>
-              <span class="sort-desc">Show featured comments</span>
+          <div class="dropdown-menu" id="sort-menu">
+            <div class="dropdown-item active" id="sort-opt-newest" onclick="selectSort('newest', 'Newest')">
+              <span class="item-title">Newest</span>
+              <span class="item-desc">Show recent comments</span>
             </div>
-            <div class="sort-option" id="sort-opt-newest" onclick="selectSort('newest')">
-              <span class="sort-title">Newest</span>
-              <span class="sort-desc">Show recent comments</span>
+            <div class="dropdown-item" id="sort-opt-top" onclick="selectSort('top', 'Top')">
+              <span class="item-title">Top</span>
+              <span class="item-desc">Show featured comments</span>
             </div>
           </div>
         </div>
