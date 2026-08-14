@@ -80,17 +80,20 @@ app.post('/api/auth/register', async (req, res) => {
         // 📧 SEND VERIFICATION EMAIL
         const verifyLink = `https://dj-grey.onrender.com/api/auth/verify/${verificationToken}`;
         const mailOptions = {
-            from: '"DJ Grey Vault" <greygeorge929@gmail.com>',
+            from: `"DJ Grey Vault" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: 'Verify your Fan Account - DJ Grey',
             html: `<h3>Welcome to the VIP Vault, ${username}!</h3><p>Click the link below to verify your account and gain access:</p><a href="${verifyLink}">Verify My Account</a>`
         };
         
-        transporter.sendMail(mailOptions).catch(console.error);
+        // Use AWAIT so if Google blocks it, it throws an error to the frontend!
+        await transporter.sendMail(mailOptions);
 
         res.status(201).json({ message: "Registration successful. Please check your email to verify your account!" });
     } catch (err) {
-        res.status(500).json({ error: 'Username or Email already exists.' });
+        // This will now catch Gmail errors and send them to your console
+        console.error("REGISTER ERROR:", err);
+        res.status(500).json({ error: err.message || 'Registration failed.' });
     }
 });
 

@@ -1,181 +1,385 @@
 <!doctype html>
 <html lang="en" data-theme="dark">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DJ Grey | Admin Dashboard</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
     <link rel="stylesheet" href="admin.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        .chart-container { margin-top: 30px; padding: 20px; background: var(--surface); border-radius: 12px; border-left: 4px solid var(--primary); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        .tab-content { display: none; animation: fadeIn 0.4s ease; }
-        .tab-content.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
-        .status-pending { background: rgba(255, 159, 67, 0.2); color: #ff9f43; border: 1px solid #ff9f43; }
-        .status-approved { background: rgba(46, 213, 115, 0.2); color: #2ed573; border: 1px solid #2ed573; }
-        .btn-approve { background: #2ed573; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; transition: 0.2s; font-weight: bold;}
-        .btn-approve:hover { filter: brightness(1.1); transform: scale(1.05); }
+      .badge-dot {
+        background: #00a8ff;
+        color: white;
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        border-radius: 12px;
+        margin-left: auto;
+        display: none;
+        box-shadow: 0 0 8px rgba(0, 168, 255, 0.6);
+      }
+      .badge-dot.show {
+        display: inline-block;
+      }
+      .chart-container {
+        margin-top: 30px;
+        padding: 20px;
+        background: var(--surface);
+        border-radius: 12px;
+        border-left: 4px solid var(--primary);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      }
+      .tab-content {
+        display: none;
+        animation: fadeIn 0.4s ease;
+      }
+      .tab-content.active {
+        display: block;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .status-badge {
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: bold;
+      }
+      .status-pending {
+        background: rgba(255, 159, 67, 0.2);
+        color: #ff9f43;
+        border: 1px solid #ff9f43;
+      }
+      .status-approved {
+        background: rgba(46, 213, 115, 0.2);
+        color: #2ed573;
+        border: 1px solid #2ed573;
+      }
+      .btn-approve {
+        background: #2ed573;
+        color: #fff;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: 0.2s;
+        font-weight: bold;
+      }
+      .btn-approve:hover {
+        filter: brightness(1.1);
+        transform: scale(1.05);
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <nav class="sidebar" id="sidebar">
-        <h2>DJ GREY <br /><span style="color: var(--text-main); font-size: 1rem">Admin</span></h2>
-        <ul class="sidebar-menu">
-            <li><a href="#" class="tab-link active" onclick="switchTab(event, 'dashboard-tab')"><i class="fa-solid fa-chart-pie"></i> Analytics & Upload</a></li>
-            <li><a href="#" class="tab-link" onclick="switchTab(event, 'users-tab')"><i class="fa-solid fa-users"></i> Fan Management <span id="pending-badge" class="badge-dot">0</span></a></li>            
-            <li><a href="/" target="_blank"><i class="fa-solid fa-globe"></i> View Live Site</a></li>
-            <li><a href="#" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
-        </ul>
+      <h2>
+        DJ GREY <br /><span style="color: var(--text-main); font-size: 1rem"
+          >Admin</span
+        >
+      </h2>
+      <ul class="sidebar-menu">
+        <li>
+          <a
+            href="#"
+            class="tab-link active"
+            onclick="switchTab(event, 'dashboard-tab')"
+            ><i class="fa-solid fa-chart-pie"></i> Analytics & Upload</a
+          >
+        </li>
+        <li>
+          <a href="#" class="tab-link" onclick="switchTab(event, 'users-tab')">
+            <i class="fa-solid fa-users"></i> Fan Management
+            <span id="pending-badge" class="badge-dot">0</span>
+          </a>
+        </li>
+        <li>
+          <a href="/" target="_blank"
+            ><i class="fa-solid fa-globe"></i> View Live Site</a
+          >
+        </li>
+        <li>
+          <a href="#" onclick="logout()"
+            ><i class="fa-solid fa-right-from-bracket"></i> Logout</a
+          >
+        </li>
+      </ul>
     </nav>
 
     <main class="main-content" id="main-content">
-        <div class="top-bar">
-            <div class="nav-left">
-                <button class="btn-icon" id="hamburger-btn"><i class="fa-solid fa-bars"></i></button>
-                <nav class="breadcrumb">
-                    <a href="/"><i class="fa-solid fa-house"></i> Home</a> <i class="fa-solid fa-chevron-right separator"></i>
-                    <span class="current" id="breadcrumb-current">Admin Dashboard</span>
-                </nav>
+      <div class="top-bar">
+        <div class="nav-left">
+          <button class="btn-icon" id="hamburger-btn">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <nav class="breadcrumb">
+            <a href="/"><i class="fa-solid fa-house"></i> Home</a>
+            <i class="fa-solid fa-chevron-right separator"></i>
+            <span class="current" id="breadcrumb-current">Admin Dashboard</span>
+          </nav>
+        </div>
+        <button class="btn-icon" id="theme-toggle">
+          <i class="fa-solid fa-sun"></i>
+        </button>
+      </div>
+
+      <header class="header">
+        <h1 id="page-title">Platform Control Center</h1>
+        <p id="date-display" style="color: var(--text-muted)"></p>
+      </header>
+
+      <!-- TAB 1: DASHBOARD & UPLOADS -->
+      <div id="dashboard-tab" class="tab-content active">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-title">Total Mixes</div>
+            <div class="stat-value" id="total-mixes">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-title">Total Plays</div>
+            <div
+              class="stat-value"
+              id="total-plays"
+              style="color: var(--primary)"
+            >
+              0
             </div>
-            <button class="btn-icon" id="theme-toggle"><i class="fa-solid fa-sun"></i></button>
+          </div>
+          <div class="stat-card">
+            <div class="stat-title">Total Likes</div>
+            <div class="stat-value" id="total-likes">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-title">Total Downloads</div>
+            <div class="stat-value" id="total-downloads">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-title">Total Comments</div>
+            <div class="stat-value" id="total-comments">0</div>
+          </div>
         </div>
 
-        <header class="header">
-            <h1 id="page-title">Platform Control Center</h1>
-            <p id="date-display" style="color: var(--text-muted)"></p>
-        </header>
-
-        <!-- TAB 1: DASHBOARD & UPLOADS -->
-        <div id="dashboard-tab" class="tab-content active">
-            <div class="stats-grid">
-                <div class="stat-card"><div class="stat-title">Total Mixes</div><div class="stat-value" id="total-mixes">0</div></div>
-                <div class="stat-card"><div class="stat-title">Total Plays</div><div class="stat-value" id="total-plays" style="color:var(--primary);">0</div></div>
-                <div class="stat-card"><div class="stat-title">Total Likes</div><div class="stat-value" id="total-likes">0</div></div>
-                <div class="stat-card"><div class="stat-title">Total Downloads</div><div class="stat-value" id="total-downloads">0</div></div>
-                <div class="stat-card"><div class="stat-title">Total Comments</div><div class="stat-value" id="total-comments">0</div></div>
-            </div>
-
-            <div class="chart-container">
-                <h3 style="margin-top:0; color: var(--text-main);">Engagement Overview</h3>
-                <canvas id="analyticsChart" height="80"></canvas>
-            </div>
-
-            <div class="card" style="margin-top:30px;">
-                <h3>Publish New Mix</h3>
-                <form id="add-mix-form">
-                    <div class="form-grid">
-                        <div class="form-group"><label>Mix Title *</label><input type="text" id="mix-title" required /></div>
-                        <div class="form-group"><label>Audio Link *</label><input type="url" id="mix-audio" required /></div>
-                        <div class="form-group"><label>Artwork Link</label><input type="url" id="mix-artwork" /></div>
-                    </div>
-                    <button type="submit" class="btn-submit"><i class="fa-solid fa-cloud-arrow-up"></i> Publish Mix</button>
-                </form>
-            </div>
-
-            <div class="table-container" style="margin-top: 30px;">
-                <h3 style="margin-top: 0; margin-bottom: 25px">Live Catalog</h3>
-                <table>
-                    <thead><tr><th>Artwork</th><th>Title</th><th>Likes</th><th>Downloads</th><th>Action</th></tr></thead>
-                    <tbody id="admin-table-body"><tr><td colspan="5">Loading data...</td></tr></tbody>
-                </table>
-            </div>
+        <div class="chart-container">
+          <h3 style="margin-top: 0; color: var(--text-main)">
+            Engagement Overview
+          </h3>
+          <canvas id="analyticsChart" height="80"></canvas>
         </div>
 
-        <!-- TAB 2: FAN MANAGEMENT -->
-        <div id="users-tab" class="tab-content">
-            <div class="table-container">
-                <h3 style="margin-top: 0; margin-bottom: 25px">Registered Fans & Users</h3>
-                <table>
-                    <thead><tr><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
-                    <tbody id="users-table-body"><tr><td colspan="5">Loading users...</td></tr></tbody>
-                </table>
+        <div class="card" style="margin-top: 30px">
+          <h3>Publish New Mix</h3>
+          <form id="add-mix-form">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Mix Title *</label
+                ><input type="text" id="mix-title" required />
+              </div>
+              <div class="form-group">
+                <label>Audio Link *</label
+                ><input type="url" id="mix-audio" required />
+              </div>
+              <div class="form-group">
+                <label>Artwork Link</label><input type="url" id="mix-artwork" />
+              </div>
             </div>
+            <button type="submit" class="btn-submit">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Publish Mix
+            </button>
+          </form>
         </div>
+
+        <div class="table-container" style="margin-top: 30px">
+          <h3 style="margin-top: 0; margin-bottom: 25px">Live Catalog</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Artwork</th>
+                <th>Title</th>
+                <th>Likes</th>
+                <th>Downloads</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="admin-table-body">
+              <tr>
+                <td colspan="5">Loading data...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 2: FAN MANAGEMENT -->
+      <div id="users-tab" class="tab-content">
+        <div class="table-container">
+          <h3 style="margin-top: 0; margin-bottom: 25px">
+            Registered Fans & Users
+          </h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-table-body">
+              <tr>
+                <td colspan="5">Loading users...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </main>
 
     <script>
-        const API_URL = "https://dj-grey.onrender.com/api";
-        const DEFAULT_ARTWORK = "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1";
+      const API_URL = "https://dj-grey.onrender.com/api";
+      const DEFAULT_ARTWORK =
+        "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1";
 
-        const token = localStorage.getItem("dj_grey_token");
-        const role = localStorage.getItem("dj_grey_role");
-        if (!token || role !== "admin") window.location.href = "/"; 
+      const token = localStorage.getItem("dj_grey_token");
+      const role = localStorage.getItem("dj_grey_role");
+      if (!token || role !== "admin") window.location.href = "/";
 
-        const getAuthHeaders = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${token}` });
+      const getAuthHeaders = () => ({
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      });
 
-        function logout() { localStorage.clear(); window.location.href = "/login.html"; }
+      function logout() {
+        localStorage.clear();
+        window.location.href = "/login.html";
+      }
 
-        // Core UI Logic
-        document.getElementById("theme-toggle").addEventListener("click", () => {
-            const newTheme = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
-            document.documentElement.setAttribute("data-theme", newTheme);
-            document.getElementById("theme-toggle").innerHTML = newTheme === "dark" ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+      // Core UI Logic
+      document.getElementById("theme-toggle").addEventListener("click", () => {
+        const newTheme =
+          document.documentElement.getAttribute("data-theme") === "dark"
+            ? "light"
+            : "dark";
+        document.documentElement.setAttribute("data-theme", newTheme);
+        document.getElementById("theme-toggle").innerHTML =
+          newTheme === "dark"
+            ? '<i class="fa-solid fa-sun"></i>'
+            : '<i class="fa-solid fa-moon"></i>';
+      });
+      document.getElementById("hamburger-btn").addEventListener("click", () => {
+        document.getElementById("sidebar").classList.toggle("collapsed");
+        document.getElementById("main-content").classList.toggle("expanded");
+      });
+      document.getElementById("date-display").innerText =
+        new Date().toLocaleDateString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
         });
-        document.getElementById("hamburger-btn").addEventListener("click", () => {
-            document.getElementById("sidebar").classList.toggle("collapsed");
-            document.getElementById("main-content").classList.toggle("expanded");
-        });
-        document.getElementById("date-display").innerText = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-        // Tab Switching Logic
-        function switchTab(event, tabId) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-link').forEach(link => link.classList.remove('active'));
-            
-            document.getElementById(tabId).classList.add('active');
-            event.currentTarget.classList.add('active');
+      // Tab Switching Logic
+      function switchTab(event, tabId) {
+        document
+          .querySelectorAll(".tab-content")
+          .forEach((tab) => tab.classList.remove("active"));
+        document
+          .querySelectorAll(".tab-link")
+          .forEach((link) => link.classList.remove("active"));
 
-            if (tabId === 'users-tab') {
-                document.getElementById('page-title').innerText = "Fan Management";
-                document.getElementById('breadcrumb-current').innerText = "Fan Management";
-                loadUsers();
-            } else {
-                document.getElementById('page-title').innerText = "Platform Control Center";
-                document.getElementById('breadcrumb-current').innerText = "Admin Dashboard";
-                loadAdminData();
-            }
+        document.getElementById(tabId).classList.add("active");
+        event.currentTarget.classList.add("active");
+
+        if (tabId === "users-tab") {
+          document.getElementById("page-title").innerText = "Fan Management";
+          document.getElementById("breadcrumb-current").innerText =
+            "Fan Management";
+          loadUsers();
+        } else {
+          document.getElementById("page-title").innerText =
+            "Platform Control Center";
+          document.getElementById("breadcrumb-current").innerText =
+            "Admin Dashboard";
+          loadAdminData();
         }
+      }
 
-        let analyticsChart; 
+      let analyticsChart;
 
-        // Dashboard Data
-        async function loadAdminData() {
-            try {
-                const analyticsRes = await fetch(`${API_URL}/admin/analytics`, { headers: getAuthHeaders() });
-                const analytics = await analyticsRes.json();
+      // Dashboard Data
+      async function loadAdminData() {
+        try {
+          const analyticsRes = await fetch(`${API_URL}/admin/analytics`, {
+            headers: getAuthHeaders(),
+          });
+          const analytics = await analyticsRes.json();
 
-                document.getElementById('total-mixes').innerText = analytics.totalMixes || 0;
-                document.getElementById('total-plays').innerText = analytics.totalPlays || 0;
-                document.getElementById('total-likes').innerText = analytics.totalLikes || 0;
-                document.getElementById('total-downloads').innerText = analytics.totalDownloads || 0;
-                document.getElementById('total-comments').innerText = analytics.totalComments || 0;
+          document.getElementById("total-mixes").innerText =
+            analytics.totalMixes || 0;
+          document.getElementById("total-plays").innerText =
+            analytics.totalPlays || 0;
+          document.getElementById("total-likes").innerText =
+            analytics.totalLikes || 0;
+          document.getElementById("total-downloads").innerText =
+            analytics.totalDownloads || 0;
+          document.getElementById("total-comments").innerText =
+            analytics.totalComments || 0;
 
-                const ctx = document.getElementById('analyticsChart').getContext('2d');
-                if (analyticsChart) analyticsChart.destroy(); 
-                analyticsChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['Plays', 'Likes', 'Downloads', 'Comments'],
-                        datasets: [{
-                            label: 'User Engagement',
-                            data: [analytics.totalPlays, analytics.totalLikes, analytics.totalDownloads, analytics.totalComments],
-                            backgroundColor: 'rgba(0, 168, 255, 0.5)', borderColor: '#00a8ff',
-                            borderWidth: 2, borderRadius: 6
-                        }]
-                    },
-                    options: { responsive: true, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } }
-                });
+          const ctx = document
+            .getElementById("analyticsChart")
+            .getContext("2d");
+          if (analyticsChart) analyticsChart.destroy();
+          analyticsChart = new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels: ["Plays", "Likes", "Downloads", "Comments"],
+              datasets: [
+                {
+                  label: "User Engagement",
+                  data: [
+                    analytics.totalPlays,
+                    analytics.totalLikes,
+                    analytics.totalDownloads,
+                    analytics.totalComments,
+                  ],
+                  backgroundColor: "rgba(0, 168, 255, 0.5)",
+                  borderColor: "#00a8ff",
+                  borderWidth: 2,
+                  borderRadius: 6,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  grid: { color: "rgba(255,255,255,0.05)" },
+                },
+                x: { grid: { display: false } },
+              },
+              plugins: { legend: { display: false } },
+            },
+          });
 
-                const res = await fetch(`${API_URL}/mixes`);
-                const mixes = await res.json();
-                const tableBody = document.getElementById('admin-table-body');
-                tableBody.innerHTML = '';
+          const res = await fetch(`${API_URL}/mixes`);
+          const mixes = await res.json();
+          const tableBody = document.getElementById("admin-table-body");
+          tableBody.innerHTML = "";
 
-                mixes.forEach(mix => {
-                    const art = mix.artwork_url || DEFAULT_ARTWORK;
-                    tableBody.innerHTML += `
+          mixes.forEach((mix) => {
+            const art = DEFAULT_ARTWORK;
+            tableBody.innerHTML += `
                         <tr>
                             <td><img src="${art}" class="art-thumb" onerror="this.src='${DEFAULT_ARTWORK}'"></td>
                             <td style="font-weight: bold;">${mix.title}</td>
@@ -184,83 +388,124 @@
                             <td><button class="btn-delete" onclick="deleteMix(${mix.id}, '${mix.title.replace(/'/g, "\\'")}')"><i class="fa-solid fa-trash"></i> Delete</button></td>
                         </tr>
                     `;
-                });
-            } catch (error) { console.error("Error:", error); }
+          });
+        } catch (error) {
+          console.error("Error:", error);
         }
+      }
 
-        // Fan & User Management Data
-        async function loadUsers() {
-            try {
-                const res = await fetch(`${API_URL}/admin/users`, { headers: getAuthHeaders() });
-                const users = await res.json();
-                const tableBody = document.getElementById('users-table-body');
-                tableBody.innerHTML = '';
+      // Fan & User Management Data
+      async function loadUsers() {
+        try {
+          const res = await fetch(`${API_URL}/admin/users`, {
+            headers: getAuthHeaders(),
+          });
+          const users = await res.json();
+          const tableBody = document.getElementById("users-table-body");
+          tableBody.innerHTML = "";
 
-                let pendingCount = 0; // NEW: Track pending users
+          let pendingCount = 0; // NEW: Track pending users
 
-                users.forEach(user => {
-                    const isPending = user.status === 'pending';
+          users.forEach((user) => {
+            const isPending = user.status === "pending";
 
-                    if (isPending) pendingCount++; // NEW: Increment count
+            if (isPending) pendingCount++; // NEW: Increment count
 
-                    const statusClass = isPending ? 'status-pending' : 'status-approved';
-                    const statusText = isPending ? 'Pending' : 'Approved';
+            const statusClass = isPending
+              ? "status-pending"
+              : "status-approved";
+            const statusText = isPending ? "Pending" : "Approved";
 
-                    tableBody.innerHTML += `
+            tableBody.innerHTML += `
                         <tr>
                             <td style="font-weight: bold; color: var(--text-main);">${user.username}</td>
                             <td>${user.email}</td>
                             <td><span style="text-transform: capitalize;">${user.role}</span></td>
                             <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                             <td>
-                                ${isPending ? `<button class="btn-approve" onclick="approveUser(${user.id})" style="margin-right: 10px;"><i class="fa-solid fa-check"></i> Approve</button>` : ''}
+                                ${isPending ? `<button class="btn-approve" onclick="approveUser(${user.id})" style="margin-right: 10px;"><i class="fa-solid fa-check"></i> Approve</button>` : ""}
                                 <button class="btn-delete" onclick="deleteUser(${user.id}, '${user.username}')"><i class="fa-solid fa-user-xmark"></i> Remove</button>
                             </td>
                         </tr>
                     `;
-                });
-            } catch (error) { console.error("Error loading users:", error); }
+          });
+        } catch (error) {
+          console.error("Error loading users:", error);
         }
-        // Ensure users are loaded in the background immediately so the badge shows up on dashboard load!
-        loadUsers();
+      }
+      // Ensure users are loaded in the background immediately so the badge shows up on dashboard load!
+      loadUsers();
 
-        async function approveUser(id) {
-            try {
-                await fetch(`${API_URL}/admin/users/${id}/approve`, { method: "PUT", headers: getAuthHeaders() });
-                loadUsers(); // Refresh the list
-            } catch (err) { console.error(err); }
+      async function approveUser(id) {
+        try {
+          await fetch(`${API_URL}/admin/users/${id}/approve`, {
+            method: "PUT",
+            headers: getAuthHeaders(),
+          });
+          loadUsers(); // Refresh the list
+        } catch (err) {
+          console.error(err);
         }
+      }
 
-        async function deleteUser(id, username) {
-            if (!confirm(`Are you sure you want to completely remove "${username}"? This will delete all their likes and comments.`)) return;
-            try {
-                await fetch(`${API_URL}/admin/users/${id}`, { method: "DELETE", headers: getAuthHeaders() });
-                loadUsers(); // Refresh the list
-            } catch (err) { console.error(err); }
+      async function deleteUser(id, username) {
+        if (
+          !confirm(
+            `Are you sure you want to completely remove "${username}"? This will delete all their likes and comments.`,
+          )
+        )
+          return;
+        try {
+          await fetch(`${API_URL}/admin/users/${id}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+          });
+          loadUsers(); // Refresh the list
+        } catch (err) {
+          console.error(err);
         }
+      }
 
-        document.getElementById("add-mix-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const title = document.getElementById("mix-title").value;
-            const audio_url = document.getElementById("mix-audio").value;
-            const artwork_url = document.getElementById("mix-artwork").value;
+      document
+        .getElementById("add-mix-form")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const title = document.getElementById("mix-title").value;
+          const audio_url = document.getElementById("mix-audio").value;
+          const artwork_url = document.getElementById("mix-artwork").value;
 
-            try {
-                const res = await fetch(`${API_URL}/mixes`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify({ title, audio_url, artwork_url }) });
-                if (res.ok) { document.getElementById("add-mix-form").reset(); loadAdminData(); } 
-                else { if (res.status === 401 || res.status === 403) logout(); }
-            } catch (err) { console.error(err); }
+          try {
+            const res = await fetch(`${API_URL}/mixes`, {
+              method: "POST",
+              headers: getAuthHeaders(),
+              body: JSON.stringify({ title, audio_url, artwork_url }),
+            });
+            if (res.ok) {
+              document.getElementById("add-mix-form").reset();
+              loadAdminData();
+            } else {
+              if (res.status === 401 || res.status === 403) logout();
+            }
+          } catch (err) {
+            console.error(err);
+          }
         });
 
-        async function deleteMix(id, title) {
-            if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
-            try {
-                const res = await fetch(`${API_URL}/mixes/${id}`, { method: "DELETE", headers: getAuthHeaders() });
-                if (res.ok) loadAdminData(); else if (res.status === 401 || res.status === 403) logout();
-            } catch (err) { console.error(err); }
+      async function deleteMix(id, title) {
+        if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
+        try {
+          const res = await fetch(`${API_URL}/mixes/${id}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+          });
+          if (res.ok) loadAdminData();
+          else if (res.status === 401 || res.status === 403) logout();
+        } catch (err) {
+          console.error(err);
         }
+      }
 
-        window.onload = loadAdminData;
+      window.onload = loadAdminData;
     </script>
-</body>
+  </body>
 </html>
