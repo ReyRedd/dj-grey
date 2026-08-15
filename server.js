@@ -344,30 +344,42 @@ app.get("/api/hearthis/sync/:username", async (req, res) => {
 });
 
 // ---------------------------------------------------------
-// 🎧 SPOTIFY LIVE SYNC ROUTE (BULLETPROOF IFRAME BYPASS)
+// 🎧 SPOTIFY LIVE SYNC ROUTE (DYNAMIC IFRAME BYPASS)
 // ---------------------------------------------------------
 app.get("/api/spotify/sync", async (req, res) => {
   try {
-    // 🚨 We bypass the buggy oEmbed API and construct the iframe manually using the Playlist ID
-    const playlistId = "6RRMozDXuzLvUG0wyoYjhU"; 
-    const spotifyUrl = `https://open.spotify.com/playlist/${playlistId}`; 
-    const title = "All On Me - Spotify Hub";
+    // Take URL from frontend query, fallback to a guaranteed public playlist
+    const spotifyUrl = req.query.url || "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"; 
+    const mixTitle = req.query.title || "DJ Grey - Spotify Drop";
+    
+    // Parse the URL to dynamically generate the correct embed type (playlist, track, album)
+    const urlParts = spotifyUrl.split('/');
+    const typeIndex = urlParts.findIndex(p => p === 'playlist' || p === 'track' || p === 'album' || p === 'artist');
+    
+    if (typeIndex === -1 || typeIndex + 1 >= urlParts.length) {
+        return res.status(400).json({ error: "Invalid Spotify URL. Must contain track, album, artist, or playlist." });
+    }
+
+    const embedType = urlParts[typeIndex];
+    const embedId = urlParts[typeIndex + 1].split('?')[0]; 
+    
     const artwork = "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1";
     
     // Official Spotify Embed Code
-    const embed_html = `<iframe style="border-radius:12px; box-shadow: 0 15px 35px rgba(0,0,0,0.5);" src="https://open.spotify.com/embed/playlist/${playlistId}?utm_source=generator&theme=0" width="100%" height="400" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
+    const embed_html = `<iframe style="border-radius:12px; box-shadow: 0 15px 35px rgba(0,0,0,0.5);" src="https://open.spotify.com/embed/${embedType}/${embedId}?utm_source=generator&theme=0" width="100%" height="400" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
 
     // Auto-check and insert into Postgres DB so actions like comments & likes work locally
-    let dbCheck = await pool.query("SELECT * FROM mixes WHERE title = $1", [title]);
+    let dbCheck = await pool.query("SELECT * FROM mixes WHERE audio_url = $1", [spotifyUrl]);
     let spotifyMix;
 
     if (dbCheck.rows.length === 0) {
       const inserted = await pool.query(
         "INSERT INTO mixes (title, audio_url, artwork_url, likes_count, downloads_count, created_at) VALUES ($1, $2, $3, 0, 0, NOW()) RETURNING *",
-        [title, spotifyUrl, artwork]
+        [mixTitle, spotifyUrl, artwork]
       );
       spotifyMix = inserted.rows[0];
     } else {
+      // Pulls the up-to-date likes and comments from YOUR database!
       spotifyMix = dbCheck.rows[0];
     }
 

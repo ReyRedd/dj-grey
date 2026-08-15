@@ -124,7 +124,13 @@ async function loadSpotifyHub() {
     grid.innerHTML = `<p style="font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i> Syncing live with DJ Grey's Spotify Hub...</p>`;
     
     try {
-        const res = await fetch(`${API_URL}/spotify/sync`);
+        // 🚨 You can now swap this URL right here in the frontend! 
+        // Ensure whatever playlist you put here is set to "PUBLIC" on Spotify.
+        const targetSpotifyUrl = "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"; 
+        const customTitle = "All On Me - Spotify Drop";
+        
+        // Pass the dynamic URL and Title to the backend
+        const res = await fetch(`${API_URL}/spotify/sync?url=${encodeURIComponent(targetSpotifyUrl)}&title=${encodeURIComponent(customTitle)}`);
         const data = await res.json();
         
         if (data.success && data.mix) {
@@ -135,12 +141,10 @@ async function loadSpotifyHub() {
                         Stream DJ Grey's live Spotify sync directly on the platform.
                     </p>
                     
-                    <!-- Native Interactive Spotify Embed -->
                     <div style="border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.6); margin-bottom: 25px;">
                         ${data.embed_html}
                     </div>
 
-                    <!-- Platform Action Bar (Likes & Comments Integration) -->
                     <div class="card" style="padding: 20px; display: flex; justify-content: space-between; align-items: center; background: var(--glass-bg);">
                         <h3 style="margin: 0; font-size: 1.2rem;">${mix.title}</h3>
                         <div class="stats" style="display: flex; gap: 20px; align-items: center;">
