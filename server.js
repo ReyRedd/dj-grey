@@ -344,29 +344,27 @@ app.get("/api/hearthis/sync/:username", async (req, res) => {
 });
 
 // ---------------------------------------------------------
-// 🎧 SPOTIFY LIVE SYNC ROUTE
+// 🎧 SPOTIFY LIVE SYNC ROUTE (BULLETPROOF IFRAME BYPASS)
 // ---------------------------------------------------------
 app.get("/api/spotify/sync", async (req, res) => {
   try {
-    // 🚨 FIX: Updated with Grey George's exact "All On Me" playlist URL
-    const spotifyUrl = "https://open.spotify.com/playlist/6RRMozDXuzLvUG0wyoYjhU"; 
+    // 🚨 We bypass the buggy oEmbed API and construct the iframe manually using the Playlist ID
+    const playlistId = "6RRMozDXuzLvUG0wyoYjhU"; 
+    const spotifyUrl = `https://open.spotify.com/playlist/${playlistId}`; 
+    const title = "All On Me - Spotify Hub";
+    const artwork = "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1";
     
-    const response = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(spotifyUrl)}`);
-    
-    if (!response.ok) {
-      console.error("Spotify oEmbed status:", response.status);
-      return res.status(500).json({ error: "Failed to fetch Spotify metadata" });
-    }
+    // Official Spotify Embed Code
+    const embed_html = `<iframe style="border-radius:12px; box-shadow: 0 15px 35px rgba(0,0,0,0.5);" src="https://open.spotify.com/embed/playlist/${playlistId}?utm_source=generator&theme=0" width="100%" height="400" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
 
-    const data = await response.json();
-
-    let dbCheck = await pool.query("SELECT * FROM mixes WHERE title = $1", [data.title]);
+    // Auto-check and insert into Postgres DB so actions like comments & likes work locally
+    let dbCheck = await pool.query("SELECT * FROM mixes WHERE title = $1", [title]);
     let spotifyMix;
 
     if (dbCheck.rows.length === 0) {
       const inserted = await pool.query(
         "INSERT INTO mixes (title, audio_url, artwork_url, likes_count, downloads_count, created_at) VALUES ($1, $2, $3, 0, 0, NOW()) RETURNING *",
-        [data.title, spotifyUrl, data.thumbnail_url || "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1"]
+        [title, spotifyUrl, artwork]
       );
       spotifyMix = inserted.rows[0];
     } else {
@@ -376,7 +374,7 @@ app.get("/api/spotify/sync", async (req, res) => {
     res.json({
       success: true,
       mix: spotifyMix,
-      embed_html: data.html,
+      embed_html: embed_html,
       provider: "spotify"
     });
   } catch (err) {
