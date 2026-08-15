@@ -70,10 +70,10 @@ app.post('/api/auth/register', async (req, res) => {
 
         const verifyLink = `https://dj-grey.onrender.com/api/auth/verify/${verificationToken}`;
         
-        // 🚀 Send email via Resend API (UPDATED TO CUSTOM DOMAIN)
+        // 🚀 Send email via Resend API
         const { data, error } = await resend.emails.send({
-            from: 'DJ Grey Vault <vip@djgrey.wezer.me>', // <--- Updated to your new domain!
-            to: email, // This will now send to ANY email address globally!
+            from: 'DJ Grey Vault <vip@djgrey.wezer.me>',
+            to: email, 
             subject: 'Verify your Fan Account - DJ Grey',
             html: `<div style="font-family: sans-serif; text-align: center; padding: 20px; background: #0a0a0c; color: #fff;">
                     <h2 style="color: #00a8ff;">Welcome to the VIP Vault, ${username}!</h2>
@@ -98,24 +98,20 @@ app.get('/api/auth/verify/:token', async (req, res) => {
     try {
         const decoded = jwt.verify(req.params.token, JWT_SECRET);
         
-        // Update the user's status to 'approved' in the database
         await pool.query("UPDATE users SET status = 'approved' WHERE email = $1", [decoded.email]);
         
-        // Send a beautiful success page back to their browser (UPDATED TO CUSTOM DOMAIN)
         res.send(`
             <body style="background-color: #0a0a0c; color: #ffffff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
                 <div style="text-align: center; padding: 40px; background: #1a1a20; border-radius: 12px; border-top: 4px solid #00a8ff; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
                     <h1 style="color: #00a8ff; margin-top: 0;">Account Verified! 🎉</h1>
                     <p style="color: #a0a0a0; font-size: 1.1rem;">Welcome to the VIP Vault. Your email has been successfully verified.</p>
                     <p style="margin-top: 30px;">
-                        <!-- 👇 Updated to your new djgrey.wezer.me URL! 👇 -->
                         <a href="https://djgrey.wezer.me/login.html" style="background: #00a8ff; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Log In Now</a>
                     </p>
                 </div>
             </body>
         `);
     } catch (err) {
-        // Send an error page if the link is expired or broken
         res.status(400).send(`
             <body style="background-color: #0a0a0c; color: #ffffff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
                 <div style="text-align: center; padding: 40px; background: #1a1a20; border-radius: 12px; border-top: 4px solid #ff4d4d; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
@@ -279,7 +275,9 @@ app.delete('/api/admin/users/:id', authenticateAdmin, async (req, res) => {
     }
 });
 
+// ---------------------------------------------------------
 // 🎧 HEARTHIS.AT INTEGRATION ROUTE (AUTO-IMPORT TO DB)
+// ---------------------------------------------------------
 app.get("/api/hearthis/sync/:username", async (req, res) => {
   try {
     const hearthisUsername = req.params.username || "grey-george"; 
@@ -320,21 +318,20 @@ app.get("/api/hearthis/sync/:username", async (req, res) => {
     // 3. Auto-Insert into database if not already present
     const syncedMixes = [];
     for (const mix of parsedItems) {
-      // Check if mix title or audio_url exists
-      let dbCheck = await db.query(
+      // 🚨 FIX: Replaced db.query with pool.query
+      let dbCheck = await pool.query(
         "SELECT * FROM mixes WHERE title = $1 OR audio_url = $2", 
         [mix.title, mix.audio_url]
       );
 
       if (dbCheck.rows.length === 0) {
-        // Insert new Hearthis track into your database
-        const inserted = await db.query(
+        // 🚨 FIX: Replaced db.query with pool.query
+        const inserted = await pool.query(
           "INSERT INTO mixes (title, audio_url, artwork_url, likes_count, downloads_count, created_at) VALUES ($1, $2, $3, 0, 0, NOW()) RETURNING *",
           [mix.title, mix.audio_url, mix.artwork_url]
         );
         syncedMixes.push(inserted.rows[0]);
       } else {
-        // Use existing database record with valid ID
         syncedMixes.push(dbCheck.rows[0]);
       }
     }
@@ -346,10 +343,14 @@ app.get("/api/hearthis/sync/:username", async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------
 // 🎧 SPOTIFY LIVE SYNC ROUTE
+// ---------------------------------------------------------
 app.get("/api/spotify/sync", async (req, res) => {
   try {
-    const spotifyUrl = "https://open.spotify.com/user/31tvcefiuaafkyrhudiojeeri1e"; 
+    // 🚨 FIX: Updated with Grey George's exact "All On Me" playlist URL
+    const spotifyUrl = "https://open.spotify.com/playlist/6RRMozDXuzLvUG0wyoYjhU"; 
+    
     const response = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(spotifyUrl)}`);
     
     if (!response.ok) {
@@ -359,7 +360,6 @@ app.get("/api/spotify/sync", async (req, res) => {
 
     const data = await response.json();
 
-    // 🚨 FIX: Replaced db.query with pool.query
     let dbCheck = await pool.query("SELECT * FROM mixes WHERE title = $1", [data.title]);
     let spotifyMix;
 
