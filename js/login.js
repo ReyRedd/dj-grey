@@ -106,3 +106,40 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
         document.getElementById('submit-btn').innerHTML = isRegisterMode ? '<i class="fa-solid fa-user-plus"></i> Create Account' : '<i class="fa-solid fa-right-to-bracket"></i> Initialize 🔒';
     }
 });
+
+// ---------------------------------------------------------
+// 🌐 SOCIAL LOGIN HANDLERS (Popups)
+// ---------------------------------------------------------
+document.querySelectorAll('.social-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.preventDefault(); // Prevent the form from submitting/reloading the page
+        
+        let provider = 'Social';
+        let iconHtml = '';
+        
+        if (btn.classList.contains('google')) {
+            provider = 'Google';
+            iconHtml = '<i class="fa-brands fa-google" style="color: #ea4335; font-size: 3rem;"></i>';
+        } else if (btn.classList.contains('apple')) {
+            provider = 'Apple / iCloud';
+            iconHtml = '<i class="fa-brands fa-apple" style="color: #ffffff; font-size: 3rem;"></i>';
+        } else if (btn.classList.contains('facebook')) {
+            provider = 'Facebook';
+            iconHtml = '<i class="fa-brands fa-facebook-f" style="color: #1877f2; font-size: 3rem;"></i>';
+        }
+
+        Swal.fire({
+            html: `
+                <div style="margin-bottom: 20px;">${iconHtml}</div>
+                <h3 style="color: #fff; margin-bottom: 10px;">Connect with ${provider}</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">
+                    OAuth Integration is currently being configured for <strong>djgrey.wezer.me</strong>. 
+                    Please use standard Email/Password authentication for now.
+                </p>
+            `,
+            background: 'rgba(30, 41, 59, 0.95)',
+            confirmButtonColor: 'var(--primary)',
+            confirmButtonText: 'Understood'
+        });
+    });
+});

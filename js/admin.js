@@ -190,6 +190,75 @@ async function deleteUser(id, username) {
   }
 }
 
+
+async function loadSubmissionsQueue() {
+    const tbody = document.getElementById("submissions-table-body");
+    try {
+        const res = await fetch(`${API_URL}/admin/submissions`, { headers: getAuthHeaders() });
+        const data = await res.json();
+
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No pending DJ submissions.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = data.map(s => `
+            <tr>
+                <td><strong>${s.dj_name}</strong></td>
+                <td>${s.title}</td>
+                <td><span class="badge" style="background: rgba(37, 211, 102, 0.2); color: #25d366;">$0.50 USD Paid</span></td>
+                <td><a href="${s.audio_url || s.spotify_url}" target="_blank" style="color: var(--primary);">Listen Link</a></td>
+                <td>
+                    ${s.status === 'pending' ? `<button class="btn-approve" onclick="approveSubmission(${s.id})"><i class="fa-solid fa-check"></i> Approve & Publish</button>` : `<span style="color: var(--text-muted);">Published</span>`}
+                </td>
+            </tr>
+        `).join("");
+    } catch (e) { console.error(e); }
+}
+
+async function approveSubmission(id) {
+    try {
+        const res = await fetch(`${API_URL}/admin/submissions/${id}/approve`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        });
+        if (res.ok) {
+            Swal.fire({ icon: 'success', title: 'Published!', text: 'Mix is now live in the main catalog.' });
+            loadSubmissionsQueue();
+        }
+    } catch (e) {}
+}
+
+async function handleLivestreamLaunch(e) {
+    e.preventDefault();
+    const title = document.getElementById("stream-title-input").value;
+    const stream_url = document.getElementById("stream-url-input").value;
+
+    try {
+        const res = await fetch(`${API_URL}/admin/livestream`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ title, stream_url, is_active: true })
+        });
+        if (res.ok) {
+            Swal.fire({ icon: 'success', title: 'You Are LIVE! 🔴', text: 'Fans can now watch your stream live.' });
+        }
+    } catch(e) {}
+}
+
+async function stopLivestream() {
+    try {
+        const res = await fetch(`${API_URL}/admin/livestream`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ is_active: false })
+        });
+        if (res.ok) {
+            Swal.fire({ icon: 'info', title: 'Livestream Ended' });
+        }
+    } catch(e) {}
+}
+
 document.getElementById("add-mix-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const title = document.getElementById("mix-title").value;

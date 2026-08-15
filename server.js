@@ -472,6 +472,133 @@ app.delete('/api/comments/:id', authenticateUser, async (req, res) => {
     }
 });
 
+// Ensure submissions table exists
+pool.query(`
+    CREATE TABLE IF NOT EXISTS mix_submissions (
+        id SERIAL PRIMARY KEY,
+        user_id INT REFERENCES users(id) ON DELETE CASCADE,
+        dj_name VARCHAR(100) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        audio_url TEXT NOT NULL,
+        artwork_url TEXT,
+        spotify_url TEXT,
+        fee_paid NUMERIC(5,2) DEFAULT 0.50,
+        status VARCHAR(20) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+`);
+
+// 🎧 Submit Mix Endpoint ($0.50 Upload Request)
+app.post('/api/submissions/upload', authenticateUser, async (req, res) => {
+    const { title, audio_url, artwork_url, spotify_url } = req.body;
+    if (!title || (!audio_url && !spotify_url)) {
+        return res.status(400).json({ error: "Mix title and audio or Spotify link are required." });
+    }
+
+    try {
+        const result = await pool.query(
+            `INSERT INTO mix_submissions (user_id, dj_name, title, audio_url, artwork_url, spotify_url, fee_paid, status)
+             VALUES ($1, $2, $3, $4, $5, $6, 0.50, 'pending') RETURNING *`,
+            [req.user.id, req.user.username, title, audio_url || '', artwork_url || '', spotify_url || '']
+        );
+        res.status(201).json({ success: true, message: "Mix submitted for review! $0.50 USD fee recorded.", submission: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 🛡️ Admin Fetch Submissions & Approve
+app.get('/api/admin/submissions', authenticateAdmin, async (req, res) => {
+    try {
+        const result = await pool.query("SELECT * FROM mix_submissions ORDER BY id DESC");
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/admin/submissions/:id/approve', authenticateAdmin, async (req, res) => {
+    try {
+        const subRes = await pool.query("SELECT * FROM mix_submissions WHERE id = $1", [req.params.id]);
+        if (subRes.rows.length === 0) return res.status(404).json({ error: "Submission not found" });
+
+        const sub = subRes.rows[0];
+        // Insert approved mix into main catalog
+        await pool.query(
+            "INSERT INTO mixes (title, audio_url, artwork_url, likes_count, downloads_count) VALUES ($1, $2, $3, 0, 0)",
+            [`${sub.title} (by DJ ${sub.dj_name})`, sub.audio_url || sub.spotify_url, sub.artwork_url || "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1"]
+        );
+
+        await pool.query("UPDATE mix_submissions SET status = 'approved' WHERE id = $1", [req.params.id]);
+        res.json({ success: true, message: "Mix published to live platform!" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Ensure livestream tables exist
+pool.query(`
+    CREATE TABLE IF NOT EXISTS livestreams (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) DEFAULT 'DJ GREY LIVE SESSION',
+        stream_url TEXT NOT NULL,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS live_chat (
+        id SERIAL PRIMARY KEY,
+        user_id INT REFERENCES users(id) ON DELETE CASCADE,
+        username VARCHAR(100) NOT NULL,
+        message TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+`);
+
+// Get active livestream
+app.get('/api/livestream/active', async (req, res) => {
+    try {
+        const stream = await pool.query("SELECT * FROM livestreams WHERE is_active = true ORDER BY id DESC LIMIT 1");
+        res.json({ active: stream.rows.length > 0, stream: stream.rows[0] || null });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Get live chat messages
+app.get('/api/livestream/chat', async (req, res) => {
+    try {
+        const messages = await pool.query("SELECT * FROM live_chat ORDER BY id DESC LIMIT 50");
+        res.json(messages.rows.reverse());
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Post live chat message
+app.post('/api/livestream/chat', authenticateUser, async (req, res) => {
+    const { message } = req.body;
+    if (!message || !message.trim()) return res.status(400).json({ error: "Message cannot be empty." });
+
+    try {
+        const result = await pool.query(
+            "INSERT INTO live_chat (user_id, username, message) VALUES ($1, $2, $3) RETURNING *",
+            [req.user.id, req.user.username, message.trim()]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Admin toggle livestream
+app.post('/api/admin/livestream', authenticateAdmin, async (req, res) => {
+    const { title, stream_url, is_active } = req.body;
+    try {
+        await pool.query("UPDATE livestreams SET is_active = false"); // Deactivate previous streams
+        if (is_active) {
+            await pool.query(
+                "INSERT INTO livestreams (title, stream_url, is_active) VALUES ($1, $2, true)",
+                [title || 'DJ GREY LIVE SESSION', stream_url]
+            );
+        }
+        res.json({ success: true, message: is_active ? "Livestream launched!" : "Livestream ended." });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ---------------------------------------------------------
 // 📊 BULLETPROOF ADMIN ANALYTICS ROUTE
 // ---------------------------------------------------------

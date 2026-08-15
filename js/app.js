@@ -90,6 +90,9 @@ function switchTab(tab) {
   } else if (tab === "spotify") {
     titleEl.innerText = "🎧 DJ GREY'S SPOTIFY HUB";
     loadSpotifyHub(); 
+  } else if (tab === "livestream") {
+    titleEl.innerText = "🔴 LIVE STREAM & REALTME CHAT";
+    loadLivestreamHub();
   }
 
   // Auto-close menu on mobile after clicking a tab
@@ -165,6 +168,104 @@ async function loadSpotifyHub() {
         console.error("Spotify Hub error:", e);
         grid.innerHTML = `<p style="color: #ff4d4d;">Failed to establish live connection with Spotify.</p>`;
     }
+}
+
+let chatInterval = null;
+
+async function loadLivestreamHub() {
+    const grid = document.getElementById("mixes-grid");
+    grid.innerHTML = `<p style="font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i> Connecting to Live Stage...</p>`;
+
+    try {
+        const res = await fetch(`${API_URL}/livestream/active`);
+        const data = await res.json();
+
+        if (!data.active || !data.stream) {
+            grid.innerHTML = `
+                <div style="text-align: center; padding: 60px 20px;">
+                    <i class="fa-solid fa-tower-cell fa-3x" style="color: var(--text-muted); margin-bottom: 20px;"></i>
+                    <h2>No Active Livestream Right Now</h2>
+                    <p style="color: var(--text-muted);">DJ Grey is currently offline. Check back soon or stay tuned on socials!</p>
+                </div>
+            `;
+            return;
+        }
+
+        const stream = data.stream;
+        let embedSource = stream.stream_url;
+        
+        // Auto convert YouTube links to embed format
+        if (embedSource.includes("youtube.com/watch?v=")) {
+            embedSource = embedSource.replace("watch?v=", "embed/");
+        } else if (embedSource.includes("youtu.be/")) {
+            embedSource = embedSource.replace("youtu.be/", "youtube.com/embed/");
+        }
+
+        grid.innerHTML = `
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; width: 100%;">
+                <!-- Stream Stage -->
+                <div style="flex: 2; min-width: 320px;">
+                    <div style="position: relative; padding-bottom: 56.25%; height: 0; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+                        <iframe src="${embedSource}?autoplay=1" style="position: absolute; top:0; left:0; width:100%; height:100%; border:none;" allowfullscreen allow="autoplay"></iframe>
+                    </div>
+                    <h2 style="margin-top: 15px; font-size: 1.4rem;">${stream.title}</h2>
+                </div>
+
+                <!-- TikTok/YouTube Style Live Chat -->
+                <div style="flex: 1; min-width: 300px; height: 500px; background: var(--glass-bg); border: 1px solid var(--border-color); border-radius: 16px; display: flex; flex-direction: column; padding: 15px;">
+                    <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 0; font-size: 1rem;"><i class="fa-solid fa-comments"></i> Live Chat</h3>
+                    <div id="live-chat-box" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; padding-right: 5px;"></div>
+                    
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="live-chat-input" placeholder="Say something in live chat..." style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 10px; border-radius: 8px; outline: none;">
+                        <button onclick="sendLiveChatMessage()" style="background: var(--primary); color: #fff; border: none; padding: 0 15px; border-radius: 8px; font-weight: bold; cursor: pointer;"><i class="fa-solid fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        fetchLiveChat();
+        if (chatInterval) clearInterval(chatInterval);
+        chatInterval = setInterval(fetchLiveChat, 3000); // Realtime chat polling every 3s
+    } catch (err) {
+        console.error(err);
+        grid.innerHTML = `<p style="color: #ff4d4d;">Failed to connect to livestream server.</p>`;
+    }
+}
+
+async function fetchLiveChat() {
+    const box = document.getElementById("live-chat-box");
+    if (!box) return;
+    try {
+        const res = await fetch(`${API_URL}/livestream/chat`);
+        const messages = await res.json();
+        box.innerHTML = messages.map(m => `
+            <div style="font-size: 0.85rem; line-height: 1.3;">
+                <span style="font-weight: bold; color: var(--primary);">${m.username}:</span> 
+                <span style="color: var(--text-main);">${m.message}</span>
+            </div>
+        `).join("");
+        box.scrollTop = box.scrollHeight;
+    } catch(e) {}
+}
+
+async function sendLiveChatMessage() {
+    if (!token) return Swal.fire({ icon: 'warning', title: 'Login Required', text: 'Please login to join the live chat!' });
+    const input = document.getElementById("live-chat-input");
+    const message = input.value.trim();
+    if (!message) return;
+
+    try {
+        const res = await fetch(`${API_URL}/livestream/chat`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ message })
+        });
+        if (res.ok) {
+            input.value = "";
+            fetchLiveChat();
+        }
+    } catch (e) {}
 }
 
 async function likeMix(id, element) {

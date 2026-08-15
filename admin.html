@@ -19,6 +19,17 @@
                   <i class="fa-solid fa-chart-pie"></i> Analytics & Upload
               </a>
             </li>
+            <!-- 🚨 FIX: Added missing <li> opening tag here -->
+            <li>
+              <a href="#" class="tab-link" onclick="switchAdminTab('submissions')">
+                <i class="fa-solid fa-file-invoice-dollar"></i> <span>$0.50 DJ Uploads</span>
+              </a>
+            </li>
+            <li>
+              <a href="#" class="tab-link" onclick="switchAdminTab('livestream-control')">
+                <i class="fa-solid fa-tower-broadcast"></i> <span>Livestream Center</span>
+              </a>
+            </li>
             <li>
               <a href="#" class="tab-link" onclick="switchTab(event, 'users-tab')">
                   <i class="fa-solid fa-users"></i> Fan Management 
@@ -153,6 +164,57 @@
             </tbody>
           </table>
         </div>
+
+        <!-- 🎟️ $0.50 PAID SUBMISSIONS QUEUE TAB -->
+      <div class="tab-content" id="tab-submissions">
+        <div class="header">
+          <h1>DJ Mix Submissions ($0.50 Fee Log)</h1>
+          <p style="color: var(--text-muted);">Review pending mixes submitted by external DJs and approve them for public release.</p>
+        </div>
+        
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>DJ Name</th>
+                <th>Mix Title</th>
+                <th>Fee Status</th>
+                <th>Audio / Spotify Link</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="submissions-table-body">
+              <tr><td colspan="5">Loading submissions...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 📡 LIVESTREAM CONTROL CENTER TAB -->
+      <div class="tab-content" id="tab-livestream-control">
+        <div class="header">
+          <h1>Livestream Command Center</h1>
+          <p style="color: var(--text-muted);">Broadcast live sets directly to your audience across all devices.</p>
+        </div>
+
+        <div class="card">
+          <h3>Launch / Update Live Stream</h3>
+          <form id="livestream-form" onsubmit="handleLivestreamLaunch(event)" style="margin-top: 20px;">
+            <div class="form-group" style="margin-bottom: 15px;">
+              <label>Livestream Title</label>
+              <input type="text" id="stream-title-input" placeholder="e.g. DJ GREY LIVE @ NAIROBI BASHMENT TOUR" required>
+            </div>
+            <div class="form-group" style="margin-bottom: 20px;">
+              <label>YouTube Live / Twitch Embed URL</label>
+              <input type="text" id="stream-url-input" placeholder="https://www.youtube.com/watch?v=..." required>
+            </div>
+            <div style="display: flex; gap: 15px;">
+              <button type="submit" class="btn-submit"><i class="fa-solid fa-play"></i> Go LIVE Now</button>
+              <button type="button" class="btn-delete" onclick="stopLivestream()"><i class="fa-solid fa-stop"></i> End Stream</button>
+            </div>
+          </form>
+        </div>
+      </div>
       </div>
     </main>
 
