@@ -108,14 +108,12 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
 });
 
 // ---------------------------------------------------------
-// 🌐 SOCIAL LOGIN HANDLERS (BULLETPROOF EVENT DELEGATION)
+// 🌐 SOCIAL LOGIN HANDLERS (BULLETPROOF)
 // ---------------------------------------------------------
 document.addEventListener('click', (e) => {
-    // Check if the clicked element (or its parent) is a social button
     const btn = e.target.closest('.social-btn');
-    
     if (btn) {
-        e.preventDefault(); // Stop page reload immediately
+        e.preventDefault(); 
         
         let provider = 'Social';
         let iconHtml = '';
@@ -124,7 +122,7 @@ document.addEventListener('click', (e) => {
             provider = 'Google';
             iconHtml = '<i class="fa-brands fa-google" style="color: #ea4335; font-size: 3rem;"></i>';
         } else if (btn.classList.contains('apple')) {
-            provider = 'Apple / iCloud';
+            provider = 'Apple';
             iconHtml = '<i class="fa-brands fa-apple" style="color: #ffffff; font-size: 3rem;"></i>';
         } else if (btn.classList.contains('facebook')) {
             provider = 'Facebook';

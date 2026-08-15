@@ -54,9 +54,10 @@
             <div class="social-login-container">
                 <p class="social-text">Or continue with</p>
                 <div class="social-buttons">
-                    <button class="social-btn google" title="Google"><i class="fa-brands fa-google"></i></button>
-                    <button class="social-btn apple" title="Apple / iCloud"><i class="fa-brands fa-apple"></i></button>
-                    <button class="social-btn facebook" title="Facebook"><i class="fa-brands fa-facebook-f"></i></button>
+                    <!-- 🚨 ADDED type="button" TO PREVENT PAGE RELOAD -->
+                    <button type="button" class="social-btn google" title="Google"><i class="fa-brands fa-google"></i></button>
+                    <button type="button" class="social-btn apple" title="Apple / iCloud"><i class="fa-brands fa-apple"></i></button>
+                    <button type="button" class="social-btn facebook" title="Facebook"><i class="fa-brands fa-facebook-f"></i></button>
                 </div>
             </div>
 
@@ -78,6 +79,9 @@
         </div>
     </div>
 
+    <!-- 🚨 ADDED SWEETALERT2 LIBRARY -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     <!-- 📦 LOAD MODULAR SCRIPT -->
     <script src="js/login.js"></script>
 </body>

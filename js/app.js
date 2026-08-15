@@ -66,9 +66,13 @@ function switchTab(tab) {
   currentTab = tab;
   const titleEl = document.getElementById("page-section-title");
 
-  // Highlight active nav item
-  document.querySelectorAll(".nav-item").forEach((el) => el.classList.remove("active"));
-  event?.currentTarget?.classList?.add("active");
+  // Bulletproof Active Tab Highlighting
+  document.querySelectorAll(".nav-item").forEach((el) => {
+      el.classList.remove("active");
+      if (el.getAttribute("onclick") && el.getAttribute("onclick").includes(tab)) {
+          el.classList.add("active");
+      }
+  });
 
   if (tab === "home") {
     titleEl.innerText = "LATEST DROPS";
@@ -95,7 +99,7 @@ function switchTab(tab) {
     loadLivestreamHub();
   }
 
-  // Auto-close menu on mobile after clicking a tab
+  // Auto-close menu on mobile
   if (window.innerWidth <= 768) {
       const leftNav = document.getElementById("left-nav");
       if(leftNav) leftNav.classList.remove("open");

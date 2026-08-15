@@ -356,5 +356,40 @@
     <script src="js/comments.js"></script>
     <script src="js/share.js"></script>
     <script src="js/app.js"></script>
+
+    <!-- 🎧 DJ Premium Upload Modal -->
+    <div id="upload-modal" class="success-modal">
+        <div class="success-content" style="text-align: left; max-width: 500px; padding: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 20px;">
+                <h3 style="margin: 0;"><i class="fa-solid fa-cloud-arrow-up" style="color: var(--primary);"></i> Submit Your Mix</h3>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; font-size: 1.2rem; color: var(--text-muted);" onclick="closeUploadModal()"></i>
+            </div>
+            
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 25px;">
+                Get featured on DJ Grey's global platform. A standard review fee of <strong>$0.50 USD</strong> is required.
+            </p>
+
+            <form id="dj-upload-form">
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <input type="text" id="up-title" placeholder="Mix Title (e.g. Summer Bash Vol 1)" required style="width: 100%; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); color: #fff; border-radius: 8px;">
+                </div>
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <input type="url" id="up-audio" placeholder="Direct Audio Link or Spotify URL" required style="width: 100%; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); color: #fff; border-radius: 8px;">
+                </div>
+                <div class="input-group" style="margin-bottom: 25px;">
+                    <input type="url" id="up-artwork" placeholder="Artwork Image URL (Optional)" style="width: 100%; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); color: #fff; border-radius: 8px;">
+                </div>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" id="pay-stripe-btn" class="btn" onclick="submitMixToGateway(event, 'stripe')" style="flex: 1; background: #635bff; color: white; border: none; border-radius: 8px; padding: 12px; cursor: pointer;">
+                        <i class="fa-brands fa-stripe"></i> Stripe
+                    </button>
+                    <button type="button" id="pay-paypal-btn" class="btn" onclick="submitMixToGateway(event, 'paypal')" style="flex: 1; background: #0070ba; color: white; border: none; border-radius: 8px; padding: 12px; cursor: pointer;">
+                        <i class="fa-brands fa-paypal"></i> PayPal
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
   </body>
 </html>

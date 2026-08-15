@@ -164,7 +164,7 @@
             </tbody>
           </table>
         </div>
-
+      </div>
         <!-- 🎟️ $0.50 PAID SUBMISSIONS QUEUE TAB -->
       <div class="tab-content" id="tab-submissions">
         <div class="header">
@@ -193,28 +193,29 @@
       <!-- 📡 LIVESTREAM CONTROL CENTER TAB -->
       <div class="tab-content" id="tab-livestream-control">
         <div class="header">
-          <h1>Livestream Command Center</h1>
-          <p style="color: var(--text-muted);">Broadcast live sets directly to your audience across all devices.</p>
+          <h1>Professional Broadcast Center</h1>
+          <p style="color: var(--text-muted);">Generate your Stream Keys and connect your DJ software (OBS, Serato, Rekordbox) natively.</p>
         </div>
 
-        <div class="card">
-          <h3>Launch / Update Live Stream</h3>
-          <form id="livestream-form" onsubmit="handleLivestreamLaunch(event)" style="margin-top: 20px;">
-            <div class="form-group" style="margin-bottom: 15px;">
-              <label>Livestream Title</label>
-              <input type="text" id="stream-title-input" placeholder="e.g. DJ GREY LIVE @ NAIROBI BASHMENT TOUR" required>
-            </div>
-            <div class="form-group" style="margin-bottom: 20px;">
-              <label>YouTube Live / Twitch Embed URL</label>
-              <input type="text" id="stream-url-input" placeholder="https://www.youtube.com/watch?v=..." required>
-            </div>
-            <div style="display: flex; gap: 15px;">
-              <button type="submit" class="btn-submit"><i class="fa-solid fa-play"></i> Go LIVE Now</button>
-              <button type="button" class="btn-delete" onclick="stopLivestream()"><i class="fa-solid fa-stop"></i> End Stream</button>
-            </div>
-          </form>
+        <!-- THIS IS THE CARD THAT WAS MISSING -->
+        <div class="card" style="max-width: 600px;">
+          <h3>1. Generate Stream Info</h3>
+          <div class="form-group" style="margin-bottom: 15px;">
+              <input type="text" id="stream-title-input" placeholder="e.g. DJ GREY FRIDAY MIX" required style="width: 100%; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); color: #fff; border-radius: 8px;">
+          </div>
+          <button class="btn-submit" onclick="generateOBSKeys()" style="width: 100%; margin-bottom: 25px;"><i class="fa-solid fa-key"></i> Generate Stream Key</button>
+          
+          <div id="obs-credentials" style="display: none; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+              <p style="color: var(--primary); margin-top: 0;"><strong>2. Paste into OBS/Serato:</strong></p>
+              <label style="font-size: 0.8rem; color: var(--text-muted);">RTMP Server URL:</label>
+              <input type="text" id="obs-url" readonly style="width: 100%; margin-bottom: 10px; background: #000; color: #fff; padding: 10px; border: 1px solid var(--border-color);">
+              <label style="font-size: 0.8rem; color: var(--text-muted);">Stream Key:</label>
+              <input type="password" id="obs-key" readonly style="width: 100%; margin-bottom: 10px; background: #000; color: #fff; padding: 10px; border: 1px solid var(--border-color);">
+              <p style="font-size: 0.8rem; color: #ff4d4d; margin-bottom: 0;">Hit "Start Streaming" in OBS, then your fans will see you live!</p>
+          </div>
+
+          <button class="btn-delete" onclick="stopNativeBroadcast()" style="width: 100%;"><i class="fa-solid fa-stop"></i> End Broadcast</button>
         </div>
-      </div>
       </div>
     </main>
 
