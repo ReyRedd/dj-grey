@@ -349,25 +349,24 @@ app.get("/api/hearthis/sync/:username", async (req, res) => {
 // 🎧 SPOTIFY LIVE SYNC ROUTE
 app.get("/api/spotify/sync", async (req, res) => {
   try {
-    // Replace with DJ Grey's primary public Spotify Playlist or Track link
-    const spotifyUrl = "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"; 
-    
+    const spotifyUrl = "https://open.spotify.com/user/31tvcefiuaafkyrhudiojeeri1e"; 
     const response = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(spotifyUrl)}`);
     
     if (!response.ok) {
+      console.error("Spotify oEmbed status:", response.status);
       return res.status(500).json({ error: "Failed to fetch Spotify metadata" });
     }
 
     const data = await response.json();
 
-    // Auto-check and insert into Postgres DB so actions like comments & likes work
-    let dbCheck = await db.query("SELECT * FROM mixes WHERE title = $1", [data.title]);
+    // 🚨 FIX: Replaced db.query with pool.query
+    let dbCheck = await pool.query("SELECT * FROM mixes WHERE title = $1", [data.title]);
     let spotifyMix;
 
     if (dbCheck.rows.length === 0) {
-      const inserted = await db.query(
+      const inserted = await pool.query(
         "INSERT INTO mixes (title, audio_url, artwork_url, likes_count, downloads_count, created_at) VALUES ($1, $2, $3, 0, 0, NOW()) RETURNING *",
-        [data.title, spotifyUrl, data.thumbnail_url]
+        [data.title, spotifyUrl, data.thumbnail_url || "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1"]
       );
       spotifyMix = inserted.rows[0];
     } else {

@@ -159,11 +159,35 @@ async function approveUser(id) {
 }
 
 async function deleteUser(id, username) {
-  if (!confirm(`Are you sure you want to completely remove "${username}"? This will delete all their likes and comments.`)) return;
+  const result = await Swal.fire({
+    title: `Remove Fan: ${username}?`,
+    text: "This will permanently delete their account, likes, and comments.",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Yes, remove fan',
+    cancelButtonText: 'Cancel'
+  });
+
+  if (!result.isConfirmed) return;
+
   try {
-    await fetch(`${API_URL}/admin/users/${id}`, { method: "DELETE", headers: getAuthHeaders() });
-    loadUsers(); 
-  } catch (err) { console.error(err); }
+    const res = await fetch(`${API_URL}/admin/users/${id}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    });
+    
+    if (res.ok) {
+      Swal.fire({
+        icon: 'success',
+        title: 'User Removed',
+        timer: 2000,
+        showConfirmButton: false
+      });
+      loadUsers();
+    }
+  } catch (err) {
+    console.error("Error deleting user:", err);
+  }
 }
 
 document.getElementById("add-mix-form").addEventListener("submit", async (e) => {
@@ -188,12 +212,35 @@ document.getElementById("add-mix-form").addEventListener("submit", async (e) => 
 });
 
 async function deleteMix(id, title) {
-  if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
+  const result = await Swal.fire({
+    title: 'Erase Mix from Catalog?',
+    text: `Are you sure you want to permanently delete "${title}"?`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Yes, delete mix',
+    cancelButtonText: 'Cancel'
+  });
+
+  if (!result.isConfirmed) return;
+
   try {
-    const res = await fetch(`${API_URL}/mixes/${id}`, { method: "DELETE", headers: getAuthHeaders() });
-    if (res.ok) loadAdminData();
-    else if (res.status === 401 || res.status === 403) logout();
-  } catch (err) { console.error(err); }
+    const res = await fetch(`${API_URL}/mixes/${id}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    });
+
+    if (res.ok) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Mix Erased',
+        timer: 2000,
+        showConfirmButton: false
+      });
+      loadAdminData();
+    }
+  } catch (err) {
+    console.error("Error deleting mix:", err);
+  }
 }
 
 window.onload = () => {
