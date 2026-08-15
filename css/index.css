@@ -704,6 +704,29 @@ audio {
     font-size: 0.8rem;
     margin-top: 4px;
 }
+
+/* ========================================= */
+/* 🌟 PREMIUM SWEETALERT MODAL THEMING       */
+/* ========================================= */
+div:where(.swal2-container) div:where(.swal2-popup) {
+    background: rgba(30, 41, 59, 0.95) !important;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    color: #fff !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+}
+div:where(.swal2-container) button:where(.swal2-styled.swal2-confirm) {
+    background-color: var(--primary) !important;
+    border-radius: 10px !important;
+    font-weight: bold;
+}
+div:where(.swal2-container) button:where(.swal2-styled.swal2-cancel) {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+    border-radius: 10px !important;
+}
+
 /* ========================================= */
 /* 📱 MOBILE RESPONSIVE FIXES                */
 /* ========================================= */

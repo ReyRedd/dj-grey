@@ -1,5 +1,20 @@
 let currentTab = "home";
 
+// Premium Success Toast Timer
+const Toast = Swal.mixin({
+  toast: true,
+  position: 'top-end',
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+  background: 'rgba(20, 20, 28, 0.95)',
+  color: '#fff',
+  didOpen: (toast) => {
+    toast.addEventListener('mouseenter', Swal.stopTimer);
+    toast.addEventListener('mouseleave', Swal.resumeTimer);
+  }
+});
+
 async function loadMixes() {
   try {
     const res = await fetch(`${API_URL}/mixes`);
@@ -71,7 +86,10 @@ function switchTab(tab) {
     renderGrid(playlist);
   } else if (tab === "hearthis") {
     titleEl.innerText = "💿 DJ GREY'S HEARTHIS HUB";
-    fetchHearthisMixes(); // Triggers the live API sync
+    fetchHearthisMixes();
+  } else if (tab === "spotify") {
+    titleEl.innerText = "🎧 DJ GREY'S SPOTIFY HUB";
+    loadSpotifyHub(); 
   }
 
   // Auto-close menu on mobile after clicking a tab
@@ -86,11 +104,11 @@ async function fetchHearthisMixes() {
     const grid = document.getElementById("mixes-grid");
     grid.innerHTML = `<p style="font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i> Syncing directly with DJ Grey's Hearthis.at account...</p>`;
     try {
-        // 🚨 FIX: Pass the exact profile handle with the hyphen!
         const res = await fetch(`${API_URL}/hearthis/sync/grey-george`); 
         const data = await res.json();
         if(data.success && data.mixes.length > 0) {
-            renderGrid(data.mixes);
+            playlist = data.mixes; // Updates global playlist with DB IDs
+            renderGrid(playlist);
         } else {
             grid.innerHTML = `<p style="color: var(--text-muted);">No public mixes found on Hearthis.at.</p>`;
         }
@@ -100,8 +118,53 @@ async function fetchHearthisMixes() {
     }
 }
 
+// 🎧 Live Spotify Hub Integration
+async function loadSpotifyHub() {
+    const grid = document.getElementById("mixes-grid");
+    grid.innerHTML = `<p style="font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i> Syncing live with DJ Grey's Spotify Hub...</p>`;
+    
+    try {
+        const res = await fetch(`${API_URL}/spotify/sync`);
+        const data = await res.json();
+        
+        if (data.success && data.mix) {
+            const mix = data.mix;
+            grid.innerHTML = `
+                <div style="width: 100%; max-width: 900px; margin: 0 auto; text-align: center; animation: fadeIn 0.5s;">
+                    <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 1.1rem;">
+                        Stream DJ Grey's live Spotify sync directly on the platform.
+                    </p>
+                    
+                    <!-- Native Interactive Spotify Embed -->
+                    <div style="border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.6); margin-bottom: 25px;">
+                        ${data.embed_html}
+                    </div>
+
+                    <!-- Platform Action Bar (Likes & Comments Integration) -->
+                    <div class="card" style="padding: 20px; display: flex; justify-content: space-between; align-items: center; background: var(--glass-bg);">
+                        <h3 style="margin: 0; font-size: 1.2rem;">${mix.title}</h3>
+                        <div class="stats" style="display: flex; gap: 20px; align-items: center;">
+                            <span onclick="likeMix(${mix.id}, this)" title="Like">
+                                <i class="fa-solid fa-heart"></i> ${mix.likes_count || 0}
+                            </span>
+                            <button class="comments-toggle-btn" onclick="openCommentsSidebar(${mix.id}, '${mix.title.replace(/'/g, "\\'")}')">
+                                <i class="fa-solid fa-comments"></i> View Comments
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            grid.innerHTML = `<p style="color: var(--text-muted);">Unable to load Spotify Hub right now.</p>`;
+        }
+    } catch (e) {
+        console.error("Spotify Hub error:", e);
+        grid.innerHTML = `<p style="color: #ff4d4d;">Failed to establish live connection with Spotify.</p>`;
+    }
+}
+
 async function likeMix(id, element) {
-  if (!token) return alert("Please login or create a free fan account to like tracks.");
+  if (!token) return Swal.fire({ icon: 'warning', title: 'VIP Access Required', text: 'Please login or create a free fan account to like tracks.' });
   try {
     const res = await fetch(`${API_URL}/mixes/${id}/like`, {
       method: "POST",
@@ -117,14 +180,14 @@ async function likeMix(id, element) {
 }
 
 async function downloadMix(id, url) {
-  if (!token) return alert("Please login or create a free fan account to download tracks.");
+  if (!token) return Swal.fire({ icon: 'warning', title: 'VIP Access Required', text: 'Please login or create a free fan account to download tracks.' });
   try {
     const res = await fetch(`${API_URL}/mixes/${id}/download`, {
       method: "POST",
       headers: getAuthHeaders(),
     });
     if (res.ok) {
-      alert("Mix saved to your Vault!");
+      Toast.fire({ icon: 'success', title: 'Mix safely saved to your Vault!' });
       const iframe = document.createElement("iframe");
       iframe.style.display = "none";
       iframe.src = url.replace("dl=0", "dl=1").replace("raw=1", "dl=1");

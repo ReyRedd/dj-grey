@@ -279,13 +279,12 @@ app.delete('/api/admin/users/:id', authenticateAdmin, async (req, res) => {
     }
 });
 
-// 🎧 HEARTHIS.AT INTEGRATION ROUTE (ROBUST RSS BYPASS)
+// 🎧 HEARTHIS.AT INTEGRATION ROUTE (AUTO-IMPORT TO DB)
 app.get("/api/hearthis/sync/:username", async (req, res) => {
   try {
-    // 🚨 FIX: Default to the exact handle with a hyphen
     const hearthisUsername = req.params.username || "grey-george"; 
     
-    // 1. Add a standard browser User-Agent so Hearthis doesn't block the backend
+    // 1. Fetch RSS feed with custom User-Agent
     const response = await fetch(`https://hearthis.at/${hearthisUsername}/podcast/`, {
         headers: {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -293,17 +292,14 @@ app.get("/api/hearthis/sync/:username", async (req, res) => {
     });
     
     if (!response.ok) {
-      console.error("Hearthis RSS fetch failed with status:", response.status);
       return res.status(500).json({ error: "Failed to fetch from Hearthis.at RSS" });
     }
 
     const xmlText = await response.text();
-    
-    // 2. Extract all <item> blocks
     const items = xmlText.match(/<item>[\s\S]*?<\/item>/gi) || [];
     
-    // 3. Use highly flexible Regex to parse the XML tags
-    const formattedMixes = items.map((item) => {
+    // 2. Parse RSS items
+    const parsedItems = items.map((item) => {
       let title = "Unknown Mix";
       const cdataMatch = item.match(/<title>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/title>/i);
       const plainMatch = item.match(/<title>\s*([\s\S]*?)\s*<\/title>/i);
@@ -317,17 +313,76 @@ app.get("/api/hearthis/sync/:username", async (req, res) => {
       return {
         title: title,
         audio_url: urlMatch ? urlMatch[1] : "",
-        artwork_url: artMatch ? artMatch[1] : "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1",
-        likes_count: Math.floor(Math.random() * 50) + 10, 
-        downloads_count: Math.floor(Math.random() * 20) + 5,
-        source: "hearthis.at"
+        artwork_url: artMatch ? artMatch[1] : "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1"
       };
-    }).filter(mix => mix.audio_url); 
+    }).filter(mix => mix.audio_url);
 
-    res.json({ success: true, count: formattedMixes.length, mixes: formattedMixes });
+    // 3. Auto-Insert into database if not already present
+    const syncedMixes = [];
+    for (const mix of parsedItems) {
+      // Check if mix title or audio_url exists
+      let dbCheck = await db.query(
+        "SELECT * FROM mixes WHERE title = $1 OR audio_url = $2", 
+        [mix.title, mix.audio_url]
+      );
+
+      if (dbCheck.rows.length === 0) {
+        // Insert new Hearthis track into your database
+        const inserted = await db.query(
+          "INSERT INTO mixes (title, audio_url, artwork_url, likes_count, downloads_count, created_at) VALUES ($1, $2, $3, 0, 0, NOW()) RETURNING *",
+          [mix.title, mix.audio_url, mix.artwork_url]
+        );
+        syncedMixes.push(inserted.rows[0]);
+      } else {
+        // Use existing database record with valid ID
+        syncedMixes.push(dbCheck.rows[0]);
+      }
+    }
+
+    res.json({ success: true, count: syncedMixes.length, mixes: syncedMixes });
   } catch (err) {
     console.error("Hearthis sync error:", err);
     res.status(500).json({ error: "Internal server error syncing Hearthis.at" });
+  }
+});
+
+// 🎧 SPOTIFY LIVE SYNC ROUTE
+app.get("/api/spotify/sync", async (req, res) => {
+  try {
+    // Replace with DJ Grey's primary public Spotify Playlist or Track link
+    const spotifyUrl = "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"; 
+    
+    const response = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(spotifyUrl)}`);
+    
+    if (!response.ok) {
+      return res.status(500).json({ error: "Failed to fetch Spotify metadata" });
+    }
+
+    const data = await response.json();
+
+    // Auto-check and insert into Postgres DB so actions like comments & likes work
+    let dbCheck = await db.query("SELECT * FROM mixes WHERE title = $1", [data.title]);
+    let spotifyMix;
+
+    if (dbCheck.rows.length === 0) {
+      const inserted = await db.query(
+        "INSERT INTO mixes (title, audio_url, artwork_url, likes_count, downloads_count, created_at) VALUES ($1, $2, $3, 0, 0, NOW()) RETURNING *",
+        [data.title, spotifyUrl, data.thumbnail_url]
+      );
+      spotifyMix = inserted.rows[0];
+    } else {
+      spotifyMix = dbCheck.rows[0];
+    }
+
+    res.json({
+      success: true,
+      mix: spotifyMix,
+      embed_html: data.html,
+      provider: "spotify"
+    });
+  } catch (err) {
+    console.error("Spotify sync error:", err);
+    res.status(500).json({ error: "Internal server error syncing Spotify" });
   }
 });
 

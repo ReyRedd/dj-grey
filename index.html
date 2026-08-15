@@ -8,15 +8,20 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="css/index.css" />
   </head>
   <body>
     <!-- Top Header Bar -->
     <header>
-      <button class="menu-toggle-btn" id="menu-toggle" aria-label="Toggle Navigation">
+      <button
+        class="menu-toggle-btn"
+        id="menu-toggle"
+        aria-label="Toggle Navigation"
+      >
         <i class="fa-solid fa-bars"></i>
       </button>
-      
+
       <div class="header-brand">
         <h1>His Majesty DJ GREY</h1>
         <div class="subtitle">The Ultimate Experience</div>
@@ -24,14 +29,17 @@
 
       <div class="auth-container" id="auth-section"></div>
 
-      <button class="theme-toggle-btn" id="theme-toggle" aria-label="Toggle Theme">
+      <button
+        class="theme-toggle-btn"
+        id="theme-toggle"
+        aria-label="Toggle Theme"
+      >
         <i class="fa-solid fa-sun"></i>
       </button>
     </header>
 
     <!-- App Layout Wrapper -->
     <div class="app-container">
-      
       <!-- 🎬 YouTube-Style Left Navigation Drawer -->
       <nav class="left-nav" id="left-nav">
         <div class="nav-section">
@@ -71,6 +79,10 @@
             <i class="fa-solid fa-compact-disc"></i>
             <span>Hearthis.at Hub</span>
           </a>
+          <a href="#" class="nav-item" onclick="switchTab('spotify')">
+            <i class="fa-brands fa-spotify" style="color: #1db954"></i>
+            <span>Spotify Hub</span>
+          </a>
         </div>
       </nav>
 
@@ -79,13 +91,17 @@
         <div class="container">
           <h2 class="section-title" id="page-section-title">LATEST DROPS</h2>
           <div class="grid" id="mixes-grid">
-            <p style="font-size: 1.2rem; text-shadow: 0 0 10px var(--primary-glow)">
+            <p
+              style="
+                font-size: 1.2rem;
+                text-shadow: 0 0 10px var(--primary-glow);
+              "
+            >
               Initializing the playlist...
             </p>
           </div>
         </div>
       </main>
-
     </div>
 
     <!-- Upgraded Fan Playlist Sidebar -->
@@ -117,19 +133,30 @@
 
       <!-- Elegant Custom Sort Dropdown -->
       <div class="comments-sort-bar">
-        <span id="comments-count-label" class="comments-count-label">Comments</span>
-        
+        <span id="comments-count-label" class="comments-count-label"
+          >Comments</span
+        >
+
         <div class="custom-dropdown" id="custom-sort-dropdown">
           <button class="dropdown-toggle" onclick="toggleSortMenu()">
-            <i class="fa-solid fa-bars-staggered"></i> <span id="current-sort-label">Newest</span>
+            <i class="fa-solid fa-bars-staggered"></i>
+            <span id="current-sort-label">Newest</span>
           </button>
-          
+
           <div class="dropdown-menu" id="sort-menu">
-            <div class="dropdown-item active" id="sort-opt-newest" onclick="selectSort('newest', 'Newest')">
+            <div
+              class="dropdown-item active"
+              id="sort-opt-newest"
+              onclick="selectSort('newest', 'Newest')"
+            >
               <span class="item-title">Newest</span>
               <span class="item-desc">Show recent comments</span>
             </div>
-            <div class="dropdown-item" id="sort-opt-top" onclick="selectSort('top', 'Top')">
+            <div
+              class="dropdown-item"
+              id="sort-opt-top"
+              onclick="selectSort('top', 'Top')"
+            >
               <span class="item-title">Top</span>
               <span class="item-desc">Show featured comments</span>
             </div>
@@ -138,7 +165,11 @@
       </div>
 
       <div class="comment-input-box">
-        <input type="text" id="global-comment-input" placeholder="Join the conversation..." />
+        <input
+          type="text"
+          id="global-comment-input"
+          placeholder="Join the conversation..."
+        />
         <button onclick="postSidebarComment()">
           <i class="fa-solid fa-paper-plane"></i>
         </button>
@@ -170,13 +201,23 @@
 
       <div class="player-controls-wrapper">
         <div class="media-buttons">
-          <button class="media-btn" title="Shuffle" onclick="toggleShuffle()" id="shuffle-btn">
+          <button
+            class="media-btn"
+            title="Shuffle"
+            onclick="toggleShuffle()"
+            id="shuffle-btn"
+          >
             <i class="fa-solid fa-shuffle"></i>
           </button>
           <button class="media-btn" title="Previous" onclick="playPrev()">
             <i class="fa-solid fa-backward-step"></i>
           </button>
-          <button class="media-btn btn-main-play" title="Play/Pause" id="custom-play-btn" onclick="togglePlay()">
+          <button
+            class="media-btn btn-main-play"
+            title="Play/Pause"
+            id="custom-play-btn"
+            onclick="togglePlay()"
+          >
             <i class="fa-solid fa-circle-play"></i>
           </button>
           <button class="media-btn" title="Stop" onclick="stopAudio()">
@@ -185,7 +226,12 @@
           <button class="media-btn" title="Next" onclick="playNext()">
             <i class="fa-solid fa-forward-step"></i>
           </button>
-          <button class="media-btn" title="Repeat" onclick="toggleLoop()" id="loop-btn">
+          <button
+            class="media-btn"
+            title="Repeat"
+            onclick="toggleLoop()"
+            id="loop-btn"
+          >
             <i class="fa-solid fa-repeat"></i>
           </button>
         </div>
@@ -193,11 +239,35 @@
       </div>
 
       <div class="extra-controls">
-        <i class="fa-solid fa-list" title="Back to Playlist" onclick="scrollToPlaylist()"></i>
-        <i class="fa-solid fa-sliders" title="Equalizer" onclick="showEQMessage()"></i>
-        <i class="fa-solid fa-volume-high" id="mute-icon" onclick="toggleMute()"></i>
-        <input type="range" class="volume-slider" id="volume-slider" min="0" max="1" step="0.01" value="1" />
-        <i class="fa-solid fa-expand" title="Fullscreen" onclick="toggleFullScreen()"></i>
+        <i
+          class="fa-solid fa-list"
+          title="Back to Playlist"
+          onclick="scrollToPlaylist()"
+        ></i>
+        <i
+          class="fa-solid fa-sliders"
+          title="Equalizer"
+          onclick="showEQMessage()"
+        ></i>
+        <i
+          class="fa-solid fa-volume-high"
+          id="mute-icon"
+          onclick="toggleMute()"
+        ></i>
+        <input
+          type="range"
+          class="volume-slider"
+          id="volume-slider"
+          min="0"
+          max="1"
+          step="0.01"
+          value="1"
+        />
+        <i
+          class="fa-solid fa-expand"
+          title="Fullscreen"
+          onclick="toggleFullScreen()"
+        ></i>
       </div>
     </div>
 
@@ -206,25 +276,57 @@
       <div class="share-modal">
         <div class="share-header">
           <h3>Share Mix</h3>
-          <button class="close-share-btn" onclick="closeShareModal()">&times;</button>
+          <button class="close-share-btn" onclick="closeShareModal()">
+            &times;
+          </button>
         </div>
         <div class="share-options">
-          <a href="#" id="shareWhatsApp" target="_blank" class="share-icon whatsapp">
+          <a
+            href="#"
+            id="shareWhatsApp"
+            target="_blank"
+            class="share-icon whatsapp"
+          >
             <i class="fab fa-whatsapp"></i><span>WhatsApp</span>
           </a>
-          <a href="#" id="shareTwitter" target="_blank" class="share-icon twitter">
+          <a
+            href="#"
+            id="shareTwitter"
+            target="_blank"
+            class="share-icon twitter"
+          >
             <i class="fab fa-x-twitter"></i><span>X</span>
           </a>
-          <a href="#" id="shareTelegram" target="_blank" class="share-icon telegram">
+          <a
+            href="#"
+            id="shareTelegram"
+            target="_blank"
+            class="share-icon telegram"
+          >
             <i class="fab fa-telegram-plane"></i><span>Telegram</span>
           </a>
-          <a href="#" id="shareInstagram" target="_blank" class="share-icon instagram">
+          <a
+            href="#"
+            id="shareInstagram"
+            target="_blank"
+            class="share-icon instagram"
+          >
             <i class="fab fa-instagram"></i><span>Instagram</span>
           </a>
-          <a href="#" id="sharePinterest" target="_blank" class="share-icon pinterest">
+          <a
+            href="#"
+            id="sharePinterest"
+            target="_blank"
+            class="share-icon pinterest"
+          >
             <i class="fab fa-pinterest-p"></i><span>Pinterest</span>
           </a>
-          <a href="#" id="shareLinkedIn" target="_blank" class="share-icon linkedin">
+          <a
+            href="#"
+            id="shareLinkedIn"
+            target="_blank"
+            class="share-icon linkedin"
+          >
             <i class="fab fa-linkedin-in"></i><span>LinkedIn</span>
           </a>
           <a href="#" id="shareEmail" target="_blank" class="share-icon email">
