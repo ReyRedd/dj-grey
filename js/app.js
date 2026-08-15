@@ -114,14 +114,14 @@ async function fetchHearthisMixes() {
         const res = await fetch(`${API_URL}/hearthis/sync/grey-george`); 
         const data = await res.json();
         if(data.success && data.mixes.length > 0) {
-            playlist = data.mixes; // Updates global playlist with DB IDs
+            playlist = data.mixes; 
             renderGrid(playlist);
         } else {
             grid.innerHTML = `<p style="color: var(--text-muted);">No public mixes found on Hearthis.at.</p>`;
         }
     } catch(e) {
         console.error(e);
-        grid.innerHTML = `<p style="color: #ff4d4d;">Failed to establish connection to Hearthis.at. Is the backend running?</p>`;
+        grid.innerHTML = `<p style="color: #ff4d4d;">Failed to establish connection to Hearthis.at.</p>`;
     }
 }
 
@@ -195,9 +195,9 @@ async function loadLivestreamHub() {
         const stream = data.stream;
         let embedSource = stream.stream_url;
         
-        if (embedSource.includes("youtube.com/watch?v=")) {
+        if (embedSource && embedSource.includes("youtube.com/watch?v=")) {
             embedSource = embedSource.replace("watch?v=", "embed/");
-        } else if (embedSource.includes("youtu.be/")) {
+        } else if (embedSource && embedSource.includes("youtu.be/")) {
             embedSource = embedSource.replace("youtu.be/", "youtube.com/embed/");
         }
 
@@ -248,7 +248,9 @@ async function fetchLiveChat() {
 }
 
 async function sendLiveChatMessage() {
-    if (!token) return Swal.fire({ icon: 'warning', title: 'Login Required', text: 'Please login to join the live chat!' });
+    const currentToken = localStorage.getItem("dj_grey_token");
+    if (!currentToken) return Swal.fire({ icon: 'warning', title: 'Login Required', text: 'Please login to join the live chat!' });
+    
     const input = document.getElementById("live-chat-input");
     const message = input.value.trim();
     if (!message) return;
@@ -256,7 +258,10 @@ async function sendLiveChatMessage() {
     try {
         const res = await fetch(`${API_URL}/livestream/chat`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${currentToken}`
+            },
             body: JSON.stringify({ message })
         });
         if (res.ok) {
@@ -267,11 +272,12 @@ async function sendLiveChatMessage() {
 }
 
 async function likeMix(id, element) {
-  if (!token) return Swal.fire({ icon: 'warning', title: 'VIP Access Required', text: 'Please login or create a free fan account to like tracks.' });
+  const currentToken = localStorage.getItem("dj_grey_token");
+  if (!currentToken) return Swal.fire({ icon: 'warning', title: 'VIP Access Required', text: 'Please login or create a free fan account to like tracks.' });
   try {
     const res = await fetch(`${API_URL}/mixes/${id}/like`, {
       method: "POST",
-      headers: getAuthHeaders(),
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${currentToken}` },
     });
     const data = await res.json();
     if (data.success) {
@@ -283,11 +289,12 @@ async function likeMix(id, element) {
 }
 
 async function downloadMix(id, url) {
-  if (!token) return Swal.fire({ icon: 'warning', title: 'VIP Access Required', text: 'Please login or create a free fan account to download tracks.' });
+  const currentToken = localStorage.getItem("dj_grey_token");
+  if (!currentToken) return Swal.fire({ icon: 'warning', title: 'VIP Access Required', text: 'Please login or create a free fan account to download tracks.' });
   try {
     const res = await fetch(`${API_URL}/mixes/${id}/download`, {
       method: "POST",
-      headers: getAuthHeaders(),
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${currentToken}` },
     });
     if (res.ok) {
       Toast.fire({ icon: 'success', title: 'Mix safely saved to your Vault!' });
@@ -305,10 +312,11 @@ async function downloadMix(id, url) {
 // ---------------------------------------------------------
 // 💸 MULTI-GATEWAY DJ PREMIUM UPLOAD
 // ---------------------------------------------------------
-
 function openSubmissionModal() {
-    // Requires token variable to be defined at the top of your script
-    if (!token) {
+    // FIX: Safely retrieve token to prevent crashing
+    const currentToken = localStorage.getItem("dj_grey_token");
+    
+    if (!currentToken) {
         return Swal.fire({ 
             icon: 'warning', 
             title: 'Login Required', 
@@ -332,6 +340,7 @@ function closeUploadModal() {
 
 async function submitMixToGateway(e, gateway) {
     e.preventDefault();
+    const currentToken = localStorage.getItem("dj_grey_token");
     const title = document.getElementById("up-title").value;
     const audio_url = document.getElementById("up-audio").value;
     const artwork_url = document.getElementById("up-artwork").value;
@@ -358,7 +367,10 @@ async function submitMixToGateway(e, gateway) {
     try {
         const res = await fetch(`${API_URL}${endpoint}`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${currentToken}`
+            },
             body: JSON.stringify({ 
                 title, 
                 audio_url: audio_url.includes('spotify.com') ? '' : audio_url, 
@@ -429,7 +441,7 @@ if (menuToggle && leftNav) {
     });
 }
 
-// Close mobile nav when clicking outside of it (Only affects mobile)
+// Close mobile nav when clicking outside of it
 document.addEventListener('click', (e) => {
     if (window.innerWidth <= 768 && leftNav && leftNav.classList.contains('open')) {
         if (!leftNav.contains(e.target) && !menuToggle.contains(e.target)) {
