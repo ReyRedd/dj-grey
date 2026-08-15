@@ -298,14 +298,26 @@ pool.query(`
 app.post('/api/admin/livestream/generate', authenticateDJOrAdmin, async (req, res) => {
     const { title } = req.body;
     try {
-        // Request Mux for a new stream key
-        const stream = await mux.video.liveStreams.create({
-            playback_policy: ['public'],
-            new_asset_settings: { playback_policy: ['public'] },
-            reduced_latency: true
+        // 1. Force trim any invisible spaces from your Render Environment Variables
+        const tokenId = (process.env.MUX_TOKEN_ID || 'dummy').trim();
+        const tokenSecret = (process.env.MUX_TOKEN_SECRET || 'dummy').trim();
+
+        // 2. Initialize a fresh Mux client with the cleaned keys
+        const muxClient = new Mux({
+            tokenId: tokenId,
+            tokenSecret: tokenSecret
         });
 
+        // 3. Create a new Live Stream in Mux (Removed reduced_latency for max compatibility)
+        const stream = await muxClient.video.liveStreams.create({
+            playback_policy: ['public'],
+            new_asset_settings: { playback_policy: ['public'] }
+        });
+
+        // Deactivate old streams
         await pool.query("UPDATE livestreams SET is_active = false");
+
+        // Save new stream details to database
         const result = await pool.query(
             "INSERT INTO livestreams (title, playback_id, stream_key, is_active) VALUES ($1, $2, $3, true) RETURNING *",
             [title || 'LIVE DJ SET', stream.playback_ids[0].id, stream.stream_key]
@@ -313,12 +325,14 @@ app.post('/api/admin/livestream/generate', authenticateDJOrAdmin, async (req, re
 
         res.json({
             success: true,
-            rtmp_url: "rtmps://global-live.mux.com:443/app", 
+            rtmp_url: "rtmps://global-live.mux.com:443/app", // Standard Mux OBS URL
             stream_key: stream.stream_key,
             message: "Stream keys generated successfully!"
         });
     } catch (err) {
-        res.status(500).json({ error: "Failed to generate RTMP keys. Check Mux API config." });
+        console.error("Mux Exact Error:", err);
+        // 🚨 This will now send the EXACT error from Mux directly to your popup window!
+        res.status(500).json({ error: `Mux Error: ${err.message || 'Check Render Logs'}` });
     }
 });
 
