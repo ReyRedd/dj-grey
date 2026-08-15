@@ -127,12 +127,9 @@ async function loadSpotifyHub() {
     grid.innerHTML = `<p style="font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i> Syncing live with DJ Grey's Spotify Hub...</p>`;
     
     try {
-        // 🚨 You can now swap this URL right here in the frontend! 
-        // Ensure whatever playlist you put here is set to "PUBLIC" on Spotify.
         const targetSpotifyUrl = "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"; 
         const customTitle = "All On Me - Spotify Drop";
         
-        // Pass the dynamic URL and Title to the backend
         const res = await fetch(`${API_URL}/spotify/sync?url=${encodeURIComponent(targetSpotifyUrl)}&title=${encodeURIComponent(customTitle)}`);
         const data = await res.json();
         
@@ -194,7 +191,6 @@ async function loadLivestreamHub() {
         const stream = data.stream;
         let embedSource = stream.stream_url;
         
-        // Auto convert YouTube links to embed format
         if (embedSource.includes("youtube.com/watch?v=")) {
             embedSource = embedSource.replace("watch?v=", "embed/");
         } else if (embedSource.includes("youtu.be/")) {
@@ -203,7 +199,6 @@ async function loadLivestreamHub() {
 
         grid.innerHTML = `
             <div style="display: flex; gap: 20px; flex-wrap: wrap; width: 100%;">
-                <!-- Stream Stage -->
                 <div style="flex: 2; min-width: 320px;">
                     <div style="position: relative; padding-bottom: 56.25%; height: 0; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
                         <iframe src="${embedSource}?autoplay=1" style="position: absolute; top:0; left:0; width:100%; height:100%; border:none;" allowfullscreen allow="autoplay"></iframe>
@@ -211,7 +206,6 @@ async function loadLivestreamHub() {
                     <h2 style="margin-top: 15px; font-size: 1.4rem;">${stream.title}</h2>
                 </div>
 
-                <!-- TikTok/YouTube Style Live Chat -->
                 <div style="flex: 1; min-width: 300px; height: 500px; background: var(--glass-bg); border: 1px solid var(--border-color); border-radius: 16px; display: flex; flex-direction: column; padding: 15px;">
                     <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 0; font-size: 1rem;"><i class="fa-solid fa-comments"></i> Live Chat</h3>
                     <div id="live-chat-box" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; padding-right: 5px;"></div>
@@ -226,7 +220,7 @@ async function loadLivestreamHub() {
 
         fetchLiveChat();
         if (chatInterval) clearInterval(chatInterval);
-        chatInterval = setInterval(fetchLiveChat, 3000); // Realtime chat polling every 3s
+        chatInterval = setInterval(fetchLiveChat, 3000); 
     } catch (err) {
         console.error(err);
         grid.innerHTML = `<p style="color: #ff4d4d;">Failed to connect to livestream server.</p>`;
@@ -304,6 +298,119 @@ async function downloadMix(id, url) {
   }
 }
 
+// ---------------------------------------------------------
+// 💸 MULTI-GATEWAY DJ PREMIUM UPLOAD
+// ---------------------------------------------------------
+
+function openSubmissionModal() {
+    // Requires token variable to be defined at the top of your script
+    if (!token) {
+        return Swal.fire({ 
+            icon: 'warning', 
+            title: 'Login Required', 
+            text: 'You must create an account and log in before submitting a mix.' 
+        });
+    }
+    const modal = document.getElementById("upload-modal");
+    if(modal) {
+        modal.style.display = "flex";
+        setTimeout(() => modal.classList.add("show"), 10);
+    }
+}
+
+function closeUploadModal() {
+    const modal = document.getElementById("upload-modal");
+    if(modal) {
+        modal.classList.remove("show");
+        setTimeout(() => modal.style.display = "none", 400);
+    }
+}
+
+async function submitMixToGateway(e, gateway) {
+    e.preventDefault();
+    const title = document.getElementById("up-title").value;
+    const audio_url = document.getElementById("up-audio").value;
+    const artwork_url = document.getElementById("up-artwork").value;
+    
+    if (!title || !audio_url) {
+        return Swal.fire({ icon: 'error', title: 'Missing Info', text: 'Please provide a Title and Audio Link.' });
+    }
+
+    const btnStripe = document.getElementById("pay-stripe-btn");
+    const btnPayPal = document.getElementById("pay-paypal-btn");
+
+    if (gateway === 'stripe') {
+        btnStripe.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
+        btnStripe.disabled = true;
+        btnPayPal.disabled = true;
+    } else {
+        btnPayPal.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
+        btnPayPal.disabled = true;
+        btnStripe.disabled = true;
+    }
+
+    const endpoint = gateway === 'stripe' ? '/submissions/checkout' : '/submissions/paypal/create';
+
+    try {
+        const res = await fetch(`${API_URL}${endpoint}`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ 
+                title, 
+                audio_url: audio_url.includes('spotify.com') ? '' : audio_url, 
+                spotify_url: audio_url.includes('spotify.com') ? audio_url : '', 
+                artwork_url 
+            })
+        });
+        
+        const data = await res.json();
+        
+        if (data.url) {
+            window.location.href = data.url;
+        } else {
+            Swal.fire({ icon: 'error', title: 'Checkout Failed', text: data.error || 'Gateway rejected request.' });
+            resetGatewayButtons(btnStripe, btnPayPal);
+        }
+    } catch (err) {
+        console.error(err);
+        Swal.fire({ icon: 'error', title: 'Network Error', text: 'Could not connect to payment gateway.' });
+        resetGatewayButtons(btnStripe, btnPayPal);
+    }
+}
+
+function resetGatewayButtons(stripeBtn, paypalBtn) {
+    stripeBtn.innerHTML = '<i class="fa-brands fa-stripe"></i> Stripe';
+    paypalBtn.innerHTML = '<i class="fa-brands fa-paypal"></i> PayPal';
+    stripeBtn.disabled = false;
+    paypalBtn.disabled = false;
+}
+
+// 🎧 Check for Successful Payment Redirect on Page Load
+window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('upload') === 'success') {
+        Swal.fire({
+            icon: 'success',
+            title: 'Payment Successful!',
+            text: 'Your mix has been submitted to the Admin Queue. It will be published upon approval.',
+            background: 'rgba(30, 41, 59, 0.95)',
+            color: '#fff',
+            confirmButtonColor: 'var(--primary)'
+        });
+        window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (urlParams.get('upload') === 'failed') {
+         Swal.fire({
+            icon: 'error',
+            title: 'Payment Failed',
+            text: 'Your transaction could not be completed. Please try again.',
+            background: 'rgba(30, 41, 59, 0.95)',
+            color: '#fff',
+            confirmButtonColor: 'var(--primary)'
+        });
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+});
+
 // --- HAMBURGER MENU TOGGLE ---
 const menuToggle = document.getElementById("menu-toggle");
 const leftNav = document.getElementById("left-nav");
@@ -311,10 +418,8 @@ const leftNav = document.getElementById("left-nav");
 if (menuToggle && leftNav) {
     menuToggle.addEventListener("click", () => {
         if (window.innerWidth > 768) {
-            // Desktop behavior: shrink to 0
             leftNav.classList.toggle("collapsed");
         } else {
-            // Mobile behavior: slide in from left
             leftNav.classList.toggle("open");
         }
     });

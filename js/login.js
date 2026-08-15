@@ -108,11 +108,14 @@ document.getElementById('auth-form').addEventListener('submit', async (e) => {
 });
 
 // ---------------------------------------------------------
-// 🌐 SOCIAL LOGIN HANDLERS (Popups)
+// 🌐 SOCIAL LOGIN HANDLERS (BULLETPROOF EVENT DELEGATION)
 // ---------------------------------------------------------
-document.querySelectorAll('.social-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        e.preventDefault(); // Prevent the form from submitting/reloading the page
+document.addEventListener('click', (e) => {
+    // Check if the clicked element (or its parent) is a social button
+    const btn = e.target.closest('.social-btn');
+    
+    if (btn) {
+        e.preventDefault(); // Stop page reload immediately
         
         let provider = 'Social';
         let iconHtml = '';
@@ -141,5 +144,5 @@ document.querySelectorAll('.social-btn').forEach(btn => {
             confirmButtonColor: 'var(--primary)',
             confirmButtonText: 'Understood'
         });
-    });
+    }
 });

@@ -1,9 +1,14 @@
 const API_URL = "https://dj-grey.onrender.com/api";
-const DEFAULT_ARTWORK = "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1";
+const DEFAULT_ARTWORK =
+  "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1";
 
 const token = localStorage.getItem("dj_grey_token");
 const role = localStorage.getItem("dj_grey_role");
-if (!token || role !== "admin") window.location.href = "/";
+
+// 🚨 Allow both "admin" AND "dj" roles to access this dashboard
+if (!token || (role !== "admin" && role !== "dj")) {
+    window.location.href = "/";
+}
 
 const getAuthHeaders = () => ({
   "Content-Type": "application/json",
@@ -17,9 +22,15 @@ function logout() {
 
 // Core UI Logic
 document.getElementById("theme-toggle").addEventListener("click", () => {
-  const newTheme = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+  const newTheme =
+    document.documentElement.getAttribute("data-theme") === "dark"
+      ? "light"
+      : "dark";
   document.documentElement.setAttribute("data-theme", newTheme);
-  document.getElementById("theme-toggle").innerHTML = newTheme === "dark" ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+  document.getElementById("theme-toggle").innerHTML =
+    newTheme === "dark"
+      ? '<i class="fa-solid fa-sun"></i>'
+      : '<i class="fa-solid fa-moon"></i>';
 });
 
 document.getElementById("hamburger-btn").addEventListener("click", () => {
@@ -27,24 +38,49 @@ document.getElementById("hamburger-btn").addEventListener("click", () => {
   document.getElementById("main-content").classList.toggle("expanded");
 });
 
-document.getElementById("date-display").innerText = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+document.getElementById("date-display").innerText =
+  new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
-// Tab Switching Logic
+// ---------------------------------------------------------
+// 📑 UNIFIED TAB SWITCHING LOGIC (Admin & DJ)
+// ---------------------------------------------------------
 function switchTab(event, tabId) {
+    switchAdminTab(tabId);
+}
+
+function switchAdminTab(tabId) {
   document.querySelectorAll(".tab-content").forEach((tab) => tab.classList.remove("active"));
   document.querySelectorAll(".tab-link").forEach((link) => link.classList.remove("active"));
 
-  document.getElementById(tabId).classList.add("active");
-  event.currentTarget.classList.add("active");
+  const targetTab = document.getElementById(tabId) || document.getElementById(`tab-${tabId}`);
+  if (targetTab) targetTab.classList.add("active");
+
+  const targetLink = document.querySelector(`.tab-link[onclick*="${tabId}"]`);
+  if (targetLink) targetLink.classList.add("active");
+
+  const pageTitle = document.getElementById("page-title");
+  const breadcrumb = document.getElementById("breadcrumb-current");
 
   if (tabId === "users-tab") {
-    document.getElementById("page-title").innerText = "Fan Management";
-    document.getElementById("breadcrumb-current").innerText = "Fan Management";
-    loadUsers();
+    pageTitle.innerText = "Fan Management";
+    breadcrumb.innerText = "Fan Management";
+    if(role === 'admin') loadUsers();
+  } else if (tabId === "submissions" || tabId === "tab-submissions") {
+    pageTitle.innerText = "DJ Mix Submissions";
+    breadcrumb.innerText = "Uploads Queue";
+    if(role === 'admin') loadSubmissionsQueue();
+  } else if (tabId === "livestream-control" || tabId === "tab-livestream-control") {
+    pageTitle.innerText = "Professional Broadcast Center";
+    breadcrumb.innerText = "Livestream Center";
   } else {
-    document.getElementById("page-title").innerText = "Platform Control Center";
-    document.getElementById("breadcrumb-current").innerText = "Admin Dashboard";
-    loadAdminData();
+    pageTitle.innerText = "Platform Control Center";
+    breadcrumb.innerText = "Admin Dashboard";
+    if(role === 'admin') loadAdminData();
   }
 }
 
@@ -53,7 +89,9 @@ let analyticsChart;
 // Dashboard Data
 async function loadAdminData() {
   try {
-    const analyticsRes = await fetch(`${API_URL}/admin/analytics`, { headers: getAuthHeaders() });
+    const analyticsRes = await fetch(`${API_URL}/admin/analytics`, {
+      headers: getAuthHeaders(),
+    });
     const analytics = await analyticsRes.json();
 
     document.getElementById("total-mixes").innerText = analytics.totalMixes || 0;
@@ -68,14 +106,21 @@ async function loadAdminData() {
       type: "bar",
       data: {
         labels: ["Plays", "Likes", "Downloads", "Comments"],
-        datasets: [{
+        datasets: [
+          {
             label: "User Engagement",
-            data: [analytics.totalPlays, analytics.totalLikes, analytics.totalDownloads, analytics.totalComments],
+            data: [
+              analytics.totalPlays,
+              analytics.totalLikes,
+              analytics.totalDownloads,
+              analytics.totalComments,
+            ],
             backgroundColor: "rgba(0, 168, 255, 0.5)",
             borderColor: "#00a8ff",
             borderWidth: 2,
             borderRadius: 6,
-          }],
+          },
+        ],
       },
       options: {
         responsive: true,
@@ -104,68 +149,78 @@ async function loadAdminData() {
           </tr>
       `;
     });
-  } catch (error) { console.error("Error:", error); }
+  } catch (error) {
+    console.error("Error:", error);
+  }
 }
 
 // Fan & User Management Data
 async function loadUsers() {
-      try {
-          const res = await fetch(`${API_URL}/admin/users`, { headers: getAuthHeaders() });
-          const users = await res.json();
-          const tableBody = document.getElementById('users-table-body');
-          tableBody.innerHTML = '';
-          
-          let pendingCount = 0;
+  try {
+    const res = await fetch(`${API_URL}/admin/users`, {
+      headers: getAuthHeaders(),
+    });
+    const users = await res.json();
+    const tableBody = document.getElementById("users-table-body");
+    tableBody.innerHTML = "";
 
-          users.forEach(user => {
-              const isPending = user.status === 'pending';
-              if (isPending) pendingCount++;
+    let pendingCount = 0;
 
-              const statusClass = isPending ? 'status-pending' : 'status-approved';
-              const statusText = isPending ? 'Pending' : 'Approved';
+    users.forEach((user) => {
+      const isPending = user.status === "pending";
+      if (isPending) pendingCount++;
 
-              tableBody.innerHTML += `
+      const statusClass = isPending ? "status-pending" : "status-approved";
+      const statusText = isPending ? "Pending" : "Approved";
+
+      tableBody.innerHTML += `
                   <tr>
                       <td style="font-weight: bold; color: var(--text-main);">${user.username}</td>
                       <td>${user.email}</td>
                       <td><span style="text-transform: capitalize;">${user.role}</span></td>
                       <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                       <td>
-                          ${isPending ? `<button class="btn-approve" onclick="approveUser(${user.id})" style="margin-right: 10px;"><i class="fa-solid fa-check"></i> Approve</button>` : ''}
+                          ${isPending ? `<button class="btn-approve" onclick="approveUser(${user.id})" style="margin-right: 10px;"><i class="fa-solid fa-check"></i> Approve</button>` : ""}
                           <button class="btn-delete" onclick="deleteUser(${user.id}, '${user.username}')"><i class="fa-solid fa-user-xmark"></i> Remove</button>
                       </td>
                   </tr>
               `;
-          });
+    });
 
-          const badge = document.getElementById('pending-badge');
-          if (badge) {
-              if (pendingCount > 0) {
-                  badge.innerText = pendingCount;
-                  badge.classList.add('show');
-              } else {
-                  badge.classList.remove('show');
-              }
-          }
-
-      } catch (error) { console.error("Error loading users:", error); }
+    const badge = document.getElementById("pending-badge");
+    if (badge) {
+      if (pendingCount > 0) {
+        badge.innerText = pendingCount;
+        badge.classList.add("show");
+      } else {
+        badge.classList.remove("show");
+      }
+    }
+  } catch (error) {
+    console.error("Error loading users:", error);
   }
+}
 
 async function approveUser(id) {
   try {
-    await fetch(`${API_URL}/admin/users/${id}/approve`, { method: "PUT", headers: getAuthHeaders() });
-    loadUsers(); 
-  } catch (err) { console.error(err); }
+    await fetch(`${API_URL}/admin/users/${id}/approve`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+    });
+    loadUsers();
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 async function deleteUser(id, username) {
   const result = await Swal.fire({
     title: `Remove Fan: ${username}?`,
     text: "This will permanently delete their account, likes, and comments.",
-    icon: 'warning',
+    icon: "warning",
     showCancelButton: true,
-    confirmButtonText: 'Yes, remove fan',
-    cancelButtonText: 'Cancel'
+    confirmButtonText: "Yes, remove fan",
+    cancelButtonText: "Cancel",
   });
 
   if (!result.isConfirmed) return;
@@ -175,13 +230,13 @@ async function deleteUser(id, username) {
       method: "DELETE",
       headers: getAuthHeaders(),
     });
-    
+
     if (res.ok) {
       Swal.fire({
-        icon: 'success',
-        title: 'User Removed',
+        icon: "success",
+        title: "User Removed",
         timer: 2000,
-        showConfirmButton: false
+        showConfirmButton: false,
       });
       loadUsers();
     }
@@ -190,104 +245,89 @@ async function deleteUser(id, username) {
   }
 }
 
-
 async function loadSubmissionsQueue() {
-    const tbody = document.getElementById("submissions-table-body");
-    try {
-        const res = await fetch(`${API_URL}/admin/submissions`, { headers: getAuthHeaders() });
-        const data = await res.json();
+  const tbody = document.getElementById("submissions-table-body");
+  try {
+    const res = await fetch(`${API_URL}/admin/submissions`, {
+      headers: getAuthHeaders(),
+    });
+    const data = await res.json();
 
-        if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No pending DJ submissions.</td></tr>`;
-            return;
-        }
+    if (data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No pending DJ submissions.</td></tr>`;
+      return;
+    }
 
-        tbody.innerHTML = data.map(s => `
+    tbody.innerHTML = data
+      .map(
+        (s) => `
             <tr>
                 <td><strong>${s.dj_name}</strong></td>
                 <td>${s.title}</td>
                 <td><span class="badge" style="background: rgba(37, 211, 102, 0.2); color: #25d366;">$0.50 USD Paid</span></td>
                 <td><a href="${s.audio_url || s.spotify_url}" target="_blank" style="color: var(--primary);">Listen Link</a></td>
                 <td>
-                    ${s.status === 'pending' ? `<button class="btn-approve" onclick="approveSubmission(${s.id})"><i class="fa-solid fa-check"></i> Approve & Publish</button>` : `<span style="color: var(--text-muted);">Published</span>`}
+                    ${s.status === "pending" ? `<button class="btn-approve" onclick="approveSubmission(${s.id})"><i class="fa-solid fa-check"></i> Approve & Publish</button>` : `<span style="color: var(--text-muted);">Published</span>`}
                 </td>
             </tr>
-        `).join("");
-    } catch (e) { console.error(e); }
+        `,
+      )
+      .join("");
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 async function approveSubmission(id) {
-    try {
-        const res = await fetch(`${API_URL}/admin/submissions/${id}/approve`, {
-            method: 'POST',
-            headers: getAuthHeaders()
-        });
-        if (res.ok) {
-            Swal.fire({ icon: 'success', title: 'Published!', text: 'Mix is now live in the main catalog.' });
-            loadSubmissionsQueue();
-        }
-    } catch (e) {}
-}
-
-async function handleLivestreamLaunch(e) {
-    e.preventDefault();
-    const title = document.getElementById("stream-title-input").value;
-    const stream_url = document.getElementById("stream-url-input").value;
-
-    try {
-        const res = await fetch(`${API_URL}/admin/livestream`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ title, stream_url, is_active: true })
-        });
-        if (res.ok) {
-            Swal.fire({ icon: 'success', title: 'You Are LIVE! 🔴', text: 'Fans can now watch your stream live.' });
-        }
-    } catch(e) {}
-}
-
-async function stopLivestream() {
-    try {
-        const res = await fetch(`${API_URL}/admin/livestream`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ is_active: false })
-        });
-        if (res.ok) {
-            Swal.fire({ icon: 'info', title: 'Livestream Ended' });
-        }
-    } catch(e) {}
-}
-
-document.getElementById("add-mix-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const title = document.getElementById("mix-title").value;
-  const audio_url = document.getElementById("mix-audio").value;
-  const artwork_url = document.getElementById("mix-artwork").value;
-
   try {
-    const res = await fetch(`${API_URL}/mixes`, {
+    const res = await fetch(`${API_URL}/admin/submissions/${id}/approve`, {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ title, audio_url, artwork_url }),
     });
     if (res.ok) {
-      document.getElementById("add-mix-form").reset();
-      loadAdminData();
-    } else {
-      if (res.status === 401 || res.status === 403) logout();
+      Swal.fire({
+        icon: "success",
+        title: "Published!",
+        text: "Mix is now live in the main catalog.",
+      });
+      loadSubmissionsQueue();
     }
-  } catch (err) { console.error(err); }
-});
+  } catch (e) {}
+}
+
+document
+  .getElementById("add-mix-form")
+  ?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const title = document.getElementById("mix-title").value;
+    const audio_url = document.getElementById("mix-audio").value;
+    const artwork_url = document.getElementById("mix-artwork").value;
+
+    try {
+      const res = await fetch(`${API_URL}/mixes`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ title, audio_url, artwork_url }),
+      });
+      if (res.ok) {
+        document.getElementById("add-mix-form").reset();
+        loadAdminData();
+      } else {
+        if (res.status === 401 || res.status === 403) logout();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  });
 
 async function deleteMix(id, title) {
   const result = await Swal.fire({
-    title: 'Erase Mix from Catalog?',
+    title: "Erase Mix from Catalog?",
     text: `Are you sure you want to permanently delete "${title}"?`,
-    icon: 'warning',
+    icon: "warning",
     showCancelButton: true,
-    confirmButtonText: 'Yes, delete mix',
-    cancelButtonText: 'Cancel'
+    confirmButtonText: "Yes, delete mix",
+    cancelButtonText: "Cancel",
   });
 
   if (!result.isConfirmed) return;
@@ -300,10 +340,10 @@ async function deleteMix(id, title) {
 
     if (res.ok) {
       Swal.fire({
-        icon: 'success',
-        title: 'Mix Erased',
+        icon: "success",
+        title: "Mix Erased",
         timer: 2000,
-        showConfirmButton: false
+        showConfirmButton: false,
       });
       loadAdminData();
     }
@@ -312,7 +352,73 @@ async function deleteMix(id, title) {
   }
 }
 
+// ---------------------------------------------------------
+// 📡 NATIVE RTMP BROADCAST STUDIO (OBS SETUP)
+// ---------------------------------------------------------
+async function generateOBSKeys() {
+  const title = document.getElementById("stream-title-input").value || "DJ GREY LIVE";
+  
+  // Show loading state
+  const btn = document.querySelector('button[onclick="generateOBSKeys()"]');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating Keys...';
+  btn.disabled = true;
+
+  try {
+      const res = await fetch(`${API_URL}/admin/livestream/generate`, {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ title }),
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+          document.getElementById("obs-credentials").style.display = "block";
+          document.getElementById("obs-url").value = data.rtmp_url;
+          document.getElementById("obs-key").value = data.stream_key;
+          Swal.fire({ icon: 'success', title: 'Keys Generated', text: 'Paste these into OBS and go live!' });
+      } else {
+          Swal.fire({ icon: 'error', title: 'Error', text: data.error });
+      }
+  } catch (err) {
+      console.error(err);
+      Swal.fire({ icon: 'error', title: 'Network Error', text: 'Could not connect to stream server.' });
+  } finally {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+  }
+}
+
+async function stopNativeBroadcast() {
+  try {
+      await fetch(`${API_URL}/admin/livestream/stop`, {
+          method: "POST",
+          headers: getAuthHeaders()
+      });
+      document.getElementById("obs-credentials").style.display = "none";
+      document.getElementById("stream-title-input").value = "";
+      Swal.fire({ icon: "info", title: "Broadcast Ended" });
+  } catch (e) {
+      console.error("Failed to stop broadcast", e);
+  }
+}
+
+// ---------------------------------------------------------
+// 🚀 ROLE-BASED UI INITIALIZATION
+// ---------------------------------------------------------
 window.onload = () => {
-    loadAdminData();
-    loadUsers(); 
+  if (role === "dj") {
+      // Hide all sidebar menu items EXCEPT the livestream center for DJs
+      document.querySelectorAll(".sidebar-menu li").forEach(li => {
+          if (!li.innerHTML.includes("livestream-control")) {
+              li.style.display = "none";
+          }
+      });
+      // Force the DJ to start on the livestream tab
+      switchAdminTab("tab-livestream-control");
+  } else {
+      // Full access for True Admins
+      loadAdminData();
+      loadUsers();
+  }
 };
