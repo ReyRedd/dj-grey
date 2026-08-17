@@ -388,19 +388,57 @@ async function stopNativeBroadcast() {
   });
 }
 
+// 🗑️ ELEGANT SWEETALERT DELETE HANDLER
 async function deleteSubmission(id) {
-    if (!confirm("Are you sure you want to remove this abandoned record?")) return;
-    
+    const result = await Swal.fire({
+        title: 'Delete Abandoned Record?',
+        text: 'Are you sure you want to remove this submission? This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--danger)',
+        cancelButtonColor: 'rgba(255, 255, 255, 0.1)',
+        confirmButtonText: '<i class="fa-solid fa-trash"></i> Delete',
+        cancelButtonText: 'Cancel',
+        background: 'var(--panel-bg)',
+        color: 'var(--text-main)',
+        backdrop: `rgba(0,0,0,0.75)`
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
         const res = await fetch(`${API_URL}/admin/submissions/${id}`, {
             method: 'DELETE',
             headers: getAuthHeaders()
         });
+        
         if (res.ok) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Record Cleared',
+                text: 'The abandoned submission has been permanently removed.',
+                background: 'var(--panel-bg)',
+                color: 'var(--text-main)',
+                confirmButtonColor: 'var(--primary)'
+            });
             loadSubmissionsQueue();
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Action Failed',
+                text: 'Unable to remove record from database.',
+                background: 'var(--panel-bg)',
+                color: 'var(--text-main)'
+            });
         }
     } catch (e) {
-        alert("Failed to delete record.");
+        Swal.fire({
+            icon: 'error',
+            title: 'Network Error',
+            text: 'Could not connect to the server.',
+            background: 'var(--panel-bg)',
+            color: 'var(--text-main)'
+        });
     }
 }
 
