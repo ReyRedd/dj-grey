@@ -11,6 +11,11 @@ function logout() { localStorage.clear(); window.location.href = "/login.html"; 
 
 document.getElementById("date-display").innerText = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
+// 🍔 Sidebar Toggle Logic
+document.getElementById("admin-menu-toggle").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.toggle("collapsed");
+});
+
 function switchAdminTab(tabId) {
   document.querySelectorAll(".tab-content").forEach((tab) => tab.classList.remove("active"));
   document.querySelectorAll(".tab-link").forEach((link) => link.classList.remove("active"));
@@ -30,6 +35,7 @@ function switchAdminTab(tabId) {
 
 let analyticsChart;
 
+// 📊 Load Dashboard & Neon Line Graph
 async function loadAdminData() {
     try {
         const analyticsRes = await fetch(`${API_URL}/admin/analytics`, { headers: getAuthHeaders() });
@@ -42,17 +48,35 @@ async function loadAdminData() {
 
         const ctx = document.getElementById("analyticsChart").getContext("2d");
         if (analyticsChart) analyticsChart.destroy();
+        
+        // ✨ Neon Line Graph Implementation
         analyticsChart = new Chart(ctx, {
-            type: "doughnut",
+            type: "line",
             data: {
                 labels: ["Plays", "Likes", "Downloads", "Comments"],
                 datasets: [{
+                    label: "Platform Engagement",
                     data: [analytics.totalPlays, analytics.totalLikes, analytics.totalDownloads, analytics.totalComments],
-                    backgroundColor: ["#00a8ff", "#bd00ff", "#00ff88", "#ffb800"],
-                    borderWidth: 0
+                    borderColor: "#00a8ff",
+                    backgroundColor: "rgba(0, 168, 255, 0.15)",
+                    borderWidth: 3,
+                    tension: 0.4, // Smooth curved lines
+                    fill: true,
+                    pointBackgroundColor: "#bd00ff",
+                    pointBorderColor: "#fff",
+                    pointBorderWidth: 2,
+                    pointRadius: 6,
+                    pointHoverRadius: 8
                 }]
             },
-            options: { cutout: '75%', plugins: { legend: { position: 'bottom', labels:{color:'#fff'} } } }
+            options: { 
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#a0a0a0" } },
+                    x: { grid: { display: false }, ticks: { color: "#a0a0a0" } }
+                }
+            }
         });
 
         const res = await fetch(`${API_URL}/mixes`);
@@ -67,9 +91,16 @@ async function loadAdminData() {
                 <td><button class="btn-action" style="background:var(--danger); padding: 5px 10px;" onclick="deleteMix(${mix.id})"><i class="fa-solid fa-trash"></i></button></td>
             </tr>
         `).join("");
-    } catch (e) {}
+    } catch (e) { console.error(e); }
 }
 
+async function deleteMix(id) {
+    if(!confirm("Erase this mix permanently?")) return;
+    await fetch(`${API_URL}/mixes/${id}`, { method: "DELETE", headers: getAuthHeaders() });
+    loadAdminData();
+}
+
+// 👑 Subscriptions Logic
 async function loadSubscriptions() {
     try {
         const res = await fetch(`${API_URL}/admin/subscriptions`, { headers: getAuthHeaders() });
@@ -90,7 +121,7 @@ async function loadSubscriptions() {
                 <td>${sub.email}</td>
                 <td><span class="sub-status-${sub.sub_status}">${sub.sub_status.toUpperCase()}</span></td>
                 <td>${dateStr}</td>
-                <td><button class="btn-action" style="padding: 5px 10px;" onclick="manualRenew(${sub.id})">Force Renew</button></td>
+                <td><button class="btn-action" style="padding: 5px 10px;" onclick="alert('Feature coming soon')">Force Renew</button></td>
             </tr>
         `}).join("");
 
@@ -112,7 +143,97 @@ async function runSubscriptionSystemCheck() {
     btn.innerHTML = '<i class="fa-solid fa-radar"></i> Run Subscription & Email Engine';
 }
 
-// Ensure the rest of your original functions (loadUsers, loadSubmissionsQueue, approveSubmission, startNativeBroadcast, etc) remain here exactly as they were in your previous working file.
+// 👥 Fan Network Logic (RESTORED)
+async function loadUsers() {
+    try {
+        const res = await fetch(`${API_URL}/admin/users`, { headers: getAuthHeaders() });
+        const users = await res.json();
+        const tbody = document.getElementById("users-table-body");
+        
+        tbody.innerHTML = users.map(u => `
+            <tr>
+                <td><strong>${u.username}</strong></td>
+                <td>${u.email}</td>
+                <td><span style="text-transform: capitalize;">${u.role}</span></td>
+                <td><span class="sub-status-${u.status === 'approved' ? 'active' : 'expired'}">${u.status}</span></td>
+                <td>
+                    ${u.status === 'pending' ? `<button class="btn-action" style="background:var(--success); color:#000; padding:5px 10px; margin-right:5px;" onclick="approveUser(${u.id})"><i class="fa-solid fa-check"></i></button>` : ''}
+                    <button class="btn-action" style="background:var(--danger); padding:5px 10px;" onclick="deleteUser(${u.id}, '${u.username}')"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>
+        `).join("");
+    } catch(e) { console.error(e); }
+}
+
+async function approveUser(id) {
+    await fetch(`${API_URL}/admin/users/${id}/approve`, { method: "PUT", headers: getAuthHeaders() });
+    loadUsers();
+}
+
+async function deleteUser(id, username) {
+    if(!confirm(`Permanently remove fan: ${username}?`)) return;
+    await fetch(`${API_URL}/admin/users/${id}`, { method: "DELETE", headers: getAuthHeaders() });
+    loadUsers();
+}
+
+// 🎧 Mix Queue ($0.50) Logic
+async function loadSubmissionsQueue() {
+    const tbody = document.getElementById("submissions-table-body");
+    try {
+        const res = await fetch(`${API_URL}/admin/submissions`, { headers: getAuthHeaders() });
+        const data = await res.json();
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No pending DJ submissions.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = data.map(s => `
+            <tr>
+                <td><strong>${s.dj_name}</strong></td>
+                <td>${s.title}</td>
+                <td><span class="sub-status-active">$0.50 USD Paid</span></td>
+                <td><a href="${s.audio_url || s.spotify_url}" target="_blank" style="color: var(--primary);">Listen Link</a></td>
+                <td>
+                    ${s.status === "pending" ? `<button class="btn-action" style="padding:5px 10px;" onclick="approveSubmission(${s.id})"><i class="fa-solid fa-check"></i> Publish</button>` : `<span style="color: var(--text-muted);">Published</span>`}
+                </td>
+            </tr>
+        `).join("");
+    } catch (e) { console.error(e); }
+}
+
+async function approveSubmission(id) {
+    try {
+        const res = await fetch(`${API_URL}/admin/submissions/${id}/approve`, { method: "POST", headers: getAuthHeaders() });
+        if (res.ok) {
+            Swal.fire({ icon: "success", title: "Published!", text: "Mix is now live in the main catalog.", background: '#14141c', color: '#fff' });
+            loadSubmissionsQueue();
+        }
+    } catch (e) {}
+}
+
+// 📡 Native WebRTC Studio Logic (RESTORED)
+let localStream;
+async function startNativeBroadcast() {
+    const title = document.getElementById("stream-title-input")?.value || "DJ GREY LIVE SESSION";
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const videoElement = document.getElementById("dj-broadcast-video");
+        if(videoElement) videoElement.srcObject = localStream;
+
+        await fetch(`${API_URL}/admin/livestream`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ title: title, is_active: true }) });
+        Swal.fire({ icon: 'success', title: 'You Are LIVE! 🔴', text: 'Streaming directly from your browser.', background: '#14141c', color: '#fff' });
+    } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Camera/Mic Error', text: 'Please allow camera and microphone permissions to broadcast.', background: '#14141c', color: '#fff' });
+    }
+}
+
+async function stopNativeBroadcast() {
+    if (localStream) localStream.getTracks().forEach(track => track.stop());
+    const videoElement = document.getElementById("dj-broadcast-video");
+    if(videoElement) videoElement.srcObject = null;
+    await fetch(`${API_URL}/admin/livestream`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ is_active: false }) });
+    Swal.fire({ icon: 'info', title: 'Broadcast Ended', background: '#14141c', color: '#fff' });
+}
+
 window.onload = () => {
     if (role === "dj") {
         document.querySelectorAll(".sidebar-menu li").forEach(li => { if (!li.innerHTML.includes("livestream-control")) li.style.display = "none"; });

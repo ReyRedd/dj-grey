@@ -35,7 +35,7 @@ body {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 100;
 }
-.sidebar h2 { margin: 0 25px 30px; font-size: 1.8rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; background: linear-gradient(90deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.sidebar h2 { margin: 0 25px 30px; font-size: 1.8rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; background: linear-gradient(90deg, var(--primary), var(--secondary)); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 .sidebar-menu { list-style: none; padding: 0; margin: 0; flex: 1; }
 .sidebar-menu li { padding: 5px 15px; }
 .tab-link {
@@ -93,3 +93,26 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .btn-run-check:hover { transform: scale(1.02); box-shadow: 0 15px 40px rgba(189, 0, 255, 0.5); }
 
 @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ---------------------------------------------------------
+   🍔 HAMBURGER & SIDEBAR TOGGLE LOGIC
+--------------------------------------------------------- */
+.sidebar.collapsed {
+    margin-left: -260px;
+}
+.btn-icon {
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: 0.3s ease;
+}
+.btn-icon:hover {
+    color: var(--primary);
+}
+.top-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
