@@ -99,48 +99,51 @@ async function deleteMix(id) {
     loadAdminData();
 }
 
-// 👑 Subscriptions Logic
+// 👑 AUTOMATED SUBSCRIPTIONS LOGIC
 async function loadSubscriptions() {
+    const tbody = document.getElementById("subs-table-body");
     try {
+        // 1. Show a loading state while it syncs
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center;"><i class="fa-solid fa-spinner fa-spin"></i> Auto-syncing ledger & processing expirations...</td></tr>`;
+        
+        // 2. Silently run the engine in the background!
+        await fetch(`${API_URL}/admin/subscriptions/engine`, { method: "POST", headers: getAuthHeaders() });
+        
+        // 3. Fetch the newly updated data
         const res = await fetch(`${API_URL}/admin/subscriptions`, { headers: getAuthHeaders() });
         const subs = await res.json();
         
-        let active=0, expiring=0, expired=0;
-        const tbody = document.getElementById("subs-table-body");
+        let active = 0, expiring = 0, expired = 0;
         
-        tbody.innerHTML = subs.map(sub => {
-            if(sub.sub_status === 'active') active++;
-            if(sub.sub_status === 'expiring') expiring++;
-            if(sub.sub_status === 'expired') expired++;
-            
-            const dateStr = new Date(sub.sub_end_date).toLocaleDateString();
-            return `
-            <tr>
-                <td><strong>${sub.username}</strong></td>
-                <td>${sub.email}</td>
-                <td><span class="sub-status-${sub.sub_status}">${sub.sub_status.toUpperCase()}</span></td>
-                <td>${dateStr}</td>
-                <td><button class="btn-action" style="padding: 5px 10px;" onclick="alert('Feature coming soon')">Force Renew</button></td>
-            </tr>
-        `}).join("");
+        if (subs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No VIP subscriptions found yet.</td></tr>`;
+        } else {
+            tbody.innerHTML = subs.map(sub => {
+                if(sub.sub_status === 'active') active++;
+                if(sub.sub_status === 'expiring') expiring++;
+                if(sub.sub_status === 'expired') expired++;
+                
+                const dateStr = new Date(sub.sub_end_date).toLocaleDateString();
+                return `
+                <tr>
+                    <td><strong>${sub.username}</strong></td>
+                    <td>${sub.email}</td>
+                    <td><span class="sub-status-${sub.sub_status}">${sub.sub_status.toUpperCase()}</span></td>
+                    <td>${dateStr}</td>
+                    <td><button class="btn-action" style="padding: 5px 10px;" onclick="alert('Feature coming soon')">Force Renew</button></td>
+                </tr>
+            `}).join("");
+        }
 
         document.getElementById("sub-active").innerText = active;
         document.getElementById("sub-expiring").innerText = expiring;
         document.getElementById("sub-expired").innerText = expired;
-    } catch(e){}
+    } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--danger);">Failed to sync ledger.</td></tr>`;
+    }
 }
 
-async function runSubscriptionSystemCheck() {
-    const btn = document.querySelector(".btn-run-check");
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing Ledger & Emails...';
-    try {
-        const res = await fetch(`${API_URL}/admin/subscriptions/engine`, { method: "POST", headers: getAuthHeaders() });
-        const data = await res.json();
-        Swal.fire({ icon: 'success', title: 'System Sweep Complete', text: `Hid ${data.expired_processed} expired accounts. Emailed ${data.expiring_processed} warnings.`, background: '#14141c', color: '#fff' });
-        loadSubscriptions();
-    } catch(e) {}
-    btn.innerHTML = '<i class="fa-solid fa-radar"></i> Run Subscription & Email Engine';
-}
+// You can now safely delete the runSubscriptionSystemCheck() function entirely!
 
 // 👥 Bento Grid Fan Network Loader
 async function loadUsers() {

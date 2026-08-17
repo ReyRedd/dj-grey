@@ -325,3 +325,24 @@ div:where(.swal2-container) div:where(.swal2-html-container) { color: var(--text
   .left-nav.open { transform: translateX(0); box-shadow: 20px 0 50px rgba(0,0,0,0.8); }
   .vault-sidebar, .comments-sidebar { width: 100%; }
 }
+
+/* ---------------------------------------------------------
+   ☁️ UPLOAD MODAL LIGHT/DARK MODE FIX
+--------------------------------------------------------- */
+#upload-modal > div {
+    background: var(--glass-bg) !important;
+    border: 1px solid var(--border-color) !important;
+    backdrop-filter: blur(20px);
+}
+#upload-modal h2, #upload-modal p {
+    color: var(--text-main) !important;
+}
+#upload-modal input {
+    background: rgba(120, 120, 120, 0.15) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px;
+}
+#upload-modal input::placeholder {
+    color: var(--text-muted) !important;
+}

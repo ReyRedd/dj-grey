@@ -328,16 +328,21 @@ app.post('/api/submissions/flutterwave/create', authenticateUser, async (req, re
 
 app.get('/api/submissions/flutterwave/callback', async (req, res) => {
     const { status, tx_ref } = req.query;
-    if (status === 'successful') {
+    
+    // Flutterwave sometimes returns 'completed' instead of 'successful'
+    if (status === 'successful' || status === 'completed') {
         try {
             await pool.query("UPDATE mix_submissions SET status = 'pending' WHERE stripe_session_id = $1", [tx_ref]);
             
-            // 👑 UPGRADE USER TO 'DJ', GRANT 30-DAY ACTIVE SUBSCRIPTION
             const subEnd = new Date();
             subEnd.setDate(subEnd.getDate() + 30);
             
+            // 👑 Upgrade to DJ & Grant Sub (Protects existing Admins from being downgraded!)
             const userRes = await pool.query(`
-                UPDATE users SET role = 'dj', sub_status = 'active', sub_end_date = $1 
+                UPDATE users 
+                SET role = CASE WHEN role = 'admin' THEN 'admin' ELSE 'dj' END, 
+                    sub_status = 'active', 
+                    sub_end_date = $1 
                 WHERE id = (SELECT user_id FROM mix_submissions WHERE stripe_session_id = $2)
                 RETURNING email, username
             `, [subEnd, tx_ref]);
@@ -348,12 +353,14 @@ app.get('/api/submissions/flutterwave/callback', async (req, res) => {
                     to: userRes.rows[0].email,
                     subject: '🎉 Subscription Activated - Welcome DJ!',
                     html: `<h2 style="color:#00a8ff">Payment Received</h2><p>Your 30-day subscription is active. Your mix is in the review queue.</p>`
-                });
+                }).catch(e => console.error("Email failed to send", e));
             }
 
             res.redirect('https://djgrey.wezer.me/?upload=success');
         } catch (err) { res.redirect('https://djgrey.wezer.me/?upload=failed'); }
-    } else { res.redirect('https://djgrey.wezer.me/?upload=failed'); }
+    } else { 
+        res.redirect('https://djgrey.wezer.me/?upload=failed'); 
+    }
 });
 
 // ---------------------------------------------------------

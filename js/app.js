@@ -460,3 +460,27 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+
+// ---------------------------------------------------------
+// 🍔 MOBILE SIDEBAR TOGGLE LOGIC
+// ---------------------------------------------------------
+document.addEventListener('DOMContentLoaded', () => {
+    const menuBtn = document.querySelector('.menu-toggle-btn');
+    const leftNav = document.getElementById("left-nav");
+
+    if (menuBtn && leftNav) {
+        menuBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevents instant closing
+            leftNav.classList.toggle("open");
+        });
+    }
+
+    // Auto-close sidebar when clicking outside of it on mobile
+    document.addEventListener('click', (e) => {
+        if (window.innerWidth <= 768 && leftNav && leftNav.classList.contains('open')) {
+            if (!leftNav.contains(e.target) && !menuBtn.contains(e.target)) {
+                leftNav.classList.remove('open');
+            }
+        }
+    });
+});
