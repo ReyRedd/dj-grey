@@ -1,54 +1,46 @@
 // ---------------------------------------------------------
-// 🌐 SAFE GLOBAL DECLARATIONS (PREVENTS REDECLARATION ERRORS)
+// 🌐 SAFE ISOLATED NAMESPACES (PREVENTS SCRIPT CONFLICTS)
 // ---------------------------------------------------------
-window.API_URL = window.API_URL || "https://dj-grey.onrender.com/api";
-window.DEFAULT_ARTWORK = window.DEFAULT_ARTWORK || "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1";
-
-var API_URL = window.API_URL;
-var DEFAULT_ARTWORK = window.DEFAULT_ARTWORK;
-let playlist = [];
-let currentTab = "home";
-
-// Premium Success Toast Timer
-const Toast = (typeof Swal !== "undefined") ? Swal.mixin({
-  toast: true,
-  position: 'top-end',
-  showConfirmButton: false,
-  timer: 3000,
-  timerProgressBar: true,
-  background: 'rgba(20, 20, 28, 0.95)',
-  color: '#fff'
-}) : null;
+window.DJ_API_URL = "https://dj-grey.onrender.com/api";
+window.DJ_DEFAULT_ARTWORK = "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1";
+window.djCatalog = [];
+window.djCurrentTab = "home";
 
 // ---------------------------------------------------------
 // 🔄 FETCH MIXES & INITIALIZE CATALOG
 // ---------------------------------------------------------
 async function loadMixes() {
   const grid = document.getElementById("mixes-grid");
-  
+  if (!grid) return;
+
   try {
     const token = localStorage.getItem("dj_grey_token");
     const headers = token ? { "Authorization": `Bearer ${token}` } : {};
     
-    const res = await fetch(`${API_URL}/mixes`, { headers });
-    
-    if (!res.ok) {
-        throw new Error(`Server returned status ${res.status}`);
-    }
+    const res = await fetch(`${window.DJ_API_URL}/mixes`, { headers });
+    if (!res.ok) throw new Error(`Server returned HTTP ${res.status}`);
 
     const data = await res.json();
-    playlist = Array.isArray(data) ? data : [];
-    renderGrid(playlist);
+    window.djCatalog = Array.isArray(data) ? data : [];
+    renderGrid(window.djCatalog);
   } catch (error) {
     console.error("Error loading mixes:", error);
-    if (grid) {
-        grid.innerHTML = `<p style="color: var(--danger); font-weight: bold;"><i class="fa-solid fa-triangle-exclamation"></i> Unable to connect to music database. Please refresh.</p>`;
-    }
+    grid.innerHTML = `
+        <div style="padding: 25px; text-align: center; background: rgba(255, 77, 77, 0.08); border: 1px solid var(--danger); border-radius: 12px; margin-top: 20px;">
+            <p style="color: #ff4d4d; font-weight: bold; margin-bottom: 8px;">
+                <i class="fa-solid fa-triangle-exclamation"></i> Unable to connect to music catalog
+            </p>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">${error.message || 'Network error'}</p>
+            <button onclick="loadMixes()" style="padding: 8px 18px; background: var(--primary); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                <i class="fa-solid fa-rotate-right"></i> Retry Connection
+            </button>
+        </div>
+    `;
   }
 }
 
 // ---------------------------------------------------------
-// 🎨 RENDER GRID (WITH PERSISTENT BUTTONS)
+// 🎨 RENDER GRID
 // ---------------------------------------------------------
 function renderGrid(mixes) {
   const grid = document.getElementById("mixes-grid");
@@ -56,12 +48,12 @@ function renderGrid(mixes) {
   grid.innerHTML = "";
 
   if (!mixes || mixes.length === 0) {
-    grid.innerHTML = `<p style="color: var(--text-muted);">No mixes found in this section.</p>`;
+    grid.innerHTML = `<p style="color: var(--text-muted); padding: 20px;">No mixes found in this section.</p>`;
     return;
   }
 
   mixes.forEach((mix, index) => {
-    const art = mix.artwork_url || DEFAULT_ARTWORK;
+    const art = mix.artwork_url || window.DJ_DEFAULT_ARTWORK;
     
     const likeClass = mix.is_liked ? "liked" : "";
     const likeStyle = mix.is_liked ? "color: var(--danger);" : "";
@@ -70,7 +62,7 @@ function renderGrid(mixes) {
 
     grid.innerHTML += `
         <div class="card">
-            <img src="${art}" class="card-img" alt="Artwork" onerror="this.src='${DEFAULT_ARTWORK}'">
+            <img src="${art}" class="card-img" alt="Artwork" onerror="this.src='${window.DJ_DEFAULT_ARTWORK}'">
             <div class="card-content">
                 <h3 class="card-title">${mix.title}</h3>
                 <div class="card-actions">
@@ -98,10 +90,10 @@ function renderGrid(mixes) {
 }
 
 // ---------------------------------------------------------
-// 🔀 NAVIGATION & TAB SWITCHER (EXPOSED TO WINDOW)
+// 🔀 NAVIGATION & TAB SWITCHER
 // ---------------------------------------------------------
 function switchTab(tab) {
-  currentTab = tab;
+  window.djCurrentTab = tab;
   const titleEl = document.getElementById("page-section-title");
 
   document.querySelectorAll(".nav-item").forEach((el) => {
@@ -113,18 +105,18 @@ function switchTab(tab) {
 
   if (tab === "home") {
     if (titleEl) titleEl.innerText = "LATEST DROPS";
-    renderGrid(playlist);
+    renderGrid(window.djCatalog);
   } else if (tab === "trending") {
     if (titleEl) titleEl.innerText = "🔥 TRENDING DROPS";
-    const sorted = [...playlist].sort((a, b) => ((b.likes_count || 0) + (b.downloads_count || 0)) - ((a.likes_count || 0) + (a.downloads_count || 0)));
+    const sorted = [...window.djCatalog].sort((a, b) => ((b.likes_count || 0) + (b.downloads_count || 0)) - ((a.likes_count || 0) + (a.downloads_count || 0)));
     renderGrid(sorted);
   } else if (tab === "liked") {
     if (titleEl) titleEl.innerText = "❤️ LIKED MIXES";
-    const liked = playlist.filter((m) => m.is_liked || m.likes_count > 0);
+    const liked = window.djCatalog.filter((m) => m.is_liked || m.likes_count > 0);
     renderGrid(liked);
   } else if (tab === "history") {
     if (titleEl) titleEl.innerText = "🕒 WATCH & LISTEN HISTORY";
-    renderGrid(playlist);
+    renderGrid(window.djCatalog);
   } else if (tab === "hearthis") {
     if (titleEl) titleEl.innerText = "💿 DJ GREY'S HEARTHIS HUB";
     fetchHearthisMixes();
@@ -142,7 +134,7 @@ function switchTab(tab) {
   }
 }
 
-// Explicitly bind navigation handlers to global window
+// Bind to window for global inline onclick access
 window.switchTab = switchTab;
 window.loadMixes = loadMixes;
 
@@ -154,15 +146,15 @@ async function fetchHearthisMixes() {
     if (!grid) return;
     grid.innerHTML = `<p style="font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i> Syncing directly with DJ Grey's Hearthis.at account...</p>`;
     try {
-        const res = await fetch(`${API_URL}/hearthis/sync/grey-george`); 
+        const res = await fetch(`${window.DJ_API_URL}/hearthis/sync/grey-george`); 
         const data = await res.json();
         if (data.success && data.mixes.length > 0) {
-            playlist = data.mixes; 
-            renderGrid(playlist);
+            window.djCatalog = data.mixes; 
+            renderGrid(window.djCatalog);
         } else {
             grid.innerHTML = `<p style="color: var(--text-muted);">No public mixes found on Hearthis.at.</p>`;
         }
-    } catch (e) {
+    } catch(e) {
         console.error(e);
         grid.innerHTML = `<p style="color: #ff4d4d;">Failed to establish connection to Hearthis.at.</p>`;
     }
@@ -177,7 +169,7 @@ async function loadSpotifyHub() {
         const targetSpotifyUrl = "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"; 
         const customTitle = "All On Me - Spotify Drop";
         
-        const res = await fetch(`${API_URL}/spotify/sync?url=${encodeURIComponent(targetSpotifyUrl)}&title=${encodeURIComponent(customTitle)}`);
+        const res = await fetch(`${window.DJ_API_URL}/spotify/sync?url=${encodeURIComponent(targetSpotifyUrl)}&title=${encodeURIComponent(customTitle)}`);
         const data = await res.json();
         
         if (data.success && data.mix) {
@@ -206,21 +198,17 @@ async function loadSpotifyHub() {
 // ---------------------------------------------------------
 // 📺 WEBRTC LIVESTREAM WATCHER & CHAT
 // ---------------------------------------------------------
-const socket = (typeof io !== "undefined") ? io("https://dj-grey.onrender.com") : null;
-let peerConnection;
-const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
-
 async function checkLiveStream() {
-    const container = document.getElementById("livestream-container") || document.getElementById("mixes-grid");
+    const container = document.getElementById("mixes-grid");
     if (!container) return;
 
     try {
-        const res = await fetch(`${API_URL}/livestream/active`);
+        const res = await fetch(`${window.DJ_API_URL}/livestream/active`);
         const data = await res.json();
 
         if (data.active) {
             container.innerHTML = `
-                <div style="background: var(--panel-bg); border-radius: 12px; padding: 20px; margin-top: 20px;">
+                <div style="background: var(--panel-bg); border-radius: 12px; padding: 20px; margin-top: 20px; width: 100%;">
                     <h3 style="margin-top: 0; color: var(--danger);"><i class="fa-solid fa-circle-dot"></i> LIVE NOW: ${data.stream ? data.stream.title : 'DJ GREY SESSION'}</h3>
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-top: 15px;">
                         <div style="background: #000; border-radius: 8px; overflow: hidden; height: 400px;">
@@ -237,11 +225,10 @@ async function checkLiveStream() {
                     </div>
                 </div>
             `;
-            initWebRTCWatcher();
             loadLiveChat();
         } else {
             container.innerHTML = `
-                <div style="text-align: center; padding: 60px 20px;">
+                <div style="text-align: center; padding: 60px 20px; width: 100%;">
                     <i class="fa-solid fa-tower-broadcast" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 15px;"></i>
                     <h3>No Active Livestream Right Now</h3>
                     <p style="color: var(--text-muted);">DJ Grey is currently offline. Check back soon!</p>
@@ -253,41 +240,9 @@ async function checkLiveStream() {
     }
 }
 
-function initWebRTCWatcher() {
-    if (!socket) return;
-    socket.emit("watcher");
-
-    socket.on("offer", (id, description) => {
-        peerConnection = new RTCPeerConnection(rtcConfig);
-        peerConnection
-            .setRemoteDescription(description)
-            .then(() => peerConnection.createAnswer())
-            .then(sdp => peerConnection.setLocalDescription(sdp))
-            .then(() => socket.emit("answer", id, peerConnection.localDescription));
-
-        peerConnection.ontrack = event => {
-            const remoteVideo = document.getElementById("remote-video");
-            if (remoteVideo) remoteVideo.srcObject = event.streams[0];
-        };
-
-        peerConnection.onicecandidate = event => {
-            if (event.candidate) socket.emit("candidate", id, event.candidate);
-        };
-    });
-
-    socket.on("candidate", (id, candidate) => {
-        if (peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-    });
-
-    socket.on("broadcaster", () => socket.emit("watcher"));
-    socket.on("disconnectPeer", () => {
-        if (peerConnection) peerConnection.close();
-    });
-}
-
 async function loadLiveChat() {
     try {
-        const res = await fetch(`${API_URL}/livestream/chat`);
+        const res = await fetch(`${window.DJ_API_URL}/livestream/chat`);
         const messages = await res.json();
         const box = document.getElementById("chat-messages");
         if (box) {
@@ -304,7 +259,7 @@ async function sendChatMessage() {
     if (!token) return Swal.fire({ icon: 'warning', title: 'Login Required', text: 'Log in to chat live!', background: 'var(--glass-bg)', color: 'var(--text-main)' });
 
     try {
-        await fetch(`${API_URL}/livestream/chat`, {
+        await fetch(`${window.DJ_API_URL}/livestream/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ message: input.value.trim() })
@@ -336,7 +291,7 @@ async function likeMix(id, element) {
     textNode.textContent = ` ${currentCount + 1}`;
 
     try {
-        await fetch(`${API_URL}/mixes/${id}/like`, { 
+        await fetch(`${window.DJ_API_URL}/mixes/${id}/like`, { 
             method: 'POST',
             headers: { "Authorization": `Bearer ${token}` }
         });
@@ -368,7 +323,7 @@ async function downloadMix(id, element) {
     textNode.textContent = ` ${currentCount + 1}`;
 
     try {
-        await fetch(`${API_URL}/mixes/${id}/download`, { 
+        await fetch(`${window.DJ_API_URL}/mixes/${id}/download`, { 
             method: 'POST',
             headers: { "Authorization": `Bearer ${token}` }
         });
@@ -388,12 +343,11 @@ window.likeMix = likeMix;
 window.downloadMix = downloadMix;
 
 // ---------------------------------------------------------
-// 🚀 FAILSAFE INITIALIZATION & EVENT LISTENERS
+// 🚀 DIRECT INITIALIZATION EXECUTOR
 // ---------------------------------------------------------
-function initApp() {
+function startApp() {
     loadMixes();
 
-    // Universal Sidebar Toggle
     const menuBtn = document.querySelector('.menu-toggle-btn');
     const leftNav = document.getElementById("left-nav");
 
@@ -417,9 +371,5 @@ function initApp() {
     });
 }
 
-// Safe multi-state initialization trigger
-if (document.readyState === "complete" || document.readyState === "interactive") {
-    setTimeout(initApp, 1);
-} else {
-    document.addEventListener("DOMContentLoaded", initApp);
-}
+// Execute immediately without relying on external window events
+startApp();
