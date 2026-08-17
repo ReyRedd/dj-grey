@@ -3,27 +3,22 @@ const cors = require('cors');
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const http = require('http');
+const { Server } = require('socket.io');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: '*' } });
+
 app.use(cors());
 app.use(express.json());
-
 app.use('/media', express.static('media'));
 
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// 💳 Stripe Setup
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy_key_for_now');
 
-// 🔴 Mux SDK Setup for OBS/RTMP Streaming
-const Mux = require('@mux/mux-node');
-const mux = new Mux({
-  tokenId: process.env.MUX_TOKEN_ID || 'dummy_id',
-  tokenSecret: process.env.MUX_TOKEN_SECRET || 'dummy_secret'
-});
-
-// Database connection
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/dj_grey_db',
     ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
@@ -37,7 +32,6 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dj-grey-super-secret-key-2026';
 function authenticateAdmin(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1]; 
-
     if (!token) return res.status(401).json({ error: 'Access denied. Please log in.' });
 
     jwt.verify(token, JWT_SECRET, (err, user) => {
@@ -51,7 +45,6 @@ function authenticateAdmin(req, res, next) {
 function authenticateUser(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-
     if (!token) return res.status(401).json({ error: 'Please log in to perform this action.' });
 
     jwt.verify(token, JWT_SECRET, (err, user) => {
@@ -64,7 +57,6 @@ function authenticateUser(req, res, next) {
 function authenticateDJOrAdmin(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1]; 
-
     if (!token) return res.status(401).json({ error: 'Access denied. Please log in.' });
 
     jwt.verify(token, JWT_SECRET, (err, user) => {
@@ -244,7 +236,6 @@ app.get('/api/submissions/success', async (req, res) => {
     } catch (err) { res.status(500).send("Payment verification failed."); }
 });
 
-// Paypal logic simplified...
 const PAYPAL_API = process.env.PAYPAL_MODE === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
 async function generatePayPalToken() {
     const auth = Buffer.from((process.env.PAYPAL_CLIENT_ID || 'AWdummy') + ':' + (process.env.PAYPAL_SECRET || 'EEPdummy')).toString('base64');
@@ -277,14 +268,12 @@ app.get('/api/submissions/paypal/capture', async (req, res) => {
 });
 
 // ---------------------------------------------------------
-// 🔴 PROFESSIONAL RTMP LIVESTREAM CENTER (MUX / OBS)
+// 🔴 FREE WEBRTC BROWSER LIVESTREAM CENTER
 // ---------------------------------------------------------
 pool.query(`
     CREATE TABLE IF NOT EXISTS livestreams (
         id SERIAL PRIMARY KEY,
         title VARCHAR(255) DEFAULT 'DJ GREY LIVE SESSION',
-        playback_id TEXT,
-        stream_key TEXT,
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -294,58 +283,20 @@ pool.query(`
     );
 `);
 
-// 🚨 Generate OBS Stream Key via Mux API
-app.post('/api/admin/livestream/generate', authenticateDJOrAdmin, async (req, res) => {
-    const { title } = req.body;
-    try {
-        // 1. Force trim any invisible spaces from your Render Environment Variables
-        const tokenId = (process.env.MUX_TOKEN_ID || 'dummy').trim();
-        const tokenSecret = (process.env.MUX_TOKEN_SECRET || 'dummy').trim();
-
-        // 2. Initialize a fresh Mux client with the cleaned keys
-        const muxClient = new Mux({
-            tokenId: tokenId,
-            tokenSecret: tokenSecret
-        });
-
-        // 3. Create a new Live Stream in Mux (Removed reduced_latency for max compatibility)
-        const stream = await muxClient.video.liveStreams.create({
-            playback_policy: ['public'],
-            new_asset_settings: { playback_policy: ['public'] }
-        });
-
-        // Deactivate old streams
-        await pool.query("UPDATE livestreams SET is_active = false");
-
-        // Save new stream details to database
-        const result = await pool.query(
-            "INSERT INTO livestreams (title, playback_id, stream_key, is_active) VALUES ($1, $2, $3, true) RETURNING *",
-            [title || 'LIVE DJ SET', stream.playback_ids[0].id, stream.stream_key]
-        );
-
-        res.json({
-            success: true,
-            rtmp_url: "rtmps://global-live.mux.com:443/app", // Standard Mux OBS URL
-            stream_key: stream.stream_key,
-            message: "Stream keys generated successfully!"
-        });
-    } catch (err) {
-        console.error("Mux Exact Error:", err);
-        // 🚨 This will now send the EXACT error from Mux directly to your popup window!
-        res.status(500).json({ error: `Mux Error: ${err.message || 'Check Render Logs'}` });
-    }
-});
-
-app.post('/api/admin/livestream/stop', authenticateDJOrAdmin, async (req, res) => {
+app.post('/api/admin/livestream', authenticateDJOrAdmin, async (req, res) => {
+    const { title, is_active } = req.body;
     try {
         await pool.query("UPDATE livestreams SET is_active = false");
-        res.json({ success: true, message: "Stream taken offline." });
+        if (is_active) {
+            await pool.query("INSERT INTO livestreams (title, is_active) VALUES ($1, true)", [title || 'LIVE SESSION']);
+        }
+        res.json({ success: true, message: is_active ? "Livestream launched!" : "Livestream ended." });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.get('/api/livestream/active', async (req, res) => {
     try {
-        const stream = await pool.query("SELECT title, playback_id FROM livestreams WHERE is_active = true ORDER BY id DESC LIMIT 1");
+        const stream = await pool.query("SELECT * FROM livestreams WHERE is_active = true ORDER BY id DESC LIMIT 1");
         res.json({ active: stream.rows.length > 0, stream: stream.rows[0] || null });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -359,9 +310,34 @@ app.post('/api/livestream/chat', authenticateUser, async (req, res) => {
     try { res.status(201).json((await pool.query("INSERT INTO live_chat (user_id, username, message) VALUES ($1, $2, $3) RETURNING *", [req.user.id, req.user.username, req.body.message.trim()])).rows[0]); } catch (err) {}
 });
 
-// ---------------------------------------------------------
+// 📡 WEBRTC SIGNALING SERVER LOGIC
+let broadcaster = null;
+io.on("connection", (socket) => {
+    socket.on("broadcaster", () => {
+        broadcaster = socket.id;
+        socket.broadcast.emit("broadcaster");
+    });
+    socket.on("watcher", () => {
+        if (broadcaster) {
+            socket.to(broadcaster).emit("watcher", socket.id);
+        }
+    });
+    socket.on("offer", (id, message) => {
+        socket.to(id).emit("offer", socket.id, message);
+    });
+    socket.on("answer", (id, message) => {
+        socket.to(id).emit("answer", socket.id, message);
+    });
+    socket.on("candidate", (id, message) => {
+        socket.to(id).emit("candidate", socket.id, message);
+    });
+    socket.on("disconnect", () => {
+        socket.broadcast.emit("disconnectPeer", socket.id);
+        if (socket.id === broadcaster) broadcaster = null;
+    });
+});
+
 // 🛡️ ADMIN GENERAL ROUTES
-// ---------------------------------------------------------
 app.post('/api/mixes', authenticateAdmin, async (req, res) => {
     let { title, audio_url, artwork_url } = req.body;
     audio_url = audio_url.replace('dl=0', 'raw=1');
@@ -381,7 +357,6 @@ app.delete('/api/admin/users/:id', authenticateAdmin, async (req, res) => {
     try { await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]); res.json({ success: true }); } catch (err) {}
 });
 
-// Admin Review Actions
 app.get('/api/admin/submissions', authenticateAdmin, async (req, res) => {
     try { res.json((await pool.query("SELECT * FROM mix_submissions ORDER BY id DESC")).rows); } catch (err) {}
 });
@@ -402,9 +377,7 @@ app.get('/api/admin/analytics', authenticateAdmin, async (req, res) => {
     } catch (err) {}
 });
 
-// ---------------------------------------------------------
 // 🎧 HEARTHIS & SPOTIFY ROUTES
-// ---------------------------------------------------------
 app.get("/api/hearthis/sync/:username", async (req, res) => {
   try {
     const response = await fetch(`https://hearthis.at/${req.params.username || "grey-george"}/podcast/`, { headers: { "User-Agent": "Mozilla/5.0" } });
@@ -438,6 +411,5 @@ app.get("/api/spotify/sync", async (req, res) => {
   } catch (err) { res.status(500).json({ error: "Spotify sync error" }); }
 });
 
-// START API
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🔥 Secure DJ Grey Backend running on port ${PORT}`));
+server.listen(PORT, () => console.log(`🔥 Free WebRTC Server running on port ${PORT}`));

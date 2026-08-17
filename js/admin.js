@@ -7,7 +7,7 @@ const role = localStorage.getItem("dj_grey_role");
 
 // 🚨 Allow both "admin" AND "dj" roles to access this dashboard
 if (!token || (role !== "admin" && role !== "dj")) {
-    window.location.href = "/";
+  window.location.href = "/";
 }
 
 const getAuthHeaders = () => ({
@@ -50,14 +50,19 @@ document.getElementById("date-display").innerText =
 // 📑 UNIFIED TAB SWITCHING LOGIC (Admin & DJ)
 // ---------------------------------------------------------
 function switchTab(event, tabId) {
-    switchAdminTab(tabId);
+  switchAdminTab(tabId);
 }
 
 function switchAdminTab(tabId) {
-  document.querySelectorAll(".tab-content").forEach((tab) => tab.classList.remove("active"));
-  document.querySelectorAll(".tab-link").forEach((link) => link.classList.remove("active"));
+  document
+    .querySelectorAll(".tab-content")
+    .forEach((tab) => tab.classList.remove("active"));
+  document
+    .querySelectorAll(".tab-link")
+    .forEach((link) => link.classList.remove("active"));
 
-  const targetTab = document.getElementById(tabId) || document.getElementById(`tab-${tabId}`);
+  const targetTab =
+    document.getElementById(tabId) || document.getElementById(`tab-${tabId}`);
   if (targetTab) targetTab.classList.add("active");
 
   const targetLink = document.querySelector(`.tab-link[onclick*="${tabId}"]`);
@@ -69,18 +74,21 @@ function switchAdminTab(tabId) {
   if (tabId === "users-tab") {
     pageTitle.innerText = "Fan Management";
     breadcrumb.innerText = "Fan Management";
-    if(role === 'admin') loadUsers();
+    if (role === "admin") loadUsers();
   } else if (tabId === "submissions" || tabId === "tab-submissions") {
     pageTitle.innerText = "DJ Mix Submissions";
     breadcrumb.innerText = "Uploads Queue";
-    if(role === 'admin') loadSubmissionsQueue();
-  } else if (tabId === "livestream-control" || tabId === "tab-livestream-control") {
+    if (role === "admin") loadSubmissionsQueue();
+  } else if (
+    tabId === "livestream-control" ||
+    tabId === "tab-livestream-control"
+  ) {
     pageTitle.innerText = "Professional Broadcast Center";
     breadcrumb.innerText = "Livestream Center";
   } else {
     pageTitle.innerText = "Platform Control Center";
     breadcrumb.innerText = "Admin Dashboard";
-    if(role === 'admin') loadAdminData();
+    if (role === "admin") loadAdminData();
   }
 }
 
@@ -94,11 +102,16 @@ async function loadAdminData() {
     });
     const analytics = await analyticsRes.json();
 
-    document.getElementById("total-mixes").innerText = analytics.totalMixes || 0;
-    document.getElementById("total-plays").innerText = analytics.totalPlays || 0;
-    document.getElementById("total-likes").innerText = analytics.totalLikes || 0;
-    document.getElementById("total-downloads").innerText = analytics.totalDownloads || 0;
-    document.getElementById("total-comments").innerText = analytics.totalComments || 0;
+    document.getElementById("total-mixes").innerText =
+      analytics.totalMixes || 0;
+    document.getElementById("total-plays").innerText =
+      analytics.totalPlays || 0;
+    document.getElementById("total-likes").innerText =
+      analytics.totalLikes || 0;
+    document.getElementById("total-downloads").innerText =
+      analytics.totalDownloads || 0;
+    document.getElementById("total-comments").innerText =
+      analytics.totalComments || 0;
 
     const ctx = document.getElementById("analyticsChart").getContext("2d");
     if (analyticsChart) analyticsChart.destroy();
@@ -356,51 +369,163 @@ async function deleteMix(id, title) {
 // 📡 NATIVE RTMP BROADCAST STUDIO (OBS SETUP)
 // ---------------------------------------------------------
 async function generateOBSKeys() {
-  const title = document.getElementById("stream-title-input").value || "DJ GREY LIVE";
-  
+  const title =
+    document.getElementById("stream-title-input").value || "DJ GREY LIVE";
+
   // Show loading state
   const btn = document.querySelector('button[onclick="generateOBSKeys()"]');
   const originalText = btn.innerHTML;
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating Keys...';
+  btn.innerHTML =
+    '<i class="fa-solid fa-spinner fa-spin"></i> Generating Keys...';
   btn.disabled = true;
 
   try {
-      const res = await fetch(`${API_URL}/admin/livestream/generate`, {
-          method: "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify({ title }),
+    const res = await fetch(`${API_URL}/admin/livestream/generate`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ title }),
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      document.getElementById("obs-credentials").style.display = "block";
+      document.getElementById("obs-url").value = data.rtmp_url;
+      document.getElementById("obs-key").value = data.stream_key;
+      Swal.fire({
+        icon: "success",
+        title: "Keys Generated",
+        text: "Paste these into OBS and go live!",
       });
-      const data = await res.json();
-      
-      if (res.ok) {
-          document.getElementById("obs-credentials").style.display = "block";
-          document.getElementById("obs-url").value = data.rtmp_url;
-          document.getElementById("obs-key").value = data.stream_key;
-          Swal.fire({ icon: 'success', title: 'Keys Generated', text: 'Paste these into OBS and go live!' });
-      } else {
-          Swal.fire({ icon: 'error', title: 'Error', text: data.error });
-      }
+    } else {
+      Swal.fire({ icon: "error", title: "Error", text: data.error });
+    }
   } catch (err) {
-      console.error(err);
-      Swal.fire({ icon: 'error', title: 'Network Error', text: 'Could not connect to stream server.' });
+    console.error(err);
+    Swal.fire({
+      icon: "error",
+      title: "Network Error",
+      text: "Could not connect to stream server.",
+    });
   } finally {
-      btn.innerHTML = originalText;
-      btn.disabled = false;
+    btn.innerHTML = originalText;
+    btn.disabled = false;
   }
 }
 
 async function stopNativeBroadcast() {
   try {
-      await fetch(`${API_URL}/admin/livestream/stop`, {
-          method: "POST",
-          headers: getAuthHeaders()
-      });
-      document.getElementById("obs-credentials").style.display = "none";
-      document.getElementById("stream-title-input").value = "";
-      Swal.fire({ icon: "info", title: "Broadcast Ended" });
+    await fetch(`${API_URL}/admin/livestream/stop`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    });
+    document.getElementById("obs-credentials").style.display = "none";
+    document.getElementById("stream-title-input").value = "";
+    Swal.fire({ icon: "info", title: "Broadcast Ended" });
   } catch (e) {
-      console.error("Failed to stop broadcast", e);
+    console.error("Failed to stop broadcast", e);
   }
+
+  // ---------------------------------------------------------
+  // 📡 NATIVE WEBRTC BROADCAST STUDIO (DJ SIDE)
+  // ---------------------------------------------------------
+  const socket = io("https://dj-grey.onrender.com");
+  const peerConnections = {};
+  const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+  let localStream;
+
+  async function startNativeBroadcast() {
+    const title =
+      document.getElementById("stream-title-input")?.value ||
+      "DJ GREY LIVE SESSION";
+
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+
+      const videoElement = document.getElementById("dj-broadcast-video");
+      if (videoElement) {
+        videoElement.srcObject = localStream;
+      }
+
+      await fetch(`${API_URL}/admin/livestream`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ title: title, is_active: true }),
+      });
+
+      socket.emit("broadcaster");
+      Swal.fire({
+        icon: "success",
+        title: "You Are LIVE! 🔴",
+        text: "Streaming directly from your browser.",
+      });
+    } catch (err) {
+      console.error("Camera Error:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Camera/Mic Error",
+        text: "Please allow camera and microphone permissions to broadcast.",
+      });
+    }
+  }
+
+  async function stopNativeBroadcast() {
+    if (localStream) {
+      localStream.getTracks().forEach((track) => track.stop());
+    }
+    const videoElement = document.getElementById("dj-broadcast-video");
+    if (videoElement) videoElement.srcObject = null;
+
+    await fetch(`${API_URL}/admin/livestream`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ is_active: false }),
+    });
+
+    for (let id in peerConnections) {
+      peerConnections[id].close();
+      delete peerConnections[id];
+    }
+
+    Swal.fire({ icon: "info", title: "Broadcast Ended" });
+  }
+
+  socket.on("watcher", (id) => {
+    const peerConnection = new RTCPeerConnection(rtcConfig);
+    peerConnections[id] = peerConnection;
+
+    if (localStream) {
+      localStream
+        .getTracks()
+        .forEach((track) => peerConnection.addTrack(track, localStream));
+    }
+
+    peerConnection.onicecandidate = (event) => {
+      if (event.candidate) socket.emit("candidate", id, event.candidate);
+    };
+
+    peerConnection
+      .createOffer()
+      .then((sdp) => peerConnection.setLocalDescription(sdp))
+      .then(() => socket.emit("offer", id, peerConnection.localDescription));
+  });
+
+  socket.on("answer", (id, description) => {
+    peerConnections[id].setRemoteDescription(description);
+  });
+
+  socket.on("candidate", (id, candidate) => {
+    peerConnections[id].addIceCandidate(new RTCIceCandidate(candidate));
+  });
+
+  socket.on("disconnectPeer", (id) => {
+    if (peerConnections[id]) {
+      peerConnections[id].close();
+      delete peerConnections[id];
+    }
+  });
 }
 
 // ---------------------------------------------------------
@@ -408,17 +533,17 @@ async function stopNativeBroadcast() {
 // ---------------------------------------------------------
 window.onload = () => {
   if (role === "dj") {
-      // Hide all sidebar menu items EXCEPT the livestream center for DJs
-      document.querySelectorAll(".sidebar-menu li").forEach(li => {
-          if (!li.innerHTML.includes("livestream-control")) {
-              li.style.display = "none";
-          }
-      });
-      // Force the DJ to start on the livestream tab
-      switchAdminTab("tab-livestream-control");
+    // Hide all sidebar menu items EXCEPT the livestream center for DJs
+    document.querySelectorAll(".sidebar-menu li").forEach((li) => {
+      if (!li.innerHTML.includes("livestream-control")) {
+        li.style.display = "none";
+      }
+    });
+    // Force the DJ to start on the livestream tab
+    switchAdminTab("tab-livestream-control");
   } else {
-      // Full access for True Admins
-      loadAdminData();
-      loadUsers();
+    // Full access for True Admins
+    loadAdminData();
+    loadUsers();
   }
 };

@@ -171,7 +171,12 @@ async function loadSpotifyHub() {
     }
 }
 
-let chatInterval = null;
+// ---------------------------------------------------------
+// 🔴 NATIVE WEBRTC VIEWER & LIVE CHAT (FAN SIDE)
+// ---------------------------------------------------------
+let viewerSocket = null;
+let peerConnection = null;
+const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
 async function loadLivestreamHub() {
     const grid = document.getElementById("mixes-grid");
@@ -181,7 +186,7 @@ async function loadLivestreamHub() {
         const res = await fetch(`${API_URL}/livestream/active`);
         const data = await res.json();
 
-        if (!data.active || !data.stream) {
+        if (!data.active) {
             grid.innerHTML = `
                 <div style="text-align: center; padding: 60px 20px;">
                     <i class="fa-solid fa-tower-cell fa-3x" style="color: var(--text-muted); margin-bottom: 20px;"></i>
@@ -193,19 +198,12 @@ async function loadLivestreamHub() {
         }
 
         const stream = data.stream;
-        let embedSource = stream.stream_url;
-        
-        if (embedSource && embedSource.includes("youtube.com/watch?v=")) {
-            embedSource = embedSource.replace("watch?v=", "embed/");
-        } else if (embedSource && embedSource.includes("youtu.be/")) {
-            embedSource = embedSource.replace("youtu.be/", "youtube.com/embed/");
-        }
 
         grid.innerHTML = `
             <div style="display: flex; gap: 20px; flex-wrap: wrap; width: 100%;">
                 <div style="flex: 2; min-width: 320px;">
-                    <div style="position: relative; padding-bottom: 56.25%; height: 0; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
-                        <iframe src="${embedSource}?autoplay=1" style="position: absolute; top:0; left:0; width:100%; height:100%; border:none;" allowfullscreen allow="autoplay"></iframe>
+                    <div style="position: relative; padding-bottom: 56.25%; height: 0; border-radius: 16px; overflow: hidden; background: #000; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+                        <video id="fan-broadcast-video" autoplay playsinline style="position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover;"></video>
                     </div>
                     <h2 style="margin-top: 15px; font-size: 1.4rem;">${stream.title}</h2>
                 </div>
@@ -215,13 +213,14 @@ async function loadLivestreamHub() {
                     <div id="live-chat-box" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; padding-right: 5px;"></div>
                     
                     <div style="display: flex; gap: 8px;">
-                        <input type="text" id="live-chat-input" placeholder="Say something in live chat..." style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 10px; border-radius: 8px; outline: none;">
+                        <input type="text" id="live-chat-input" placeholder="Say something..." style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: #fff; padding: 10px; border-radius: 8px; outline: none;">
                         <button onclick="sendLiveChatMessage()" style="background: var(--primary); color: #fff; border: none; padding: 0 15px; border-radius: 8px; font-weight: bold; cursor: pointer;"><i class="fa-solid fa-paper-plane"></i></button>
                     </div>
                 </div>
             </div>
         `;
 
+        initWebRTCViewer();
         fetchLiveChat();
         if (chatInterval) clearInterval(chatInterval);
         chatInterval = setInterval(fetchLiveChat, 3000); 
@@ -229,6 +228,49 @@ async function loadLivestreamHub() {
         console.error(err);
         grid.innerHTML = `<p style="color: #ff4d4d;">Failed to connect to livestream server.</p>`;
     }
+}
+
+function initWebRTCViewer() {
+    if (!viewerSocket) {
+        viewerSocket = io("https://dj-grey.onrender.com");
+    }
+
+    const video = document.getElementById("fan-broadcast-video");
+    viewerSocket.emit("watcher");
+
+    viewerSocket.on("offer", (id, description) => {
+        peerConnection = new RTCPeerConnection(rtcConfig);
+        
+        peerConnection.setRemoteDescription(description)
+            .then(() => peerConnection.createAnswer())
+            .then(sdp => peerConnection.setLocalDescription(sdp))
+            .then(() => viewerSocket.emit("answer", id, peerConnection.localDescription));
+
+        peerConnection.ontrack = event => {
+            if (video && video.srcObject !== event.streams[0]) {
+                video.srcObject = event.streams[0];
+            }
+        };
+
+        peerConnection.onicecandidate = event => {
+            if (event.candidate) viewerSocket.emit("candidate", id, event.candidate);
+        };
+    });
+
+    viewerSocket.on("candidate", (id, candidate) => {
+        if(peerConnection) {
+            peerConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(e => console.error(e));
+        }
+    });
+
+    viewerSocket.on("broadcaster", () => {
+        viewerSocket.emit("watcher");
+    });
+
+    viewerSocket.on("disconnectPeer", () => {
+        if(peerConnection) peerConnection.close();
+        if(video) video.srcObject = null;
+    });
 }
 
 async function fetchLiveChat() {

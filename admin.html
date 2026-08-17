@@ -6,6 +6,7 @@
     <title>DJ Grey | Admin Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="css/admin.css" />
   </head>
@@ -193,29 +194,26 @@
       <!-- 📡 LIVESTREAM CONTROL CENTER TAB -->
       <div class="tab-content" id="tab-livestream-control">
         <div class="header">
-          <h1>Professional Broadcast Center</h1>
-          <p style="color: var(--text-muted);">Generate your Stream Keys and connect your DJ software (OBS, Serato, Rekordbox) natively.</p>
+          <h1>Native Browser Broadcast Studio</h1>
+          <p style="color: var(--text-muted);">Broadcast directly from your webcam and microphone to your fans natively.</p>
         </div>
 
-        <!-- THIS IS THE CARD THAT WAS MISSING -->
         <div class="card" style="max-width: 600px;">
-          <h3>1. Generate Stream Info</h3>
-          <div class="form-group" style="margin-bottom: 15px;">
-              <input type="text" id="stream-title-input" placeholder="e.g. DJ GREY FRIDAY MIX" required style="width: 100%; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); color: #fff; border-radius: 8px;">
-          </div>
-          <button class="btn-submit" onclick="generateOBSKeys()" style="width: 100%; margin-bottom: 25px;"><i class="fa-solid fa-key"></i> Generate Stream Key</button>
-          
-          <div id="obs-credentials" style="display: none; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-              <p style="color: var(--primary); margin-top: 0;"><strong>2. Paste into OBS/Serato:</strong></p>
-              <label style="font-size: 0.8rem; color: var(--text-muted);">RTMP Server URL:</label>
-              <input type="text" id="obs-url" readonly style="width: 100%; margin-bottom: 10px; background: #000; color: #fff; padding: 10px; border: 1px solid var(--border-color);">
-              <label style="font-size: 0.8rem; color: var(--text-muted);">Stream Key:</label>
-              <input type="password" id="obs-key" readonly style="width: 100%; margin-bottom: 10px; background: #000; color: #fff; padding: 10px; border: 1px solid var(--border-color);">
-              <p style="font-size: 0.8rem; color: #ff4d4d; margin-bottom: 0;">Hit "Start Streaming" in OBS, then your fans will see you live!</p>
+          <h3>Browser Webcam Studio</h3>
+          <div style="width: 100%; max-width: 600px; background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 20px; position: relative; padding-bottom: 56.25%; height: 0;">
+              <video id="dj-broadcast-video" autoplay muted playsinline style="position: absolute; top:0; left:0; width: 100%; height: 100%; object-fit: cover;"></video>
           </div>
 
-          <button class="btn-delete" onclick="stopNativeBroadcast()" style="width: 100%;"><i class="fa-solid fa-stop"></i> End Broadcast</button>
+          <div class="form-group" style="margin-bottom: 15px;">
+            <input type="text" id="stream-title-input" placeholder="e.g. DJ GREY LIVE SESSION" style="width: 100%; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); color: #fff; border-radius: 8px;">
+          </div>
+
+          <div style="display: flex; gap: 15px;">
+            <button class="btn-submit" onclick="startNativeBroadcast()" style="flex: 1;"><i class="fa-solid fa-video"></i> Go Live Natively</button>
+            <button class="btn-delete" onclick="stopNativeBroadcast()" style="flex: 1;"><i class="fa-solid fa-video-slash"></i> Stop Broadcast</button>
+          </div>
         </div>
+      </div>
       </div>
     </main>
 
