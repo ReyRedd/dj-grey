@@ -371,5 +371,110 @@ function startApp() {
     });
 }
 
+// ---------------------------------------------------------
+// 💸 FLUTTERWAVE DJ PREMIUM UPLOAD (MODAL LOGIC)
+// ---------------------------------------------------------
+function openSubmissionModal() {
+    const currentToken = localStorage.getItem("dj_grey_token");
+    if (!currentToken) {
+        return Swal.fire({ 
+            icon: 'warning', 
+            title: 'Login Required', 
+            text: 'You must log in before submitting a mix.',
+            background: 'var(--panel-bg)',
+            color: 'var(--text-main)'
+        });
+    }
+    const modal = document.getElementById("upload-modal");
+    if (modal) {
+        modal.style.display = "flex";
+        setTimeout(() => modal.classList.add("show"), 10);
+    }
+}
+
+function closeUploadModal() {
+    const modal = document.getElementById("upload-modal");
+    if (modal) {
+        modal.classList.remove("show");
+        setTimeout(() => modal.style.display = "none", 400);
+    }
+}
+
+async function submitMixToGateway(e) {
+    if (e) e.preventDefault();
+    const currentToken = localStorage.getItem("dj_grey_token");
+    const title = document.getElementById("up-title") ? document.getElementById("up-title").value : "";
+    const audio_url = document.getElementById("up-audio") ? document.getElementById("up-audio").value : "";
+    const artwork_url = document.getElementById("up-artwork") ? document.getElementById("up-artwork").value : "";
+    
+    if (!title || !audio_url) {
+        return Swal.fire({ 
+            icon: 'error', 
+            title: 'Missing Info', 
+            text: 'Please provide a Title and Audio Link.',
+            background: 'var(--panel-bg)',
+            color: 'var(--text-main)'
+        });
+    }
+
+    const btnFlw = document.getElementById("pay-flw-btn");
+    if (btnFlw) {
+        btnFlw.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Securely Loading...';
+        btnFlw.disabled = true;
+    }
+
+    try {
+        const res = await fetch(`${window.DJ_API_URL}/submissions/flutterwave/create`, {
+            method: 'POST',
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${currentToken}`
+            },
+            body: JSON.stringify({ 
+                title, 
+                audio_url: audio_url.includes('spotify.com') ? '' : audio_url, 
+                spotify_url: audio_url.includes('spotify.com') ? audio_url : '', 
+                artwork_url 
+            })
+        });
+        
+        const data = await res.json();
+        
+        if (data.url) {
+            window.location.href = data.url; 
+        } else {
+            Swal.fire({ 
+                icon: 'error', 
+                title: 'Checkout Failed', 
+                text: data.error || 'Gateway rejected request.',
+                background: 'var(--panel-bg)',
+                color: 'var(--text-main)'
+            });
+            if (btnFlw) resetGatewayButton(btnFlw);
+        }
+    } catch (err) {
+        console.error(err);
+        Swal.fire({ 
+            icon: 'error', 
+            title: 'Network Error', 
+            text: 'Could not connect to payment gateway.',
+            background: 'var(--panel-bg)',
+            color: 'var(--text-main)'
+        });
+        if (btnFlw) resetGatewayButton(btnFlw);
+    }
+}
+
+function resetGatewayButton(btn) {
+    if (!btn) return;
+    btn.innerHTML = '<i class="fa-solid fa-mobile-screen-button"></i> Pay with M-Pesa / Card';
+    btn.disabled = false;
+}
+
+// 🚨 EXPOSE TO GLOBAL WINDOW SCOPE FOR HTML ONCLICK ATTACHMENT
+window.openSubmissionModal = openSubmissionModal;
+window.closeUploadModal = closeUploadModal;
+window.submitMixToGateway = submitMixToGateway;
+window.resetGatewayButton = resetGatewayButton;
 // Execute immediately without relying on external window events
 startApp();
