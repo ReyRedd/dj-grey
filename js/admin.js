@@ -1,4 +1,5 @@
 const API_URL = "https://dj-grey.onrender.com/api";
+const DEFAULT_ARTWORK = "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1";
 const token = localStorage.getItem("dj_grey_token");
 const role = localStorage.getItem("dj_grey_role");
 
@@ -222,42 +223,117 @@ async function deleteSubmission(id) {
 }
 
 // ---------------------------------------------------------
-// 🔴 WEBRTC STUDIO BROADCASTER
+// 🔴 WEBRTC STUDIO BROADCASTER & LIVE ENGAGEMENTS
 // ---------------------------------------------------------
 const socket = (typeof io !== "undefined") ? io(API_URL.replace('/api', '')) : null;
 let localStream = null;
+let adminChatInterval = null;
 const peerConnections = {};
 const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
 async function initBroadcastStudio() {
-    const videoElement = document.getElementById("dj-broadcast-video") || document.querySelector("video");
-    if (!videoElement) return;
+    const videoElement = document.getElementById("dj-broadcast-video");
+    if (!videoElement) return false;
+
     try {
-        if (!localStream) { localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); }
+        if (!localStream) { 
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); 
+        }
         videoElement.srcObject = localStream;
-    } catch (err) { console.error("Camera access denied:", err); }
+        return true;
+    } catch (err) { 
+        console.error("Camera access denied:", err); 
+        Swal.fire({ 
+            icon: "error", 
+            title: "Camera/Mic Blocked", 
+            text: "Your browser is blocking camera access. Click the padlock icon in the URL bar above to Allow camera and microphone.",
+            background: "var(--panel-bg)", color: "#fff" 
+        });
+        return false;
+    }
 }
 
 async function startNativeBroadcast() {
     const titleInput = document.getElementById("stream-title-input");
     const title = titleInput ? titleInput.value || "DJ GREY LIVE SESSION" : "DJ GREY LIVE SESSION";
+    
     try {
-        if (!localStream) await initBroadcastStudio();
-        const res = await fetch(`${API_URL}/admin/livestream`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify({ title: title, is_active: true }) });
+        // Force camera initialization, halt if blocked
+        if (!localStream) {
+            const hasAccess = await initBroadcastStudio();
+            if (!hasAccess) return;
+        }
+
+        const res = await fetch(`${API_URL}/admin/livestream`, { 
+            method: "POST", headers: getAuthHeaders(), body: JSON.stringify({ title: title, is_active: true }) 
+        });
         const data = await res.json();
+        
         if (data.success) {
             if (socket) socket.emit("broadcaster");
-            Swal.fire({ icon: "success", title: "You Are LIVE! 🔴", background: "var(--panel-bg)", color: "#fff" });
+            
+            // 🚨 Reveal the Chat Sidebar
+            const chatSidebar = document.getElementById("admin-chat-sidebar");
+            if (chatSidebar) chatSidebar.style.display = "flex";
+
+            // 🚨 Start Polling Chat
+            fetchAdminChat();
+            if (adminChatInterval) clearInterval(adminChatInterval);
+            adminChatInterval = setInterval(fetchAdminChat, 3000);
+
+            Swal.fire({ icon: "success", title: "You Are LIVE! 🔴", text: "Video and chat are active.", background: "var(--panel-bg)", color: "#fff" });
         }
-    } catch (err) { Swal.fire({ icon: "error", title: "Broadcast Failed", background: "var(--panel-bg)", color: "#fff" }); }
+    } catch (err) { 
+        Swal.fire({ icon: "error", title: "Broadcast Failed", background: "var(--panel-bg)", color: "#fff" }); 
+    }
 }
 
 async function stopNativeBroadcast() {
     if (localStream) { localStream.getTracks().forEach((track) => track.stop()); localStream = null; }
-    const videoElement = document.getElementById("dj-broadcast-video") || document.querySelector("video");
+    const videoElement = document.getElementById("dj-broadcast-video");
     if (videoElement) videoElement.srcObject = null;
+    
     await fetch(`${API_URL}/admin/livestream`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify({ is_active: false }) });
+
+    // 🚨 Hide Chat Sidebar
+    const chatSidebar = document.getElementById("admin-chat-sidebar");
+    if (chatSidebar) chatSidebar.style.display = "none";
+    if (adminChatInterval) clearInterval(adminChatInterval);
+
     Swal.fire({ icon: "info", title: "Broadcast Ended", background: "var(--panel-bg)", color: "#fff" });
+}
+
+// Admin Chat Functions
+async function fetchAdminChat() {
+    const box = document.getElementById("admin-chat-messages");
+    if (!box) return;
+    try {
+        const res = await fetch(`${API_URL}/livestream/chat`);
+        const messages = await res.json();
+        if (messages.length > 0) {
+            box.innerHTML = messages.map(m => `
+                <div style="font-size: 0.85rem; line-height: 1.3; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
+                    <span style="font-weight: bold; color: ${m.username === 'dj_greyyy' || m.username === 'dj_grey' ? 'var(--danger)' : 'var(--primary)'};">${m.username}:</span> 
+                    <span style="color: var(--text-main);">${m.message}</span>
+                </div>
+            `).join("");
+            box.scrollTop = box.scrollHeight;
+        }
+    } catch (e) {}
+}
+
+async function sendAdminChatMessage() {
+    const input = document.getElementById("admin-chat-input");
+    const message = input.value.trim();
+    if (!message) return;
+
+    try {
+        await fetch(`${API_URL}/livestream/chat`, {
+            method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ message })
+        });
+        input.value = "";
+        fetchAdminChat();
+    } catch (e) {}
 }
 
 if (socket) {
@@ -283,6 +359,7 @@ function toggleTheme() {
 window.switchAdminTab = switchAdminTab;
 window.startNativeBroadcast = startNativeBroadcast;
 window.stopNativeBroadcast = stopNativeBroadcast;
+window.sendAdminChatMessage = sendAdminChatMessage;
 window.approveSubmission = approveSubmission;
 window.deleteSubmission = deleteSubmission;
 window.deleteMix = deleteMix;

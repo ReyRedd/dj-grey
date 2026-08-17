@@ -1,15 +1,11 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DJ Grey | Command Center</title>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="css/admin.css" />
@@ -17,86 +13,30 @@
   <body>
     <nav class="sidebar" id="sidebar">
       <div>
-        <h2>
-          DJ GREY <br /><span
-            style="color: var(--text-muted); font-size: 0.9rem"
-            >Command Center</span
-          >
-        </h2>
+        <h2>DJ GREY <br /><span style="color: var(--text-muted); font-size: 0.9rem">Command Center</span></h2>
         <ul class="sidebar-menu">
-          <li>
-            <a
-              href="#"
-              class="tab-link active"
-              onclick="switchAdminTab('dashboard-tab')"
-              ><i class="fa-solid fa-chart-pie"></i> Analytics & Content</a
-            >
-          </li>
-          <li>
-            <a
-              href="#"
-              class="tab-link"
-              onclick="switchAdminTab('subscriptions-tab')"
-              ><i class="fa-solid fa-crown"></i> Subscription Hub</a
-            >
-          </li>
-          <li>
-            <a href="#" class="tab-link" onclick="switchAdminTab('submissions')"
-              ><i class="fa-solid fa-file-invoice-dollar"></i> Mix Queue
-              ($0.50)</a
-            >
-          </li>
-          <li>
-            <a
-              href="#"
-              class="tab-link"
-              onclick="switchAdminTab('livestream-control')"
-              ><i class="fa-solid fa-tower-broadcast"></i> Live Studio</a
-            >
-          </li>
-          <li>
-            <a href="#" class="tab-link" onclick="switchAdminTab('users-tab')"
-              ><i class="fa-solid fa-users"></i> Fan Network</a
-            >
-          </li>
+          <li><a href="#" class="tab-link active" onclick="switchAdminTab('dashboard-tab')"><i class="fa-solid fa-chart-pie"></i> Analytics & Content</a></li>
+          <li><a href="#" class="tab-link" onclick="switchAdminTab('subscriptions-tab')"><i class="fa-solid fa-crown"></i> Subscription Hub</a></li>
+          <li><a href="#" class="tab-link" onclick="switchAdminTab('submissions')"><i class="fa-solid fa-file-invoice-dollar"></i> Mix Queue ($0.50)</a></li>
+          <li><a href="#" class="tab-link" onclick="switchAdminTab('livestream-control')"><i class="fa-solid fa-tower-broadcast"></i> Live Studio</a></li>
+          <li><a href="#" class="tab-link" onclick="switchAdminTab('users-tab')"><i class="fa-solid fa-users"></i> Fan Network</a></li>
         </ul>
       </div>
       <div class="sidebar-bottom">
-        <a href="/" target="_blank" class="tab-link"
-          ><i class="fa-solid fa-globe"></i> View Live Site</a
-        >
-        <a href="#" onclick="logout()" class="tab-link"
-          ><i class="fa-solid fa-right-from-bracket"></i> Logout</a
-        >
+        <a href="/" target="_blank" class="tab-link"><i class="fa-solid fa-globe"></i> View Live Site</a>
+        <a href="#" onclick="logout()" class="tab-link"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
       </div>
     </nav>
 
     <main class="main-content" id="main-content">
       <div class="top-bar">
         <div class="top-bar-left">
-          <button class="btn-icon" id="admin-menu-toggle">
-            <i class="fa-solid fa-bars"></i>
-          </button>
-          <div style="font-weight: 600; color: var(--text-muted)">
-            <i class="fa-solid fa-shield-halved"></i> Secure Admin Session
-          </div>
+          <button class="btn-icon" id="admin-menu-toggle"><i class="fa-solid fa-bars"></i></button>
+          <div style="font-weight: 600; color: var(--text-muted)"><i class="fa-solid fa-shield-halved"></i> Secure Admin Session</div>
         </div>
-        <div
-          class="top-bar-right"
-          style="display: flex; align-items: center; gap: 20px"
-        >
-          <div
-            id="date-display"
-            style="color: var(--primary); font-weight: bold"
-          ></div>
-          <button
-            class="btn-icon"
-            id="theme-toggle"
-            onclick="toggleTheme()"
-            title="Toggle Theme"
-          >
-            <i class="fa-solid fa-sun"></i>
-          </button>
+        <div class="top-bar-right" style="display: flex; align-items: center; gap: 20px">
+          <div id="date-display" style="color: var(--primary); font-weight: bold"></div>
+          <button class="btn-icon" id="theme-toggle" onclick="toggleTheme()" title="Toggle Theme"><i class="fa-solid fa-sun"></i></button>
         </div>
       </div>
 
@@ -106,83 +46,24 @@
 
       <!-- TAB 1: DASHBOARD & UPLOADS -->
       <div id="dashboard-tab" class="tab-content active">
-        <!-- New Bento Box Stats -->
         <div class="bento-grid">
-          <div class="bento-card">
-            <i class="fa-solid fa-compact-disc bento-icon"></i>
-            <div class="bento-title">Total Mixes</div>
-            <div class="bento-value" id="total-mixes">0</div>
-          </div>
-          <div class="bento-card">
-            <i
-              class="fa-solid fa-headphones bento-icon"
-              style="color: var(--secondary)"
-            ></i>
-            <div class="bento-title">Global Plays</div>
-            <div class="bento-value" id="total-plays">0</div>
-          </div>
-          <div class="bento-card">
-            <i
-              class="fa-solid fa-heart bento-icon"
-              style="color: var(--danger)"
-            ></i>
-            <div class="bento-title">Fan Likes</div>
-            <div class="bento-value" id="total-likes">0</div>
-          </div>
-          <div class="bento-card">
-            <i
-              class="fa-solid fa-download bento-icon"
-              style="color: var(--success)"
-            ></i>
-            <div class="bento-title">Downloads</div>
-            <div class="bento-value" id="total-downloads">0</div>
-          </div>
+          <div class="bento-card"><i class="fa-solid fa-compact-disc bento-icon"></i><div class="bento-title">Total Mixes</div><div class="bento-value" id="total-mixes">0</div></div>
+          <div class="bento-card"><i class="fa-solid fa-headphones bento-icon" style="color: var(--secondary)"></i><div class="bento-title">Global Plays</div><div class="bento-value" id="total-plays">0</div></div>
+          <div class="bento-card"><i class="fa-solid fa-heart bento-icon" style="color: var(--danger)"></i><div class="bento-title">Fan Likes</div><div class="bento-value" id="total-likes">0</div></div>
+          <div class="bento-card"><i class="fa-solid fa-download bento-icon" style="color: var(--success)"></i><div class="bento-title">Downloads</div><div class="bento-value" id="total-downloads">0</div></div>
         </div>
-
-        <!-- 📈 DEDICATED FULL-WIDTH LINE GRAPH BENTO CARD -->
         <div class="bento-card" style="margin-bottom: 30px; padding: 30px">
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 20px;
-            "
-          >
-            <h3 style="margin: 0">
-              <i
-                class="fa-solid fa-chart-line"
-                style="color: var(--primary)"
-              ></i>
-              Platform Engagement Analytics
-            </h3>
-            <span style="font-size: 0.85rem; color: var(--text-muted)"
-              >Real-time Traffic Metrics</span
-            >
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0"><i class="fa-solid fa-chart-line" style="color: var(--primary)"></i> Platform Engagement Analytics</h3>
+            <span style="font-size: 0.85rem; color: var(--text-muted)">Real-time Traffic Metrics</span>
           </div>
-          <div style="height: 300px; width: 100%">
-            <canvas id="analyticsChart"></canvas>
-          </div>
+          <div style="height: 300px; width: 100%"><canvas id="analyticsChart"></canvas></div>
         </div>
-
-        <!-- LIVE CATALOG TABLE -->
         <div class="table-container">
           <h3 style="margin-top: 0; margin-bottom: 20px">Live Catalog</h3>
           <table>
-            <thead>
-              <tr>
-                <th>Mix Title</th>
-                <th>Likes</th>
-                <th>Downloads</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="admin-table-body">
-              <tr>
-                <td colspan="5">Loading data...</td>
-              </tr>
-            </tbody>
+            <thead><tr><th>Mix Title</th><th>Likes</th><th>Downloads</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="admin-table-body"><tr><td colspan="5">Loading data...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -190,84 +71,26 @@
       <!-- TAB 2: SUBSCRIPTION HUB -->
       <div id="subscriptions-tab" class="tab-content">
         <div class="bento-grid">
-          <div class="bento-card">
-            <div class="bento-title">Active VIPs</div>
-            <div
-              class="bento-value"
-              style="color: var(--success)"
-              id="sub-active"
-            >
-              0
-            </div>
-          </div>
-          <div class="bento-card">
-            <div class="bento-title">Expiring Soon</div>
-            <div
-              class="bento-value"
-              style="color: var(--warning)"
-              id="sub-expiring"
-            >
-              0
-            </div>
-          </div>
-          <div class="bento-card">
-            <div class="bento-title">Expired Accounts</div>
-            <div
-              class="bento-value"
-              style="color: var(--danger)"
-              id="sub-expired"
-            >
-              0
-            </div>
-          </div>
+          <div class="bento-card"><div class="bento-title">Active VIPs</div><div class="bento-value" style="color: var(--success)" id="sub-active">0</div></div>
+          <div class="bento-card"><div class="bento-title">Expiring Soon</div><div class="bento-value" style="color: var(--warning)" id="sub-expiring">0</div></div>
+          <div class="bento-card"><div class="bento-title">Expired Accounts</div><div class="bento-value" style="color: var(--danger)" id="sub-expired">0</div></div>
         </div>
-
         <div class="table-container">
-          <h3 style="margin-top: 0; margin-bottom: 25px">
-            Subscription Ledger
-          </h3>
+          <h3 style="margin-top: 0; margin-bottom: 25px">Subscription Ledger</h3>
           <table>
-            <thead>
-              <tr>
-                <th>DJ / Fan Name</th>
-                <th>Email</th>
-                <th>Sub Status</th>
-                <th>Expiration Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="subs-table-body">
-              <tr>
-                <td colspan="5" style="text-align: center">
-                  Loading ledger...
-                </td>
-              </tr>
-            </tbody>
+            <thead><tr><th>DJ / Fan Name</th><th>Email</th><th>Sub Status</th><th>Expiration Date</th><th>Actions</th></tr></thead>
+            <tbody id="subs-table-body"><tr><td colspan="5" style="text-align: center">Loading ledger...</td></tr></tbody>
           </table>
         </div>
       </div>
 
-      <!-- TAB 3: FAN NETWORK (UPGRADED BENTO CARD GRID) -->
+      <!-- TAB 3: FAN NETWORK -->
       <div id="users-tab" class="tab-content">
-        <div
-          style="
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-          "
-        >
-          <h3 style="margin: 0">
-            <i class="fa-solid fa-users" style="color: var(--primary)"></i>
-            Registered Fan Network
-          </h3>
-          <span id="user-count-badge" class="sub-status-active"
-            >0 Active Members</span
-          >
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+          <h3 style="margin: 0"><i class="fa-solid fa-users" style="color: var(--primary)"></i> Registered Fan Network</h3>
+          <span id="user-count-badge" class="sub-status-active">0 Active Members</span>
         </div>
-        <div class="bento-grid" id="users-bento-grid">
-          <p style="color: var(--text-muted)">Loading fan profiles...</p>
-        </div>
+        <div class="bento-grid" id="users-bento-grid"><p style="color: var(--text-muted)">Loading fan profiles...</p></div>
       </div>
 
       <!-- TAB 4: QUEUE -->
@@ -275,85 +98,41 @@
         <div class="table-container">
           <h3 style="margin-top: 0">DJ Mix Submissions ($0.50 Fee Log)</h3>
           <table>
-            <thead>
-              <tr>
-                <th>DJ Name</th>
-                <th>Mix Title</th>
-                <th>Fee Status</th>
-                <th>Listen Link</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="submissions-table-body">
-              <tr>
-                <td colspan="5">Loading...</td>
-              </tr>
-            </tbody>
+            <thead><tr><th>DJ Name</th><th>Mix Title</th><th>Fee Status</th><th>Listen Link</th><th>Actions</th></tr></thead>
+            <tbody id="submissions-table-body"><tr><td colspan="5">Loading...</td></tr></tbody>
           </table>
         </div>
       </div>
 
-      <!-- TAB 5: STUDIO -->
+      <!-- TAB 5: STUDIO (DUAL-PANE LAYOUT) -->
       <div class="tab-content" id="livestream-control">
-        <div class="table-container" style="max-width: 600px; margin: 0 auto">
-          <h3 style="margin-top: 0">Native Browser Broadcast Studio</h3>
-          <div
-            style="
-              width: 100%;
-              background: #000;
-              border-radius: 12px;
-              overflow: hidden;
-              margin-bottom: 20px;
-              position: relative;
-              padding-bottom: 56.25%;
-              height: 0;
-            "
-          >
-            <video
-              id="dj-broadcast-video"
-              autoplay
-              muted
-              playsinline
-              style="
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-              "
-            ></video>
+        <div style="display: flex; gap: 20px; flex-wrap: wrap; width: 100%;">
+          
+          <!-- LEFT: Broadcast Video & Controls -->
+          <div class="table-container" style="flex: 2; min-width: 320px; margin: 0;">
+            <h3 style="margin-top: 0">Native Browser Broadcast Studio</h3>
+            <div style="width: 100%; background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 20px; position: relative; padding-bottom: 56.25%; height: 0;">
+              <video id="dj-broadcast-video" autoplay muted playsinline style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;"></video>
+            </div>
+            <input type="text" id="stream-title-input" placeholder="e.g. DJ GREY LIVE VIBES" style="width: 100%; padding: 15px; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color); color: #fff; border-radius: 8px; margin-bottom: 20px;" />
+            <div style="display: flex; gap: 15px">
+              <button class="btn-action" onclick="startNativeBroadcast()" style="flex: 1"><i class="fa-solid fa-video"></i> Go Live</button>
+              <button class="btn-action" onclick="stopNativeBroadcast()" style="flex: 1; background: var(--danger)"><i class="fa-solid fa-video-slash"></i> Stop</button>
+            </div>
           </div>
-          <input
-            type="text"
-            id="stream-title-input"
-            placeholder="e.g. DJ GREY LIVE SESSION"
-            style="
-              width: 100%;
-              padding: 15px;
-              background: rgba(0, 0, 0, 0.4);
-              border: 1px solid var(--border-color);
-              color: #fff;
-              border-radius: 8px;
-              margin-bottom: 20px;
-            "
-          />
-          <div style="display: flex; gap: 15px">
-            <button
-              class="btn-action"
-              onclick="startNativeBroadcast()"
-              style="flex: 1"
-            >
-              <i class="fa-solid fa-video"></i> Go Live
-            </button>
-            <button
-              class="btn-action"
-              onclick="stopNativeBroadcast()"
-              style="flex: 1; background: var(--danger)"
-            >
-              <i class="fa-solid fa-video-slash"></i> Stop
-            </button>
+
+          <!-- RIGHT: Live Engagements (Chat Sidebar) -->
+          <div class="table-container" id="admin-chat-sidebar" style="flex: 1; min-width: 300px; margin: 0; display: none; flex-direction: column; max-height: 600px;">
+            <h3 style="margin-top: 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;"><i class="fa-solid fa-comments"></i> Live Engagements</h3>
+            <div id="admin-chat-messages" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; padding-right: 5px;">
+              <div style="color: var(--text-muted); text-align: center; margin-top: 20px;">Stream is offline. Start broadcasting to chat with fans.</div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="admin-chat-input" placeholder="Message your fans..." style="flex: 1; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 10px; border-radius: 8px; outline: none;">
+              <button onclick="sendAdminChatMessage()" style="background: var(--primary); color: #fff; border: none; padding: 0 15px; border-radius: 8px; font-weight: bold; cursor: pointer;"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
           </div>
+
         </div>
       </div>
     </main>
