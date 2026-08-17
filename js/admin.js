@@ -11,10 +11,6 @@ function logout() { localStorage.clear(); window.location.href = "/login.html"; 
 
 document.getElementById("date-display").innerText = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-// 🍔 Sidebar Toggle Logic
-document.getElementById("admin-menu-toggle").addEventListener("click", () => {
-    document.getElementById("sidebar").classList.toggle("collapsed");
-});
 
 function switchAdminTab(tabId) {
   document.querySelectorAll(".tab-content").forEach((tab) => tab.classList.remove("active"));
@@ -274,3 +270,31 @@ function toggleTheme() {
         icon.classList.add("fa-moon");
     }
 }
+
+// ---------------------------------------------------------
+// 🍔 UNIVERSAL SIDEBAR TOGGLE LOGIC (ADMIN SITE)
+// ---------------------------------------------------------
+document.addEventListener('DOMContentLoaded', () => {
+    const adminMenuBtn = document.getElementById("admin-menu-toggle");
+    const sidebar = document.getElementById("sidebar");
+
+    if (adminMenuBtn && sidebar) {
+        adminMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (window.innerWidth <= 768) {
+                sidebar.classList.toggle("open"); // Slide out on mobile
+            } else {
+                sidebar.classList.toggle("collapsed"); // Shrink on desktop
+            }
+        });
+    }
+
+    // Auto-close sidebar when clicking outside of it on mobile
+    document.addEventListener('click', (e) => {
+        if (window.innerWidth <= 768 && sidebar && sidebar.classList.contains('open')) {
+            if (!sidebar.contains(e.target) && !adminMenuBtn.contains(e.target)) {
+                sidebar.classList.remove('open');
+            }
+        }
+    });
+});

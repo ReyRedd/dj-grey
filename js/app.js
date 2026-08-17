@@ -11,9 +11,16 @@ const Toast = Swal.mixin({
   color: '#fff'
 });
 
+// ---------------------------------------------------------
+// 🔄 FETCH MIXES WITH AUTH (TO REMEMBER SAVES ON REFRESH)
+// ---------------------------------------------------------
 async function loadMixes() {
   try {
-    const res = await fetch(`${API_URL}/mixes`);
+    const token = localStorage.getItem("dj_grey_token");
+    // Send token if logged in so backend can flag saved/liked mixes
+    const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+    
+    const res = await fetch(`${API_URL}/mixes`, { headers });
     playlist = await res.json();
     renderGrid(playlist);
   } catch (error) {
@@ -21,6 +28,9 @@ async function loadMixes() {
   }
 }
 
+// ---------------------------------------------------------
+// 🎨 RENDER GRID (WITH PERSISTENT COLORS)
+// ---------------------------------------------------------
 function renderGrid(mixes) {
   const grid = document.getElementById("mixes-grid");
   grid.innerHTML = "";
@@ -32,6 +42,13 @@ function renderGrid(mixes) {
 
   mixes.forEach((mix, index) => {
     const art = DEFAULT_ARTWORK;
+    
+    // Check backend flags to keep buttons active after refresh
+    const likeClass = mix.is_liked ? "liked" : "";
+    const likeStyle = mix.is_liked ? "color: var(--danger);" : "";
+    const saveClass = mix.is_saved ? "saved" : "";
+    const saveStyle = mix.is_saved ? "color: var(--success);" : "";
+
     grid.innerHTML += `
         <div class="card">
             <img src="${art}" class="card-img" alt="Artwork" onerror="this.src='${DEFAULT_ARTWORK}'">
@@ -42,9 +59,12 @@ function renderGrid(mixes) {
                         <i class="fa-solid fa-play"></i> PLAY
                     </button>
                     <div class="stats">
-                        <span onclick="likeMix(${mix.id}, this)" title="Like"><i class="fa-solid fa-heart"></i> ${mix.likes_count || 0}</span>
-                        <!-- 🚨 FIXED: Now triggers platform save instead of local download -->
-                        <span onclick="downloadMix(${mix.id}, this)" title="Add to Playlist"><i class="fa-solid fa-download"></i> ${mix.downloads_count || 0}</span>
+                        <span class="${likeClass}" onclick="likeMix(${mix.id}, this)" title="Like">
+                            <i class="fa-solid fa-heart" style="${likeStyle}"></i> ${mix.likes_count || 0}
+                        </span>
+                        <span class="${saveClass}" onclick="downloadMix(${mix.id}, this)" title="Add to Playlist">
+                            <i class="fa-solid fa-download" style="${saveStyle}"></i> ${mix.downloads_count || 0}
+                        </span>
                     </div>
                 </div>
                 <div style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">
@@ -463,57 +483,52 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // ---------------------------------------------------------
-// ❤️ LIKE & 📥 PLAYLIST (INTERNAL DOWNLOAD) LOGIC
+// ❤️ LIKE & 📥 PLAYLIST (WITH SECURE AUTH TOKENS)
 // ---------------------------------------------------------
 async function likeMix(id, element) {
-    const icon = element.querySelector('i');
-    
-    // Prevent spam clicking if already liked
+    const token = localStorage.getItem("dj_grey_token");
+    if (!token) {
+        return Swal.fire({ 
+            icon: 'warning', title: 'Login Required', text: 'Please log in to like mixes!', 
+            background: 'var(--glass-bg)', color: 'var(--text-main)', confirmButtonColor: 'var(--primary)'
+        });
+    }
+
     if (element.classList.contains('liked')) return; 
 
-    // Optimistic UI Update: Make heart red instantly
     element.classList.add('liked');
+    const icon = element.querySelector('i');
     icon.style.color = 'var(--danger)'; 
     const textNode = element.lastChild;
     const currentCount = parseInt(textNode.textContent) || 0;
     textNode.textContent = ` ${currentCount + 1}`;
 
     try {
-        // Ping backend to save the like
-        await fetch(`${API_URL}/mixes/${id}/like`, { method: 'POST' });
-    } catch (e) { 
-        console.error('Failed to like mix', e); 
-    }
+        // 🚨 FIXED: Now explicitly sends your user token to the database
+        await fetch(`${API_URL}/mixes/${id}/like`, { 
+            method: 'POST',
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+    } catch (e) { console.error('Failed to like mix', e); }
 }
 
 async function downloadMix(id, element) {
     const token = localStorage.getItem("dj_grey_token");
     
-    // 1. Require Login to use the Playlist feature
     if (!token) {
         return Swal.fire({ 
-            icon: 'warning', 
-            title: 'Access Denied', 
-            text: 'Please log in to save mixes to your personal playlist!', 
-            background: 'var(--glass-bg)', 
-            color: 'var(--text-main)',
-            confirmButtonColor: 'var(--primary)'
+            icon: 'warning', title: 'Access Denied', text: 'Please log in to save mixes to your personal playlist!', 
+            background: 'var(--glass-bg)', color: 'var(--text-main)', confirmButtonColor: 'var(--primary)'
         });
     }
 
-    // 2. Prevent saving the same mix twice
     if (element.classList.contains('saved')) {
         return Swal.fire({
-            icon: 'info',
-            title: 'Already Saved',
-            text: 'This mix is already securely stored in your playlist.',
-            background: 'var(--glass-bg)',
-            color: 'var(--text-main)',
-            confirmButtonColor: 'var(--primary)'
+            icon: 'info', title: 'Already Saved', text: 'This mix is already securely stored in your playlist.',
+            background: 'var(--glass-bg)', color: 'var(--text-main)', confirmButtonColor: 'var(--primary)'
         });
     }
 
-    // 3. Optimistic UI Update: Make icon green instantly
     element.classList.add('saved');
     const icon = element.querySelector('i');
     icon.style.color = 'var(--success)'; 
@@ -522,25 +537,25 @@ async function downloadMix(id, element) {
     textNode.textContent = ` ${currentCount + 1}`;
 
     try {
-        // Ping backend to increment download stats / add to user DB
-        await fetch(`${API_URL}/mixes/${id}/download`, { method: 'POST' });
+        // 🚨 FIXED: Now explicitly sends your user token to the database
+        await fetch(`${API_URL}/mixes/${id}/download`, { 
+            method: 'POST',
+            headers: { "Authorization": `Bearer ${token}` }
+        });
 
-        // 4. Show the beautiful in-platform success popup
         Swal.fire({
-            icon: 'success',
-            title: 'Added to Vault! 🎧',
+            icon: 'success', title: 'Added to Vault! 🎧',
             text: 'This mix has been securely saved to your personal platform playlist. You can listen to it anytime from the "My Playlist" tab.',
-            background: 'var(--glass-bg)',
-            color: 'var(--text-main)',
-            confirmButtonColor: 'var(--primary)',
-            backdrop: `rgba(0,0,0,0.6)` // Adds a dark cinematic blur behind the popup
+            background: 'var(--glass-bg)', color: 'var(--text-main)', confirmButtonColor: 'var(--primary)',
+            backdrop: `rgba(0,0,0,0.6)`
         });
     } catch (e) {
         console.error('Failed to save to playlist', e);
     }
 }
+
 // ---------------------------------------------------------
-// 🍔 MOBILE SIDEBAR TOGGLE LOGIC
+// 🍔 UNIVERSAL SIDEBAR TOGGLE LOGIC (LIVE SITE)
 // ---------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
     const menuBtn = document.querySelector('.menu-toggle-btn');
@@ -548,8 +563,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (menuBtn && leftNav) {
         menuBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevents instant closing
-            leftNav.classList.toggle("open");
+            e.stopPropagation(); 
+            // Check screen size to determine which animation to trigger
+            if (window.innerWidth <= 768) {
+                leftNav.classList.toggle("open"); // Slide out on mobile
+            } else {
+                leftNav.classList.toggle("collapsed"); // Shrink on desktop
+            }
         });
     }
 
