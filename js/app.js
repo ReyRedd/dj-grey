@@ -43,7 +43,8 @@ function renderGrid(mixes) {
                     </button>
                     <div class="stats">
                         <span onclick="likeMix(${mix.id}, this)" title="Like"><i class="fa-solid fa-heart"></i> ${mix.likes_count || 0}</span>
-                        <span onclick="downloadMix(${mix.id}, '${mix.audio_url}')" title="Download"><i class="fa-solid fa-download"></i> ${mix.downloads_count || 0}</span>
+                        <!-- 🚨 FIXED: Now triggers platform save instead of local download -->
+                        <span onclick="downloadMix(${mix.id}, this)" title="Add to Playlist"><i class="fa-solid fa-download"></i> ${mix.downloads_count || 0}</span>
                     </div>
                 </div>
                 <div style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">
@@ -461,6 +462,83 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// ---------------------------------------------------------
+// ❤️ LIKE & 📥 PLAYLIST (INTERNAL DOWNLOAD) LOGIC
+// ---------------------------------------------------------
+async function likeMix(id, element) {
+    const icon = element.querySelector('i');
+    
+    // Prevent spam clicking if already liked
+    if (element.classList.contains('liked')) return; 
+
+    // Optimistic UI Update: Make heart red instantly
+    element.classList.add('liked');
+    icon.style.color = 'var(--danger)'; 
+    const textNode = element.lastChild;
+    const currentCount = parseInt(textNode.textContent) || 0;
+    textNode.textContent = ` ${currentCount + 1}`;
+
+    try {
+        // Ping backend to save the like
+        await fetch(`${API_URL}/mixes/${id}/like`, { method: 'POST' });
+    } catch (e) { 
+        console.error('Failed to like mix', e); 
+    }
+}
+
+async function downloadMix(id, element) {
+    const token = localStorage.getItem("dj_grey_token");
+    
+    // 1. Require Login to use the Playlist feature
+    if (!token) {
+        return Swal.fire({ 
+            icon: 'warning', 
+            title: 'Access Denied', 
+            text: 'Please log in to save mixes to your personal playlist!', 
+            background: 'var(--glass-bg)', 
+            color: 'var(--text-main)',
+            confirmButtonColor: 'var(--primary)'
+        });
+    }
+
+    // 2. Prevent saving the same mix twice
+    if (element.classList.contains('saved')) {
+        return Swal.fire({
+            icon: 'info',
+            title: 'Already Saved',
+            text: 'This mix is already securely stored in your playlist.',
+            background: 'var(--glass-bg)',
+            color: 'var(--text-main)',
+            confirmButtonColor: 'var(--primary)'
+        });
+    }
+
+    // 3. Optimistic UI Update: Make icon green instantly
+    element.classList.add('saved');
+    const icon = element.querySelector('i');
+    icon.style.color = 'var(--success)'; 
+    const textNode = element.lastChild;
+    const currentCount = parseInt(textNode.textContent) || 0;
+    textNode.textContent = ` ${currentCount + 1}`;
+
+    try {
+        // Ping backend to increment download stats / add to user DB
+        await fetch(`${API_URL}/mixes/${id}/download`, { method: 'POST' });
+
+        // 4. Show the beautiful in-platform success popup
+        Swal.fire({
+            icon: 'success',
+            title: 'Added to Vault! 🎧',
+            text: 'This mix has been securely saved to your personal platform playlist. You can listen to it anytime from the "My Playlist" tab.',
+            background: 'var(--glass-bg)',
+            color: 'var(--text-main)',
+            confirmButtonColor: 'var(--primary)',
+            backdrop: `rgba(0,0,0,0.6)` // Adds a dark cinematic blur behind the popup
+        });
+    } catch (e) {
+        console.error('Failed to save to playlist', e);
+    }
+}
 // ---------------------------------------------------------
 // 🍔 MOBILE SIDEBAR TOGGLE LOGIC
 // ---------------------------------------------------------
