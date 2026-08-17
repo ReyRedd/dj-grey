@@ -235,7 +235,7 @@ async function downloadMix(id, element) {
 }
 
 // ---------------------------------------------------------
-// 🚀 GLOBAL BINDINGS
+// 🚀 GLOBAL BINDINGS & HAMBURGER INITIALIZATION
 // ---------------------------------------------------------
 window.switchTab = switchTab;
 window.loadMixes = loadMixes;
@@ -247,4 +247,20 @@ window.downloadMix = downloadMix;
 window.fetchHearthisMixes = fetchHearthisMixes;
 window.loadSpotifyHub = loadSpotifyHub;
 
-document.addEventListener("DOMContentLoaded", loadMixes);
+document.addEventListener("DOMContentLoaded", () => {
+    loadMixes();
+    const menuBtn = document.querySelector('.menu-toggle-btn');
+    const leftNav = document.getElementById("left-nav");
+    if (menuBtn && leftNav) {
+        menuBtn.onclick = (e) => {
+            e.stopPropagation(); 
+            if (window.innerWidth <= 768) leftNav.classList.toggle("open");
+            else leftNav.classList.toggle("collapsed");
+        };
+    }
+    document.addEventListener('click', (e) => {
+        if (window.innerWidth <= 768 && leftNav && leftNav.classList.contains('open')) {
+            if (!leftNav.contains(e.target) && menuBtn && !menuBtn.contains(e.target)) leftNav.classList.remove('open');
+        }
+    });
+});

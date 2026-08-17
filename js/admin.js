@@ -1,24 +1,12 @@
 const API_URL = "https://dj-grey.onrender.com/api";
-const DEFAULT_ARTWORK = "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1";
 const token = localStorage.getItem("dj_grey_token");
 const role = localStorage.getItem("dj_grey_role");
 
 if (!token || (role !== "admin" && role !== "dj")) window.location.href = "/";
 
-const getAuthHeaders = () => ({
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${token}`,
-});
+const getAuthHeaders = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${token}` });
 
-function logout() {
-  localStorage.clear();
-  window.location.href = "/login.html";
-}
-
-const dateDisplay = document.getElementById("date-display");
-if (dateDisplay) {
-    dateDisplay.innerText = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-}
+function logout() { localStorage.clear(); window.location.href = "/login.html"; }
 
 function switchAdminTab(tabId) {
   document.querySelectorAll(".tab-content").forEach((tab) => tab.classList.remove("active"));
@@ -304,7 +292,29 @@ window.deleteUser = deleteUser;
 window.toggleTheme = toggleTheme;
 window.logout = logout;
 
-window.onload = () => {
-  if (role === "dj") switchAdminTab("livestream-control");
-  else switchAdminTab("dashboard-tab");
-};
+document.addEventListener("DOMContentLoaded", () => {
+    const dateDisplay = document.getElementById("date-display");
+    if (dateDisplay) {
+        dateDisplay.innerText = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    }
+
+    const adminMenuBtn = document.getElementById("admin-menu-toggle");
+    const sidebar = document.getElementById("sidebar");
+
+    if (adminMenuBtn && sidebar) {
+        adminMenuBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (window.innerWidth <= 768) sidebar.classList.toggle("open");
+            else sidebar.classList.toggle("collapsed");
+        });
+    }
+
+    document.addEventListener("click", (e) => {
+        if (window.innerWidth <= 768 && sidebar && sidebar.classList.contains("open")) {
+            if (!sidebar.contains(e.target) && !adminMenuBtn.contains(e.target)) sidebar.classList.remove("open");
+        }
+    });
+
+    if (role === "dj") switchAdminTab("livestream-control");
+    else switchAdminTab("dashboard-tab");
+});
