@@ -79,6 +79,15 @@ function switchTab(tab) {
     titleEl.innerText = "❤️ LIKED MIXES";
     const liked = playlist.filter((m) => m.likes_count > 0);
     renderGrid(liked);
+  } else if (tab === "history") {
+    titleEl.innerText = "🕒 WATCH & LISTEN HISTORY";
+    renderGrid(playlist);
+  } else if (tab === "hearthis") {
+    titleEl.innerText = "💿 DJ GREY'S HEARTHIS HUB";
+    fetchHearthisMixes();
+  } else if (tab === "spotify") {
+    titleEl.innerText = "🎧 DJ GREY'S SPOTIFY HUB";
+    loadSpotifyHub(); 
   } else if (tab === "livestream") {
     titleEl.innerText = "🔴 LIVE STREAM & REALTME CHAT";
     loadLivestreamHub();
@@ -88,6 +97,61 @@ function switchTab(tab) {
       const leftNav = document.getElementById("left-nav");
       if(leftNav) leftNav.classList.remove("open");
   }
+}
+
+// ---------------------------------------------------------
+// 💿 EXTERNAL HUBS (HEARTHIS & SPOTIFY)
+// ---------------------------------------------------------
+async function fetchHearthisMixes() {
+    const grid = document.getElementById("mixes-grid");
+    grid.innerHTML = `<p style="font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i> Syncing directly with DJ Grey's Hearthis.at account...</p>`;
+    try {
+        const res = await fetch(`${API_URL}/hearthis/sync/grey-george`); 
+        const data = await res.json();
+        if(data.success && data.mixes.length > 0) {
+            playlist = data.mixes; 
+            renderGrid(playlist);
+        } else {
+            grid.innerHTML = `<p style="color: var(--text-muted);">No public mixes found on Hearthis.at.</p>`;
+        }
+    } catch(e) {
+        console.error(e);
+        grid.innerHTML = `<p style="color: #ff4d4d;">Failed to establish connection to Hearthis.at.</p>`;
+    }
+}
+
+async function loadSpotifyHub() {
+    const grid = document.getElementById("mixes-grid");
+    grid.innerHTML = `<p style="font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i> Syncing live with DJ Grey's Spotify Hub...</p>`;
+    
+    try {
+        const targetSpotifyUrl = "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"; 
+        const customTitle = "All On Me - Spotify Drop";
+        
+        const res = await fetch(`${API_URL}/spotify/sync?url=${encodeURIComponent(targetSpotifyUrl)}&title=${encodeURIComponent(customTitle)}`);
+        const data = await res.json();
+        
+        if (data.success && data.mix) {
+            const mix = data.mix;
+            grid.innerHTML = `
+                <div style="width: 100%; max-width: 900px; margin: 0 auto; text-align: center; animation: fadeIn 0.5s;">
+                    <div style="border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.6); margin-bottom: 25px;">
+                        ${data.embed_html}
+                    </div>
+                    <div class="card" style="padding: 20px; display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin: 0; font-size: 1.2rem;">${mix.title}</h3>
+                        <div class="stats" style="display: flex; gap: 20px; align-items: center;">
+                            <span onclick="likeMix(${mix.id}, this)" title="Like"><i class="fa-solid fa-heart"></i> ${mix.likes_count || 0}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            grid.innerHTML = `<p style="color: var(--text-muted);">Unable to load Spotify Hub right now.</p>`;
+        }
+    } catch (e) {
+        grid.innerHTML = `<p style="color: #ff4d4d;">Failed to establish live connection with Spotify.</p>`;
+    }
 }
 
 // ---------------------------------------------------------
@@ -359,3 +423,40 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 window.onload = loadMixes;
+
+// ---------------------------------------------------------
+// ☀️ / 🌙 THEME TOGGLE LOGIC FOR LIVE SITE
+// ---------------------------------------------------------
+function toggleTheme() {
+    const html = document.documentElement;
+    const icon = document.querySelector("#theme-toggle i");
+    
+    if (html.getAttribute("data-theme") === "light") {
+        html.setAttribute("data-theme", "dark");
+        if (icon) {
+            icon.classList.remove("fa-moon");
+            icon.classList.add("fa-sun");
+        }
+        localStorage.setItem("dj_grey_theme", "dark");
+    } else {
+        html.setAttribute("data-theme", "light");
+        if (icon) {
+            icon.classList.remove("fa-sun");
+            icon.classList.add("fa-moon");
+        }
+        localStorage.setItem("dj_grey_theme", "light");
+    }
+}
+
+// Apply saved theme on page load
+window.addEventListener('DOMContentLoaded', () => {
+    const savedTheme = localStorage.getItem("dj_grey_theme");
+    if (savedTheme === "light") {
+        document.documentElement.setAttribute("data-theme", "light");
+        const icon = document.querySelector("#theme-toggle i");
+        if (icon) {
+            icon.classList.remove("fa-sun");
+            icon.classList.add("fa-moon");
+        }
+    }
+});
