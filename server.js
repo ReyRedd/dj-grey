@@ -17,14 +17,65 @@ app.use('/media', express.static('media'));
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy_key_for_now');
-
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/dj_grey_db',
     ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dj-grey-super-secret-key-2026';
+
+// ---------------------------------------------------------
+// 🛠️ DATABASE INITIALIZATION
+// ---------------------------------------------------------
+pool.query(`
+    CREATE TABLE IF NOT EXISTS mix_submissions (
+        id SERIAL PRIMARY KEY,
+        user_id INT REFERENCES users(id) ON DELETE CASCADE,
+        dj_name VARCHAR(100) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        audio_url TEXT NOT NULL,
+        artwork_url TEXT,
+        spotify_url TEXT,
+        fee_paid NUMERIC(5,2) DEFAULT 0.50,
+        status VARCHAR(20) DEFAULT 'awaiting_payment',
+        stripe_session_id VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS sub_status VARCHAR(20) DEFAULT 'none';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS sub_end_date TIMESTAMP;
+    ALTER TABLE mixes ADD COLUMN IF NOT EXISTS user_id INT REFERENCES users(id) ON DELETE CASCADE;
+    ALTER TABLE mixes ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+
+    CREATE TABLE IF NOT EXISTS livestreams (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) DEFAULT 'DJ GREY LIVE SESSION',
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS live_chat (
+        id SERIAL PRIMARY KEY, user_id INT REFERENCES users(id) ON DELETE CASCADE,
+        username VARCHAR(100) NOT NULL, message TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS comments (
+        id SERIAL PRIMARY KEY,
+        mix_id INT REFERENCES mixes(id) ON DELETE CASCADE,
+        user_id INT REFERENCES users(id) ON DELETE CASCADE,
+        parent_id INT REFERENCES comments(id) ON DELETE CASCADE,
+        content TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS comment_likes (
+        id SERIAL PRIMARY KEY,
+        comment_id INT REFERENCES comments(id) ON DELETE CASCADE,
+        user_id INT REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(comment_id, user_id)
+    );
+`);
 
 // ---------------------------------------------------------
 // 🔒 AUTHENTICATION MIDDLEWARE
@@ -86,11 +137,11 @@ app.post('/api/auth/register', async (req, res) => {
         const verifyLink = `https://dj-grey.onrender.com/api/auth/verify/${verificationToken}`;
 
         const { error } = await resend.emails.send({
-            from: 'DJ Grey Vault <vip@djgrey.wezer.me>',
+            from: 'DJ Grey Exclusive <vip@djgrey.wezer.me>',
             to: email, 
             subject: 'Verify your Fan Account - DJ Grey',
             html: `<div style="font-family: sans-serif; text-align: center; padding: 20px; background: #0a0a0c; color: #fff;">
-                    <h2 style="color: #00a8ff;">Welcome to the VIP Vault, ${username}!</h2>
+                    <h2 style="color: #00a8ff;">Welcome to Greatness, ${username}! 🎧</h2>
                     <p style="color: #a0a0a0;">Click the button below to verify your account and gain access to exclusive mixes.</p>
                     <a href="${verifyLink}" style="display: inline-block; padding: 12px 24px; background: #00a8ff; color: #fff; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 20px;">Verify My Account</a>
                    </div>`
@@ -107,18 +158,7 @@ app.get('/api/auth/verify/:token', async (req, res) => {
     try {
         const decoded = jwt.verify(req.params.token, JWT_SECRET);
         await pool.query("UPDATE users SET status = 'approved' WHERE email = $1", [decoded.email]);
-
-        res.send(`
-            <body style="background-color: #0a0a0c; color: #ffffff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
-                <div style="text-align: center; padding: 40px; background: #1a1a20; border-radius: 12px; border-top: 4px solid #00a8ff; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-                    <h1 style="color: #00a8ff; margin-top: 0;">Account Verified! 🎉</h1>
-                    <p style="color: #a0a0a0; font-size: 1.1rem;">Welcome to the VIP Vault. Your email has been successfully verified.</p>
-                    <p style="margin-top: 30px;">
-                        <a href="https://djgrey.wezer.me/login.html" style="background: #00a8ff; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Log In Now</a>
-                    </p>
-                </div>
-            </body>
-        `);
+        res.send(`<body style="background-color: #0a0a0c; color: #ffffff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;"><div style="text-align: center; padding: 40px; background: #1a1a20; border-radius: 12px; border-top: 4px solid #00a8ff;"><h1 style="color: #00a8ff; margin-top: 0;">Account Verified! 🎉</h1><p><a href="https://djgrey.wezer.me/login.html" style="background: #00a8ff; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration:none;">Log In Now</a></p></div></body>`);
     } catch (err) {
         res.status(400).send(`<h1 style="color:red;text-align:center;margin-top:20%">Verification Failed</h1>`);
     }
@@ -142,7 +182,7 @@ app.post('/api/auth/login', async (req, res) => {
 // 🌍 PUBLIC MUSIC ROUTES & LIKES
 // ---------------------------------------------------------
 app.get('/api/mixes', async (req, res) => {
-    try { res.json((await pool.query('SELECT * FROM mixes ORDER BY id ASC')).rows); } catch (err) { res.status(500).json({ error: err.message }); }
+    try { res.json((await pool.query('SELECT * FROM mixes WHERE is_active = true ORDER BY id ASC')).rows); } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/mixes/:id/play', async (req, res) => {
@@ -191,43 +231,61 @@ app.get('/api/users/me/downloads', authenticateUser, async (req, res) => {
 });
 
 // ---------------------------------------------------------
+// 💬 COMMENT ROUTES (RESTORED)
+// ---------------------------------------------------------
+app.get('/api/mixes/:mixId/comments', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT c.id, c.mix_id, c.parent_id, c.content, c.created_at, u.username, COUNT(cl.id)::int AS likes_count
+            FROM comments c JOIN users u ON c.user_id = u.id
+            LEFT JOIN comment_likes cl ON c.id = cl.comment_id
+            WHERE c.mix_id = $1 GROUP BY c.id, u.username ORDER BY c.created_at ASC
+        `, [req.params.mixId]);
+        res.json(result.rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/mixes/:mixId/comments', authenticateUser, async (req, res) => {
+    if (!req.body.content) return res.status(400).json({ error: 'Comment empty.' });
+    try {
+        const result = await pool.query(`INSERT INTO comments (mix_id, user_id, parent_id, content) VALUES ($1, $2, $3, $4) RETURNING id, mix_id, parent_id, content, created_at`, [req.params.mixId, req.user.id, req.body.parent_id || null, req.body.content.trim()]);
+        res.status(201).json({ ...result.rows[0], username: req.user.username, likes_count: 0 });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete('/api/comments/:id', authenticateUser, async (req, res) => {
+    try {
+        const comment = await pool.query('SELECT user_id FROM comments WHERE id = $1', [req.params.id]);
+        if (comment.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+        if (comment.rows[0].user_id !== req.user.id && req.user.role !== 'admin') return res.status(403).json({ error: 'Unauthorized' });
+        await pool.query('DELETE FROM comments WHERE id = $1', [req.params.id]);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+
+// ---------------------------------------------------------
 // 💸 FLUTTERWAVE INTEGRATION (M-PESA / CARDS)
 // ---------------------------------------------------------
-pool.query(`
-    CREATE TABLE IF NOT EXISTS mix_submissions (
-        id SERIAL PRIMARY KEY,
-        user_id INT REFERENCES users(id) ON DELETE CASCADE,
-        dj_name VARCHAR(100) NOT NULL,
-        title VARCHAR(255) NOT NULL,
-        audio_url TEXT NOT NULL,
-        artwork_url TEXT,
-        spotify_url TEXT,
-        fee_paid NUMERIC(5,2) DEFAULT 0.50,
-        status VARCHAR(20) DEFAULT 'awaiting_payment',
-        stripe_session_id VARCHAR(255),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-`);
-
-const FLW_SECRET_KEY = process.env.FLW_SECRET_KEY || 'dummy_flw_secret';
-
 app.post('/api/submissions/flutterwave/create', authenticateUser, async (req, res) => {
     const { title, audio_url, artwork_url, spotify_url } = req.body;
     if (!title || (!audio_url && !spotify_url)) return res.status(400).json({ error: "Details required." });
 
-    // Generate a unique transaction reference
+    // Ensure no invisible spaces in the key
+    const secretKey = (process.env.FLW_SECRET_KEY || '').trim();
+    if (!secretKey || secretKey === 'dummy_flw_secret') {
+        return res.status(400).json({ error: "FLW_SECRET_KEY is missing or unconfigured in Render." });
+    }
+
     const tx_ref = `djgrey-${Date.now()}-${req.user.id}`;
 
     try {
         const payload = {
             tx_ref: tx_ref,
             amount: "0.50",
-            currency: "USD", // Flutterwave will automatically convert this to local currency (KES) for M-Pesa users
+            currency: "USD",
             redirect_url: `https://dj-grey.onrender.com/api/submissions/flutterwave/callback`,
-            meta: {
-                user_id: req.user.id,
-                title: title
-            },
+            meta: { user_id: req.user.id, title: title },
             customer: {
                 email: req.user.email || "dj@djgrey.com",
                 name: req.user.username
@@ -242,7 +300,7 @@ app.post('/api/submissions/flutterwave/create', authenticateUser, async (req, re
         const response = await fetch("https://api.flutterwave.com/v3/payments", {
             method: "POST",
             headers: {
-                Authorization: `Bearer ${FLW_SECRET_KEY}`,
+                Authorization: `Bearer ${secretKey}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify(payload)
@@ -250,7 +308,7 @@ app.post('/api/submissions/flutterwave/create', authenticateUser, async (req, re
 
         const data = await response.json();
 
-        if (data.status === "success") {
+        if (data.status === "success" && data.data && data.data.link) {
             await pool.query(
                 `INSERT INTO mix_submissions (user_id, dj_name, title, audio_url, artwork_url, spotify_url, fee_paid, status, stripe_session_id)
                  VALUES ($1, $2, $3, $4, $5, $6, 0.50, 'awaiting_payment', $7)`,
@@ -258,52 +316,48 @@ app.post('/api/submissions/flutterwave/create', authenticateUser, async (req, re
             );
             res.json({ url: data.data.link });
         } else {
-            res.status(400).json({ error: "Failed to generate payment link. Check FLW API Keys." });
+            console.error("Flutterwave API Error:", data);
+            res.status(400).json({ error: `Flutterwave Error: ${data.message || 'Check Secret Key'}` });
         }
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Payment gateway error." });
+        console.error("FLW Gateway Error:", err);
+        res.status(500).json({ error: "Server failed to reach Flutterwave API." });
     }
 });
 
 app.get('/api/submissions/flutterwave/callback', async (req, res) => {
     const { status, tx_ref } = req.query;
-    
     if (status === 'successful') {
         try {
             await pool.query("UPDATE mix_submissions SET status = 'pending' WHERE stripe_session_id = $1", [tx_ref]);
             
-            // 👑 UPGRADE USER TO 'DJ' ROLE UPON SUCCESSFUL PAYMENT
-            await pool.query(`
-                UPDATE users SET role = 'dj' 
-                WHERE id = (SELECT user_id FROM mix_submissions WHERE stripe_session_id = $1)
-            `, [tx_ref]);
+            // 👑 UPGRADE USER TO 'DJ', GRANT 30-DAY ACTIVE SUBSCRIPTION
+            const subEnd = new Date();
+            subEnd.setDate(subEnd.getDate() + 30);
+            
+            const userRes = await pool.query(`
+                UPDATE users SET role = 'dj', sub_status = 'active', sub_end_date = $1 
+                WHERE id = (SELECT user_id FROM mix_submissions WHERE stripe_session_id = $2)
+                RETURNING email, username
+            `, [subEnd, tx_ref]);
+
+            if(userRes.rows.length > 0) {
+                await resend.emails.send({
+                    from: 'DJ Grey Vault <vip@djgrey.wezer.me>',
+                    to: userRes.rows[0].email,
+                    subject: '🎉 Subscription Activated - Welcome DJ!',
+                    html: `<h2 style="color:#00a8ff">Payment Received</h2><p>Your 30-day subscription is active. Your mix is in the review queue.</p>`
+                });
+            }
 
             res.redirect('https://djgrey.wezer.me/?upload=success');
-        } catch (err) {
-            res.redirect('https://djgrey.wezer.me/?upload=failed');
-        }
-    } else {
-        res.redirect('https://djgrey.wezer.me/?upload=failed');
-    }
+        } catch (err) { res.redirect('https://djgrey.wezer.me/?upload=failed'); }
+    } else { res.redirect('https://djgrey.wezer.me/?upload=failed'); }
 });
 
 // ---------------------------------------------------------
 // 🔴 FREE WEBRTC BROWSER LIVESTREAM CENTER
 // ---------------------------------------------------------
-pool.query(`
-    CREATE TABLE IF NOT EXISTS livestreams (
-        id SERIAL PRIMARY KEY,
-        title VARCHAR(255) DEFAULT 'DJ GREY LIVE SESSION',
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE TABLE IF NOT EXISTS live_chat (
-        id SERIAL PRIMARY KEY, user_id INT REFERENCES users(id) ON DELETE CASCADE,
-        username VARCHAR(100) NOT NULL, message TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-`);
-
 app.post('/api/admin/livestream', authenticateDJOrAdmin, async (req, res) => {
     const { title, is_active } = req.body;
     try {
@@ -358,7 +412,9 @@ io.on("connection", (socket) => {
     });
 });
 
+// ---------------------------------------------------------
 // 🛡️ ADMIN GENERAL ROUTES
+// ---------------------------------------------------------
 app.post('/api/mixes', authenticateAdmin, async (req, res) => {
     let { title, audio_url, artwork_url } = req.body;
     audio_url = audio_url.replace('dl=0', 'raw=1');
@@ -385,8 +441,9 @@ app.get('/api/admin/submissions', authenticateAdmin, async (req, res) => {
 app.post('/api/admin/submissions/:id/approve', authenticateAdmin, async (req, res) => {
     try {
         const sub = (await pool.query("SELECT * FROM mix_submissions WHERE id = $1", [req.params.id])).rows[0];
-        await pool.query("INSERT INTO mixes (title, audio_url, artwork_url, likes_count, downloads_count) VALUES ($1, $2, $3, 0, 0)", [`${sub.title} (by DJ ${sub.dj_name})`, sub.audio_url || sub.spotify_url, sub.artwork_url || ""]);
         await pool.query("UPDATE mix_submissions SET status = 'approved' WHERE id = $1", [req.params.id]);
+        
+        await pool.query("INSERT INTO mixes (title, audio_url, artwork_url, likes_count, downloads_count, user_id, is_active) VALUES ($1, $2, $3, 0, 0, $4, true)", [`${sub.title} (by DJ ${sub.dj_name})`, sub.audio_url || sub.spotify_url, sub.artwork_url || "", sub.user_id]);
         res.json({ success: true, message: "Mix published!" });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -401,7 +458,6 @@ app.get('/api/admin/analytics', authenticateAdmin, async (req, res) => {
             FROM mixes
         `);
         
-        // 💬 Query total count from comments table
         const commentsRes = await pool.query('SELECT COUNT(*) as count FROM comments');
         
         res.json({
@@ -416,7 +472,9 @@ app.get('/api/admin/analytics', authenticateAdmin, async (req, res) => {
     }
 });
 
+// ---------------------------------------------------------
 // 🎧 HEARTHIS & SPOTIFY ROUTES
+// ---------------------------------------------------------
 app.get("/api/hearthis/sync/:username", async (req, res) => {
   try {
     const response = await fetch(`https://hearthis.at/${req.params.username || "grey-george"}/podcast/`, { headers: { "User-Agent": "Mozilla/5.0" } });
@@ -448,6 +506,47 @@ app.get("/api/spotify/sync", async (req, res) => {
     let spotifyMix = dbCheck.rows.length === 0 ? (await pool.query("INSERT INTO mixes (title, audio_url, artwork_url, likes_count, downloads_count) VALUES ($1, $2, $3, 0, 0) RETURNING *", [req.query.title || "DJ Grey - Spotify Drop", spotifyUrl, ""])).rows[0] : dbCheck.rows[0];
     res.json({ success: true, mix: spotifyMix, embed_html });
   } catch (err) { res.status(500).json({ error: "Spotify sync error" }); }
+});
+
+// ---------------------------------------------------------
+// 🤖 SUBSCRIPTION ENGINE (ADMIN TRIGGERED)
+// ---------------------------------------------------------
+app.get('/api/admin/subscriptions', authenticateAdmin, async (req, res) => {
+    try {
+        const result = await pool.query("SELECT id, username, email, sub_status, sub_end_date FROM users WHERE sub_status != 'none' ORDER BY sub_end_date ASC");
+        res.json(result.rows);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/admin/subscriptions/engine', authenticateAdmin, async (req, res) => {
+    try {
+        const expiredUsers = await pool.query("UPDATE users SET sub_status = 'expired' WHERE sub_end_date < NOW() AND sub_status = 'active' RETURNING id, email, username");
+        for (let user of expiredUsers.rows) {
+            await pool.query("UPDATE mixes SET is_active = false WHERE user_id = $1", [user.id]);
+            await resend.emails.send({
+                from: 'DJ Grey Vault <vip@djgrey.wezer.me>',
+                to: user.email,
+                subject: '🚨 Subscription Expired',
+                html: `<h2>Your subscription has expired.</h2><p>Your mixes have been temporarily hidden. Please renew your $0.50 fee to reactivate them.</p>`
+            });
+        }
+
+        const expiringUsers = await pool.query("UPDATE users SET sub_status = 'expiring' WHERE sub_end_date BETWEEN NOW() AND NOW() + INTERVAL '3 days' AND sub_status = 'active' RETURNING email, username");
+        for (let user of expiringUsers.rows) {
+            await resend.emails.send({
+                from: 'DJ Grey Vault <vip@djgrey.wezer.me>',
+                to: user.email,
+                subject: '⚠️ Subscription Expiring Soon',
+                html: `<h2>Expiring in 3 Days</h2><p>Hi ${user.username}, renew soon to keep your mixes live on DJ Grey's platform.</p>`
+            });
+        }
+
+        res.json({ 
+            success: true, 
+            expired_processed: expiredUsers.rows.length, 
+            expiring_processed: expiringUsers.rows.length 
+        });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 const PORT = process.env.PORT || 3000;
