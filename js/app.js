@@ -380,6 +380,43 @@ function closeUploadModal() {
     }
 }
 
+// 🔴 Check for Active Livestream and Show TikTok Banner
+async function checkLiveStatusBanner() {
+    try {
+        const res = await fetch(`${API_URL}/livestream/active`);
+        const data = await res.json();
+        
+        const existingBanner = document.getElementById("live-alert-banner");
+        if (existingBanner) existingBanner.remove();
+
+        if (data.active && data.stream) {
+            const container = document.querySelector(".main-content .container");
+            if (container) {
+                const banner = document.createElement("div");
+                banner.id = "live-alert-banner";
+                banner.className = "live-alert-banner";
+                banner.onclick = () => switchTab('livestream');
+                banner.innerHTML = `
+                    <div>
+                        <span class="live-dot-pulse"></span>
+                        <strong>DJ GREY IS LIVE NOW!</strong> - ${data.stream.title}
+                    </div>
+                    <span style="font-weight: bold; background: rgba(0,0,0,0.3); padding: 5px 12px; border-radius: 20px;">
+                        WATCH STREAM <i class="fa-solid fa-chevron-right"></i>
+                    </span>
+                `;
+                container.prepend(banner);
+            }
+        }
+    } catch (e) {}
+}
+
+// Call live status check on load
+window.addEventListener('DOMContentLoaded', () => {
+    checkLiveStatusBanner();
+    setInterval(checkLiveStatusBanner, 10000); // Poll every 10 seconds
+});
+
 async function submitMixToGateway(e) {
     e.preventDefault();
     const currentToken = localStorage.getItem("dj_grey_token");

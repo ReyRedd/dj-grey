@@ -66,19 +66,24 @@
           </div>
         </div>
 
-        <div style="display: flex; gap: 20px; margin-bottom: 30px; flex-wrap: wrap;">
-            <div class="table-container" style="flex: 2; min-width: 400px;">
-                <h3 style="margin-top: 0;">Live Mix Catalog</h3>
-                <table>
-                    <thead><tr><th>Mix</th><th>Likes</th><th>Downloads</th><th>Status</th><th>Action</th></tr></thead>
-                    <tbody id="admin-table-body"><tr><td colspan="5">Loading data...</td></tr></tbody>
-                </table>
+        <!-- 📈 DEDICATED FULL-WIDTH LINE GRAPH BENTO CARD -->
+        <div class="bento-card" style="margin-bottom: 30px; padding: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0;"><i class="fa-solid fa-chart-line" style="color: var(--primary);"></i> Platform Engagement Analytics</h3>
+                <span style="font-size: 0.85rem; color: var(--text-muted);">Real-time Traffic Metrics</span>
             </div>
-            
-            <div class="table-container" style="flex: 1; min-width: 300px;">
-                <h3 style="margin-top: 0;">Engagement Chart</h3>
+            <div style="height: 300px; width: 100%;">
                 <canvas id="analyticsChart"></canvas>
             </div>
+        </div>
+
+        <!-- LIVE CATALOG TABLE -->
+        <div class="table-container">
+            <h3 style="margin-top: 0; margin-bottom: 20px;">Live Catalog</h3>
+            <table>
+                <thead><tr><th>Mix Title</th><th>Likes</th><th>Downloads</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody id="admin-table-body"><tr><td colspan="5">Loading data...</td></tr></tbody>
+            </table>
         </div>
       </div>
 
@@ -104,14 +109,14 @@
         </div>
       </div>
 
-      <!-- TAB 3: FAN MANAGEMENT -->
+      <!-- TAB 3: FAN NETWORK (UPGRADED BENTO CARD GRID) -->
       <div id="users-tab" class="tab-content">
-        <div class="table-container">
-          <h3 style="margin-top: 0; margin-bottom: 25px">Fan Network</h3>
-          <table>
-            <thead><tr><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody id="users-table-body"><tr><td colspan="5">Loading users...</td></tr></tbody>
-          </table>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+            <h3 style="margin: 0;"><i class="fa-solid fa-users" style="color: var(--primary);"></i> Registered Fan Network</h3>
+            <span id="user-count-badge" class="sub-status-active">0 Active Members</span>
+        </div>
+        <div class="bento-grid" id="users-bento-grid">
+            <p style="color: var(--text-muted);">Loading fan profiles...</p>
         </div>
       </div>
 

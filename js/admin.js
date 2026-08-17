@@ -35,7 +35,7 @@ function switchAdminTab(tabId) {
 
 let analyticsChart;
 
-// 📊 Load Dashboard & Neon Line Graph
+// 📊 Full-Width Line Graph
 async function loadAdminData() {
     try {
         const analyticsRes = await fetch(`${API_URL}/admin/analytics`, { headers: getAuthHeaders() });
@@ -49,28 +49,27 @@ async function loadAdminData() {
         const ctx = document.getElementById("analyticsChart").getContext("2d");
         if (analyticsChart) analyticsChart.destroy();
         
-        // ✨ Neon Line Graph Implementation
         analyticsChart = new Chart(ctx, {
             type: "line",
             data: {
-                labels: ["Plays", "Likes", "Downloads", "Comments"],
+                labels: ["Global Plays", "Fan Likes", "Downloads", "Comments"],
                 datasets: [{
-                    label: "Platform Engagement",
+                    label: "Activity Level",
                     data: [analytics.totalPlays, analytics.totalLikes, analytics.totalDownloads, analytics.totalComments],
                     borderColor: "#00a8ff",
-                    backgroundColor: "rgba(0, 168, 255, 0.15)",
+                    backgroundColor: "rgba(0, 168, 255, 0.12)",
                     borderWidth: 3,
-                    tension: 0.4, // Smooth curved lines
+                    tension: 0.4,
                     fill: true,
                     pointBackgroundColor: "#bd00ff",
                     pointBorderColor: "#fff",
                     pointBorderWidth: 2,
-                    pointRadius: 6,
-                    pointHoverRadius: 8
+                    pointRadius: 6
                 }]
             },
             options: { 
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
                     y: { beginAtZero: true, grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#a0a0a0" } },
@@ -88,7 +87,7 @@ async function loadAdminData() {
                 <td><span style="color:#ff4d4d;"><i class="fa-solid fa-heart"></i> ${mix.likes_count}</span></td>
                 <td><span style="color:var(--primary);"><i class="fa-solid fa-download"></i> ${mix.downloads_count}</span></td>
                 <td><span class="sub-status-active">Live</span></td>
-                <td><button class="btn-action" style="background:var(--danger); padding: 5px 10px;" onclick="deleteMix(${mix.id})"><i class="fa-solid fa-trash"></i></button></td>
+                <td><button class="btn-action" style="background:var(--danger); padding: 5px 10px;" onclick="deleteMix(${mix.id})"><i class="fa-solid fa-trash"></i> Delete</button></td>
             </tr>
         `).join("");
     } catch (e) { console.error(e); }
@@ -143,27 +142,41 @@ async function runSubscriptionSystemCheck() {
     btn.innerHTML = '<i class="fa-solid fa-radar"></i> Run Subscription & Email Engine';
 }
 
-// 👥 Fan Network Logic (RESTORED)
+// 👥 Bento Grid Fan Network Loader
 async function loadUsers() {
     try {
         const res = await fetch(`${API_URL}/admin/users`, { headers: getAuthHeaders() });
         const users = await res.json();
-        const tbody = document.getElementById("users-table-body");
+        const grid = document.getElementById("users-bento-grid");
         
-        tbody.innerHTML = users.map(u => `
-            <tr>
-                <td><strong>${u.username}</strong></td>
-                <td>${u.email}</td>
-                <td><span style="text-transform: capitalize;">${u.role}</span></td>
-                <td><span class="sub-status-${u.status === 'approved' ? 'active' : 'expired'}">${u.status}</span></td>
-                <td>
-                    ${u.status === 'pending' ? `<button class="btn-action" style="background:var(--success); color:#000; padding:5px 10px; margin-right:5px;" onclick="approveUser(${u.id})"><i class="fa-solid fa-check"></i></button>` : ''}
-                    <button class="btn-action" style="background:var(--danger); padding:5px 10px;" onclick="deleteUser(${u.id}, '${u.username}')"><i class="fa-solid fa-trash"></i></button>
-                </td>
-            </tr>
-        `).join("");
+        document.getElementById("user-count-badge").innerText = `${users.length} Registered Fans`;
+
+        grid.innerHTML = users.map(u => {
+            const initial = u.username ? u.username.charAt(0).toUpperCase() : 'F';
+            return `
+            <div class="fan-card">
+                <div>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div class="fan-avatar">${initial}</div>
+                        <span class="sub-status-${u.status === 'approved' ? 'active' : 'expired'}">${u.status}</span>
+                    </div>
+                    <div class="fan-info">
+                        <h4>${u.username}</h4>
+                        <p><i class="fa-solid fa-envelope"></i> ${u.email}</p>
+                        <span style="font-size:0.8rem; background:rgba(255,255,255,0.05); padding:4px 8px; border-radius:6px; color:var(--primary);">
+                            Role: ${u.role.toUpperCase()}
+                        </span>
+                    </div>
+                </div>
+                <div style="margin-top:15px; border-top:1px solid var(--border-color); padding-top:15px; display:flex; gap:10px;">
+                    ${u.status === 'pending' ? `<button class="btn-action" style="flex:1; background:var(--success); color:#000;" onclick="approveUser(${u.id})">Approve</button>` : ''}
+                    <button class="btn-action" style="flex:1; background:var(--danger);" onclick="deleteUser(${u.id}, '${u.username}')">Remove</button>
+                </div>
+            </div>
+        `}).join("");
     } catch(e) { console.error(e); }
 }
+
 
 async function approveUser(id) {
     await fetch(`${API_URL}/admin/users/${id}/approve`, { method: "PUT", headers: getAuthHeaders() });
