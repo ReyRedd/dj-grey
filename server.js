@@ -390,86 +390,57 @@ app.delete("/api/comments/:id", authenticateUser, async (req, res) => {
 // ---------------------------------------------------------
 // 💸 FLUTTERWAVE INTEGRATION (M-PESA / CARDS)
 // ---------------------------------------------------------
-app.post(
-  "/api/submissions/flutterwave/create",
-  authenticateUser,
-  async (req, res) => {
-    const { title, audio_url, artwork_url, spotify_url } = req.body;
-    if (!title || (!audio_url && !spotify_url))
-      return res.status(400).json({ error: "Details required." });
-
-    // Ensure no invisible spaces in the key
-    const secretKey = (process.env.FLW_SECRET_KEY || "").trim();
-    if (!secretKey || secretKey === "dummy_flw_secret") {
-      return res
-        .status(400)
-        .json({
-          error: "FLW_SECRET_KEY is missing or unconfigured in Render.",
-        });
-    }
-
-    const tx_ref = `djgrey-${Date.now()}-${req.user.id}`;
-
+app.post('/api/submissions/flutterwave/create', async (req, res) => {
     try {
-      const payload = {
-        tx_ref: tx_ref,
-        amount: "0.50",
-        currency: "USD",
-        redirect_url: `https://dj-grey.onrender.com/api/submissions/flutterwave/callback`,
-        meta: { user_id: req.user.id, title: title },
-        customer: {
-          email: req.user.email || "dj@djgrey.com",
-          name: req.user.username,
-        },
-        customizations: {
-          title: "DJ Grey Premium Upload",
-          description: `Submission for: ${title}`,
-          logo: "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1",
-        },
-      };
+        const { title, audio_url, spotify_url, artwork_url } = req.body;
+        const userId = req.user.id;
+        const txRef = `DJGREY_SUB_${Date.now()}_${userId}`;
 
-      const response = await fetch("https://api.flutterwave.com/v3/payments", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${secretKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (data.status === "success" && data.data && data.data.link) {
+        // Save submission as awaiting payment
         await pool.query(
-          `INSERT INTO mix_submissions (user_id, dj_name, title, audio_url, artwork_url, spotify_url, fee_paid, status, stripe_session_id)
-                 VALUES ($1, $2, $3, $4, $5, $6, 0.50, 'awaiting_payment', $7)`,
-          [
-            req.user.id,
-            req.user.username,
-            title,
-            audio_url || "",
-            artwork_url || "",
-            spotify_url || "",
-            tx_ref,
-          ],
+            `INSERT INTO mix_submissions (user_id, title, audio_url, spotify_url, artwork_url, stripe_session_id, status) 
+             VALUES ($1, $2, $3, $4, $5, $6, 'awaiting_payment')`,
+            [userId, title, audio_url, spotify_url, artwork_url, txRef]
         );
-        res.json({ url: data.data.link });
-      } else {
-        console.error("Flutterwave API Error:", data);
-        res
-          .status(400)
-          .json({
-            error: `Flutterwave Error: ${data.message || "Check Secret Key"}`,
-          });
-      }
+
+        // Initialize Flutterwave Checkout session with KES currency
+        const flwResponse = await fetch('https://api.flutterwave.com/v3/payments', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                tx_ref: txRef,
+                amount: 65, // ~ $0.50 USD in KES
+                currency: 'KES', // 🚨 REQUIRED for M-Pesa to display
+                payment_options: 'card, mpesa', // 🚨 Enables M-Pesa alongside Card
+                redirect_url: 'https://dj-grey.onrender.com/api/submissions/flutterwave/callback',
+                customer: {
+                    email: req.user.email,
+                    name: req.user.username || 'DJ Fan'
+                },
+                customizations: {
+                    title: 'DJ Grey Platform VIP',
+                    description: 'Mix Review & 30-Day VIP Subscription Access',
+                    logo: 'https://djgrey.wezer.me/assets/logo.png'
+                }
+            })
+        });
+
+        const data = await flwResponse.json();
+
+        if (data.status === 'success' && data.data.link) {
+            res.json({ url: data.data.link });
+        } else {
+            console.error("Flutterwave error response:", data);
+            res.status(400).json({ error: data.message || 'Failed to generate checkout link' });
+        }
     } catch (err) {
-      console.error("FLW Gateway Error:", err);
-      res
-        .status(500)
-        .json({ error: "Server failed to reach Flutterwave API." });
+        console.error("Payment initialization failed:", err);
+        res.status(500).json({ error: 'Server error initializing checkout' });
     }
-  },
-);
+});
 
 app.get("/api/submissions/flutterwave/callback", async (req, res) => {
   const { status, tx_ref } = req.query;
