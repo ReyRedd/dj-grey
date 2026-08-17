@@ -1,6 +1,7 @@
 /* ---------------------------------------------------------
    🎨 CORE VARIABLES & Z-INDEX TRACKING
 --------------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
 :root {
   --primary: #00a8ff;
   --primary-glow: rgba(0, 168, 255, 0.4);
