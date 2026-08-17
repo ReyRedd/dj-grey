@@ -387,13 +387,16 @@ app.delete("/api/comments/:id", authenticateUser, async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------
-// 💸 FLUTTERWAVE INTEGRATION (M-PESA / CARDS)
-// ---------------------------------------------------------
-app.post('/api/submissions/flutterwave/create', async (req, res) => {
+// 🚨 Added authenticateToken middleware to parse user identity
+app.post('/api/submissions/flutterwave/create', authenticateToken, async (req, res) => {
     try {
         const { title, audio_url, spotify_url, artwork_url } = req.body;
-        const userId = req.user.id;
+        
+        // Safely extract user properties populated by authenticateToken
+        const userId = req.user.id || req.user.userId;
+        const userEmail = req.user.email;
+        const userName = req.user.username || 'DJ Fan';
+
         const txRef = `DJGREY_SUB_${Date.now()}_${userId}`;
 
         // Save submission as awaiting payment
@@ -403,7 +406,7 @@ app.post('/api/submissions/flutterwave/create', async (req, res) => {
             [userId, title, audio_url, spotify_url, artwork_url, txRef]
         );
 
-        // Initialize Flutterwave Checkout session with KES currency
+        // Initialize Flutterwave Checkout session
         const flwResponse = await fetch('https://api.flutterwave.com/v3/payments', {
             method: 'POST',
             headers: {
@@ -413,12 +416,12 @@ app.post('/api/submissions/flutterwave/create', async (req, res) => {
             body: JSON.stringify({
                 tx_ref: txRef,
                 amount: 65, // ~ $0.50 USD in KES
-                currency: 'KES', // 🚨 REQUIRED for M-Pesa to display
-                payment_options: 'card, mpesa', // 🚨 Enables M-Pesa alongside Card
+                currency: 'KES', // Enables M-Pesa
+                payment_options: 'card, mpesa',
                 redirect_url: 'https://dj-grey.onrender.com/api/submissions/flutterwave/callback',
                 customer: {
-                    email: req.user.email,
-                    name: req.user.username || 'DJ Fan'
+                    email: userEmail,
+                    name: userName
                 },
                 customizations: {
                     title: 'DJ Grey Platform VIP',
