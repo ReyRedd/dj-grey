@@ -1,6 +1,9 @@
+const API_URL = "https://dj-grey.onrender.com/api";
+const DEFAULT_ARTWORK = "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1";
+let playlist = [];
 let currentTab = "home";
 
-// Premium Success Toast Timer
+// Premium Success Toast Timer Configuration
 const Toast = Swal.mixin({
   toast: true,
   position: 'top-end',
@@ -12,12 +15,11 @@ const Toast = Swal.mixin({
 });
 
 // ---------------------------------------------------------
-// 🔄 FETCH MIXES WITH AUTH (TO REMEMBER SAVES ON REFRESH)
+// 🔄 FETCH MIXES WITH AUTH (PERSISTENT SAVES & LIKES)
 // ---------------------------------------------------------
 async function loadMixes() {
   try {
     const token = localStorage.getItem("dj_grey_token");
-    // Send token if logged in so backend can flag saved/liked mixes
     const headers = token ? { "Authorization": `Bearer ${token}` } : {};
     
     const res = await fetch(`${API_URL}/mixes`, { headers });
@@ -29,10 +31,11 @@ async function loadMixes() {
 }
 
 // ---------------------------------------------------------
-// 🎨 RENDER GRID (WITH PERSISTENT COLORS)
+// 🎨 RENDER GRID (WITH PERSISTENT BUTTON STYLES)
 // ---------------------------------------------------------
 function renderGrid(mixes) {
   const grid = document.getElementById("mixes-grid");
+  if (!grid) return;
   grid.innerHTML = "";
 
   if (mixes.length === 0) {
@@ -41,9 +44,8 @@ function renderGrid(mixes) {
   }
 
   mixes.forEach((mix, index) => {
-    const art = DEFAULT_ARTWORK;
+    const art = mix.artwork_url || DEFAULT_ARTWORK;
     
-    // Check backend flags to keep buttons active after refresh
     const likeClass = mix.is_liked ? "liked" : "";
     const likeStyle = mix.is_liked ? "color: var(--danger);" : "";
     const saveClass = mix.is_saved ? "saved" : "";
@@ -78,6 +80,9 @@ function renderGrid(mixes) {
   });
 }
 
+// ---------------------------------------------------------
+// 🔀 NAVIGATION & TAB SWITCHER
+// ---------------------------------------------------------
 function switchTab(tab) {
   currentTab = tab;
   const titleEl = document.getElementById("page-section-title");
@@ -90,28 +95,28 @@ function switchTab(tab) {
   });
 
   if (tab === "home") {
-    titleEl.innerText = "LATEST DROPS";
+    if (titleEl) titleEl.innerText = "LATEST DROPS";
     renderGrid(playlist);
   } else if (tab === "trending") {
-    titleEl.innerText = "🔥 TRENDING DROPS";
-    const sorted = [...playlist].sort((a, b) => (b.likes_count + b.downloads_count) - (a.likes_count + a.downloads_count));
+    if (titleEl) titleEl.innerText = "🔥 TRENDING DROPS";
+    const sorted = [...playlist].sort((a, b) => ((b.likes_count || 0) + (b.downloads_count || 0)) - ((a.likes_count || 0) + (a.downloads_count || 0)));
     renderGrid(sorted);
   } else if (tab === "liked") {
-    titleEl.innerText = "❤️ LIKED MIXES";
-    const liked = playlist.filter((m) => m.likes_count > 0);
+    if (titleEl) titleEl.innerText = "❤️ LIKED MIXES";
+    const liked = playlist.filter((m) => m.is_liked || m.likes_count > 0);
     renderGrid(liked);
   } else if (tab === "history") {
-    titleEl.innerText = "🕒 WATCH & LISTEN HISTORY";
+    if (titleEl) titleEl.innerText = "🕒 WATCH & LISTEN HISTORY";
     renderGrid(playlist);
   } else if (tab === "hearthis") {
-    titleEl.innerText = "💿 DJ GREY'S HEARTHIS HUB";
+    if (titleEl) titleEl.innerText = "💿 DJ GREY'S HEARTHIS HUB";
     fetchHearthisMixes();
   } else if (tab === "spotify") {
-    titleEl.innerText = "🎧 DJ GREY'S SPOTIFY HUB";
+    if (titleEl) titleEl.innerText = "🎧 DJ GREY'S SPOTIFY HUB";
     loadSpotifyHub(); 
   } else if (tab === "livestream") {
-    titleEl.innerText = "🔴 LIVE STREAM & REALTME CHAT";
-    loadLivestreamHub();
+    if (titleEl) titleEl.innerText = "🔴 LIVE STREAM & REALTIME CHAT";
+    checkLiveStream();
   }
 
   if (window.innerWidth <= 768) {
@@ -125,6 +130,7 @@ function switchTab(tab) {
 // ---------------------------------------------------------
 async function fetchHearthisMixes() {
     const grid = document.getElementById("mixes-grid");
+    if (!grid) return;
     grid.innerHTML = `<p style="font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i> Syncing directly with DJ Grey's Hearthis.at account...</p>`;
     try {
         const res = await fetch(`${API_URL}/hearthis/sync/grey-george`); 
@@ -143,6 +149,7 @@ async function fetchHearthisMixes() {
 
 async function loadSpotifyHub() {
     const grid = document.getElementById("mixes-grid");
+    if (!grid) return;
     grid.innerHTML = `<p style="font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i> Syncing live with DJ Grey's Spotify Hub...</p>`;
     
     try {
@@ -176,143 +183,113 @@ async function loadSpotifyHub() {
 }
 
 // ---------------------------------------------------------
-// 🔴 NATIVE WEBRTC VIEWER & LIVE CHAT (FAN SIDE)
+// 📺 WEBRTC LIVESTREAM WATCHER & LIVE CHAT
 // ---------------------------------------------------------
-let viewerSocket = null;
-let peerConnection = null;
-let chatInterval = null;
+const socket = (typeof io !== "undefined") ? io("https://dj-grey.onrender.com") : null;
+let peerConnection;
 const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
-async function loadLivestreamHub() {
-    const grid = document.getElementById("mixes-grid");
-    grid.innerHTML = `<p style="font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i> Connecting to Live Stage...</p>`;
+async function checkLiveStream() {
+    const container = document.getElementById("livestream-container") || document.getElementById("mixes-grid");
+    if (!container) return;
 
     try {
         const res = await fetch(`${API_URL}/livestream/active`);
         const data = await res.json();
 
-        if (!data.active || !data.stream) {
-            grid.innerHTML = `
-                <div style="text-align: center; padding: 60px 20px;">
-                    <i class="fa-solid fa-tower-cell fa-3x" style="color: var(--text-muted); margin-bottom: 20px;"></i>
-                    <h2>No Active Livestream Right Now</h2>
-                    <p style="color: var(--text-muted);">DJ Grey is currently offline. Check back soon or stay tuned on socials!</p>
+        if (data.active) {
+            container.innerHTML = `
+                <div style="background: var(--panel-bg); border-radius: 12px; padding: 20px; margin-top: 20px;">
+                    <h3 style="margin-top: 0; color: var(--danger);"><i class="fa-solid fa-circle-dot"></i> LIVE NOW: ${data.stream ? data.stream.title : 'DJ GREY SESSION'}</h3>
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-top: 15px;">
+                        <div style="background: #000; border-radius: 8px; overflow: hidden; height: 400px;">
+                            <video id="remote-video" autoplay playsinline controls style="width: 100%; height: 100%; object-fit: cover;"></video>
+                        </div>
+                        <div style="display: flex; flex-direction: column; height: 400px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
+                            <h4 style="margin-top:0;"><i class="fa-solid fa-comments"></i> Live Chat</h4>
+                            <div id="chat-messages" style="flex: 1; overflow-y: auto; margin-bottom: 10px; font-size: 0.9rem;"></div>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="chat-input" placeholder="Type a message..." style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.05); color: #fff;">
+                                <button onclick="sendChatMessage()" style="padding: 8px 12px; background: var(--primary); border: none; border-radius: 6px; color: #fff; cursor: pointer;">Send</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
-            return;
+            initWebRTCWatcher();
+            loadLiveChat();
+        } else {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 60px 20px;">
+                    <i class="fa-solid fa-tower-broadcast" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 15px;"></i>
+                    <h3>No Active Livestream Right Now</h3>
+                    <p style="color: var(--text-muted);">DJ Grey is currently offline. Check back soon!</p>
+                </div>
+            `;
         }
-
-        grid.innerHTML = `
-            <div style="display: flex; gap: 20px; flex-wrap: wrap; width: 100%;">
-                <div style="flex: 2; min-width: 320px;">
-                    <div style="position: relative; padding-bottom: 56.25%; height: 0; border-radius: 16px; overflow: hidden; background: #000; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
-                        <video id="fan-broadcast-video" autoplay playsinline style="position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover;"></video>
-                    </div>
-                    <h2 style="margin-top: 15px; font-size: 1.4rem;">${data.stream.title}</h2>
-                </div>
-
-                <div style="flex: 1; min-width: 300px; height: 500px; background: rgba(20, 20, 28, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; display: flex; flex-direction: column; padding: 15px; backdrop-filter: blur(16px);">
-                    <h3 style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 10px; margin-top: 0; font-size: 1rem;"><i class="fa-solid fa-comments"></i> Live Chat</h3>
-                    <div id="live-chat-box" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; padding-right: 5px;"></div>
-                    
-                    <div style="display: flex; gap: 8px;">
-                        <input type="text" id="live-chat-input" placeholder="Say something..." style="flex: 1; background: rgba(0,0,0,0.5); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; padding: 10px; border-radius: 8px; outline: none;">
-                        <button onclick="sendLiveChatMessage()" style="background: var(--primary); color: #fff; border: none; padding: 0 15px; border-radius: 8px; font-weight: bold; cursor: pointer;"><i class="fa-solid fa-paper-plane"></i></button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        initWebRTCViewer();
-        fetchLiveChat();
-        if (chatInterval) clearInterval(chatInterval);
-        chatInterval = setInterval(fetchLiveChat, 3000); 
-    } catch (err) {
-        console.error(err);
-        grid.innerHTML = `<p style="color: #ff4d4d;">Failed to connect to livestream server.</p>`;
+    } catch (e) {
+        console.error("Failed to check livestream status", e);
     }
 }
 
-function initWebRTCViewer() {
-    if (!viewerSocket) {
-        viewerSocket = io("https://dj-grey.onrender.com");
-    }
+function initWebRTCWatcher() {
+    if (!socket) return;
+    socket.emit("watcher");
 
-    const video = document.getElementById("fan-broadcast-video");
-    viewerSocket.emit("watcher");
-
-    viewerSocket.on("offer", (id, description) => {
+    socket.on("offer", (id, description) => {
         peerConnection = new RTCPeerConnection(rtcConfig);
-        
-        peerConnection.setRemoteDescription(description)
+        peerConnection
+            .setRemoteDescription(description)
             .then(() => peerConnection.createAnswer())
             .then(sdp => peerConnection.setLocalDescription(sdp))
-            .then(() => viewerSocket.emit("answer", id, peerConnection.localDescription));
+            .then(() => socket.emit("answer", id, peerConnection.localDescription));
 
         peerConnection.ontrack = event => {
-            if (video && video.srcObject !== event.streams[0]) {
-                video.srcObject = event.streams[0];
-            }
+            const remoteVideo = document.getElementById("remote-video");
+            if (remoteVideo) remoteVideo.srcObject = event.streams[0];
         };
 
         peerConnection.onicecandidate = event => {
-            if (event.candidate) viewerSocket.emit("candidate", id, event.candidate);
+            if (event.candidate) socket.emit("candidate", id, event.candidate);
         };
     });
 
-    viewerSocket.on("candidate", (id, candidate) => {
-        if(peerConnection) {
-            peerConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(e => console.error(e));
-        }
+    socket.on("candidate", (id, candidate) => {
+        if (peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
     });
 
-    viewerSocket.on("broadcaster", () => {
-        viewerSocket.emit("watcher");
-    });
-
-    viewerSocket.on("disconnectPeer", () => {
-        if(peerConnection) peerConnection.close();
-        if(video) video.srcObject = null;
+    socket.on("broadcaster", () => socket.emit("watcher"));
+    socket.on("disconnectPeer", () => {
+        if (peerConnection) peerConnection.close();
     });
 }
 
-async function fetchLiveChat() {
-    const box = document.getElementById("live-chat-box");
-    if (!box) return;
+async function loadLiveChat() {
     try {
         const res = await fetch(`${API_URL}/livestream/chat`);
         const messages = await res.json();
-        box.innerHTML = messages.map(m => `
-            <div style="font-size: 0.85rem; line-height: 1.3;">
-                <span style="font-weight: bold; color: var(--primary);">${m.username}:</span> 
-                <span style="color: var(--text-main);">${m.message}</span>
-            </div>
-        `).join("");
-        box.scrollTop = box.scrollHeight;
-    } catch(e) {}
+        const box = document.getElementById("chat-messages");
+        if (box) {
+            box.innerHTML = messages.map(m => `<div style="margin-bottom:6px;"><strong style="color: var(--primary);">${m.username}:</strong> ${m.message}</div>`).join("");
+            box.scrollTop = box.scrollHeight;
+        }
+    } catch (e) {}
 }
 
-async function sendLiveChatMessage() {
-    const currentToken = localStorage.getItem("dj_grey_token");
-    if (!currentToken) return Swal.fire({ icon: 'warning', title: 'Login Required', text: 'Please login to join the live chat!' });
-    
-    const input = document.getElementById("live-chat-input");
-    const message = input.value.trim();
-    if (!message) return;
+async function sendChatMessage() {
+    const input = document.getElementById("chat-input");
+    if (!input || !input.value.trim()) return;
+    const token = localStorage.getItem("dj_grey_token");
+    if (!token) return Swal.fire({ icon: 'warning', title: 'Login Required', text: 'Log in to chat live!', background: 'var(--glass-bg)', color: 'var(--text-main)' });
 
     try {
-        const res = await fetch(`${API_URL}/livestream/chat`, {
+        await fetch(`${API_URL}/livestream/chat`, {
             method: 'POST',
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${currentToken}`
-            },
-            body: JSON.stringify({ message })
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ message: input.value.trim() })
         });
-        if (res.ok) {
-            input.value = "";
-            fetchLiveChat();
-        }
+        input.value = "";
+        loadLiveChat();
     } catch (e) {}
 }
 
@@ -349,11 +326,6 @@ async function checkLiveStatusBanner() {
     } catch (e) {}
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-    checkLiveStatusBanner();
-    setInterval(checkLiveStatusBanner, 10000); 
-});
-
 // ---------------------------------------------------------
 // 💸 FLUTTERWAVE DJ PREMIUM UPLOAD
 // ---------------------------------------------------------
@@ -378,19 +350,21 @@ function closeUploadModal() {
 }
 
 async function submitMixToGateway(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     const currentToken = localStorage.getItem("dj_grey_token");
-    const title = document.getElementById("up-title").value;
-    const audio_url = document.getElementById("up-audio").value;
-    const artwork_url = document.getElementById("up-artwork").value;
+    const title = document.getElementById("up-title") ? document.getElementById("up-title").value : "";
+    const audio_url = document.getElementById("up-audio") ? document.getElementById("up-audio").value : "";
+    const artwork_url = document.getElementById("up-artwork") ? document.getElementById("up-artwork").value : "";
     
     if (!title || !audio_url) {
         return Swal.fire({ icon: 'error', title: 'Missing Info', text: 'Please provide a Title and Audio Link.' });
     }
 
     const btnFlw = document.getElementById("pay-flw-btn");
-    btnFlw.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Securely Loading...';
-    btnFlw.disabled = true;
+    if (btnFlw) {
+        btnFlw.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Securely Loading...';
+        btnFlw.disabled = true;
+    }
 
     try {
         const res = await fetch(`${API_URL}/submissions/flutterwave/create`, {
@@ -413,40 +387,23 @@ async function submitMixToGateway(e) {
             window.location.href = data.url; 
         } else {
             Swal.fire({ icon: 'error', title: 'Checkout Failed', text: data.error || 'Gateway rejected request.' });
-            resetGatewayButton(btnFlw);
+            if (btnFlw) resetGatewayButton(btnFlw);
         }
     } catch (err) {
         console.error(err);
         Swal.fire({ icon: 'error', title: 'Network Error', text: 'Could not connect to payment gateway.' });
-        resetGatewayButton(btnFlw);
+        if (btnFlw) resetGatewayButton(btnFlw);
     }
 }
 
 function resetGatewayButton(btn) {
+    if (!btn) return;
     btn.innerHTML = '<i class="fa-solid fa-mobile-screen-button"></i> Pay with M-Pesa / Card';
     btn.disabled = false;
 }
 
-// Check for Upload Success Redirect
-window.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('upload') === 'success') {
-        Swal.fire({
-            icon: 'success', title: 'Payment Successful!', text: 'Your subscription is active and your mix is in the review queue.', background: 'rgba(30, 41, 59, 0.95)', color: '#fff'
-        });
-        window.history.replaceState({}, document.title, window.location.pathname);
-    } else if (urlParams.get('upload') === 'failed') {
-         Swal.fire({
-            icon: 'error', title: 'Payment Failed', text: 'Your transaction could not be completed. Please try again.', background: 'rgba(30, 41, 59, 0.95)', color: '#fff'
-        });
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
-});
-
-window.onload = loadMixes;
-
 // ---------------------------------------------------------
-// ☀️ / 🌙 THEME TOGGLE LOGIC FOR LIVE SITE
+// ☀️ / 🌙 THEME TOGGLE LOGIC
 // ---------------------------------------------------------
 function toggleTheme() {
     const html = document.documentElement;
@@ -469,21 +426,8 @@ function toggleTheme() {
     }
 }
 
-// Apply saved theme on page load
-window.addEventListener('DOMContentLoaded', () => {
-    const savedTheme = localStorage.getItem("dj_grey_theme");
-    if (savedTheme === "light") {
-        document.documentElement.setAttribute("data-theme", "light");
-        const icon = document.querySelector("#theme-toggle i");
-        if (icon) {
-            icon.classList.remove("fa-sun");
-            icon.classList.add("fa-moon");
-        }
-    }
-});
-
 // ---------------------------------------------------------
-// ❤️ LIKE & 📥 PLAYLIST (WITH SECURE AUTH TOKENS)
+// ❤️ LIKE & 📥 PLAYLIST LOGIC
 // ---------------------------------------------------------
 async function likeMix(id, element) {
     const token = localStorage.getItem("dj_grey_token");
@@ -498,13 +442,12 @@ async function likeMix(id, element) {
 
     element.classList.add('liked');
     const icon = element.querySelector('i');
-    icon.style.color = 'var(--danger)'; 
+    if (icon) icon.style.color = 'var(--danger)'; 
     const textNode = element.lastChild;
     const currentCount = parseInt(textNode.textContent) || 0;
     textNode.textContent = ` ${currentCount + 1}`;
 
     try {
-        // 🚨 FIXED: Now explicitly sends your user token to the database
         await fetch(`${API_URL}/mixes/${id}/like`, { 
             method: 'POST',
             headers: { "Authorization": `Bearer ${token}` }
@@ -531,13 +474,12 @@ async function downloadMix(id, element) {
 
     element.classList.add('saved');
     const icon = element.querySelector('i');
-    icon.style.color = 'var(--success)'; 
+    if (icon) icon.style.color = 'var(--success)'; 
     const textNode = element.lastChild;
     const currentCount = parseInt(textNode.textContent) || 0;
     textNode.textContent = ` ${currentCount + 1}`;
 
     try {
-        // 🚨 FIXED: Now explicitly sends your user token to the database
         await fetch(`${API_URL}/mixes/${id}/download`, { 
             method: 'POST',
             headers: { "Authorization": `Bearer ${token}` }
@@ -555,30 +497,60 @@ async function downloadMix(id, element) {
 }
 
 // ---------------------------------------------------------
-// 🍔 UNIVERSAL SIDEBAR TOGGLE LOGIC (LIVE SITE)
+// 🚀 EVENT LISTENERS & DOM INITIALIZATION
 // ---------------------------------------------------------
-document.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', () => {
+    // Check for payment redirect flags
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('upload') === 'success') {
+        Swal.fire({
+            icon: 'success', title: 'Payment Successful!', text: 'Your subscription is active and your mix is in the review queue.', background: 'rgba(30, 41, 59, 0.95)', color: '#fff'
+        });
+        window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (urlParams.get('upload') === 'failed') {
+         Swal.fire({
+            icon: 'error', title: 'Payment Failed', text: 'Your transaction could not be completed. Please try again.', background: 'rgba(30, 41, 59, 0.95)', color: '#fff'
+        });
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // Apply saved theme
+    const savedTheme = localStorage.getItem("dj_grey_theme");
+    if (savedTheme === "light") {
+        document.documentElement.setAttribute("data-theme", "light");
+        const icon = document.querySelector("#theme-toggle i");
+        if (icon) {
+            icon.classList.remove("fa-sun");
+            icon.classList.add("fa-moon");
+        }
+    }
+
+    // Live status banner polling
+    checkLiveStatusBanner();
+    setInterval(checkLiveStatusBanner, 10000);
+
+    // Sidebar navigation toggle
     const menuBtn = document.querySelector('.menu-toggle-btn');
     const leftNav = document.getElementById("left-nav");
 
     if (menuBtn && leftNav) {
         menuBtn.addEventListener('click', (e) => {
             e.stopPropagation(); 
-            // Check screen size to determine which animation to trigger
             if (window.innerWidth <= 768) {
-                leftNav.classList.toggle("open"); // Slide out on mobile
+                leftNav.classList.toggle("open");
             } else {
-                leftNav.classList.toggle("collapsed"); // Shrink on desktop
+                leftNav.classList.toggle("collapsed");
             }
         });
     }
 
-    // Auto-close sidebar when clicking outside of it on mobile
     document.addEventListener('click', (e) => {
         if (window.innerWidth <= 768 && leftNav && leftNav.classList.contains('open')) {
-            if (!leftNav.contains(e.target) && !menuBtn.contains(e.target)) {
+            if (!leftNav.contains(e.target) && menuBtn && !menuBtn.contains(e.target)) {
                 leftNav.classList.remove('open');
             }
         }
     });
 });
+
+window.onload = loadMixes;

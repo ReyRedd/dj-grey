@@ -39,29 +39,29 @@ function switchAdminTab(tabId) {
 
   const title = document.getElementById("page-title");
   if (tabId === "dashboard-tab") {
-    title.innerText = "Platform Intelligence";
+    if (title) title.innerText = "Platform Intelligence";
     if (role === "admin") loadAdminData();
   }
   if (tabId === "subscriptions-tab") {
-    title.innerText = "Subscription Hub";
+    if (title) title.innerText = "Subscription Hub";
     if (role === "admin") loadSubscriptions();
   }
   if (tabId === "users-tab") {
-    title.innerText = "Fan Network";
+    if (title) title.innerText = "Fan Network";
     if (role === "admin") loadUsers();
   }
   if (tabId === "submissions") {
-    title.innerText = "Mix Queue ($0.50)";
+    if (title) title.innerText = "Mix Queue ($0.50)";
     if (role === "admin") loadSubmissionsQueue();
   }
   if (tabId === "livestream-control") {
-    title.innerText = "Live Studio";
+    if (title) title.innerText = "Live Studio";
   }
 }
 
 let analyticsChart;
 
-// 📊 Full-Width Line Graph
+// 📊 Full-Width Line Graph & Analytics
 async function loadAdminData() {
   try {
     const analyticsRes = await fetch(`${API_URL}/admin/analytics`, {
@@ -131,7 +131,7 @@ async function loadAdminData() {
                 <td><span class="sub-status-active">Live</span></td>
                 <td><button class="btn-action" style="background:var(--danger); padding: 5px 10px;" onclick="deleteMix(${mix.id})"><i class="fa-solid fa-trash"></i> Delete</button></td>
             </tr>
-        `,
+        `
       )
       .join("");
   } catch (e) {
@@ -140,7 +140,20 @@ async function loadAdminData() {
 }
 
 async function deleteMix(id) {
-  if (!confirm("Erase this mix permanently?")) return;
+  const result = await Swal.fire({
+    title: "Erase Mix?",
+    text: "Are you sure you want to permanently delete this mix?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "var(--danger)",
+    confirmButtonText: '<i class="fa-solid fa-trash"></i> Delete',
+    cancelButtonText: "Cancel",
+    background: "var(--panel-bg)",
+    color: "var(--text-main)",
+  });
+
+  if (!result.isConfirmed) return;
+
   await fetch(`${API_URL}/mixes/${id}`, {
     method: "DELETE",
     headers: getAuthHeaders(),
@@ -148,13 +161,12 @@ async function deleteMix(id) {
   loadAdminData();
 }
 
-// AUTOMATED SUBSCRIPTIONS HUB LOGIC
+// 👑 AUTOMATED SUBSCRIPTIONS HUB LOGIC
 async function loadSubscriptions() {
   const tbody = document.getElementById("subs-table-body");
   try {
     tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i> Auto-syncing ledger...</td></tr>`;
 
-    // Auto-run subscription engine check in background
     await fetch(`${API_URL}/admin/subscriptions/engine`, {
       method: "POST",
       headers: getAuthHeaders(),
@@ -187,7 +199,11 @@ async function loadSubscriptions() {
                     <td>${sub.email}</td>
                     <td><span class="sub-status-${sub.sub_status}">${sub.sub_status.toUpperCase()}</span></td>
                     <td>${dateStr}</td>
-                    <td><button class="btn-action" style="padding: 5px 10px;" onclick="alert('Manual renewal available soon')">Manage</button></td>
+                    <td>
+                      <button class="btn-action" style="padding: 5px 10px;" onclick="manageSubscription(${sub.id}, '${sub.username}')">
+                          <i class="fa-solid fa-gear"></i> Manage
+                      </button>
+                    </td>
                 </tr>
             `;
         })
@@ -202,9 +218,7 @@ async function loadSubscriptions() {
   }
 }
 
-// You can now safely delete the runSubscriptionSystemCheck() function entirely!
-
-// 👥 Bento Grid Fan Network Loader
+// 👥 FAN NETWORK LOADER
 async function loadUsers() {
   try {
     const res = await fetch(`${API_URL}/admin/users`, {
@@ -256,7 +270,19 @@ async function approveUser(id) {
 }
 
 async function deleteUser(id, username) {
-  if (!confirm(`Permanently remove fan: ${username}?`)) return;
+  const result = await Swal.fire({
+    title: "Remove Fan Account?",
+    text: `Are you sure you want to remove ${username}?`,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "var(--danger)",
+    confirmButtonText: "Remove User",
+    background: "var(--panel-bg)",
+    color: "var(--text-main)",
+  });
+
+  if (!result.isConfirmed) return;
+
   await fetch(`${API_URL}/admin/users/${id}`, {
     method: "DELETE",
     headers: getAuthHeaders(),
@@ -264,7 +290,7 @@ async function deleteUser(id, username) {
   loadUsers();
 }
 
-// MIX QUEUE LOGIC (ACCURATE PAYMENT BADGES)
+// 📦 MIX QUEUE LOGIC
 async function loadSubmissionsQueue() {
   const tbody = document.getElementById("submissions-table-body");
   try {
@@ -283,13 +309,12 @@ async function loadSubmissionsQueue() {
         let feeBadge = "";
         let actionHtml = "";
 
-        // Differentiate paid, pending, and abandoned checkouts
         if (s.status === "awaiting_payment" || s.status === "failed") {
           feeBadge = `<span class="sub-status-expired">Unpaid / Abandoned</span>`;
           actionHtml = `
-        <button class="btn-action" style="background: var(--danger); padding: 5px 10px;" onclick="deleteSubmission(${s.id})">
-            <i class="fa-solid fa-trash"></i> Clear
-        </button>`;
+            <button class="btn-action" style="background: var(--danger); padding: 5px 10px;" onclick="deleteSubmission(${s.id})">
+                <i class="fa-solid fa-trash"></i> Clear
+            </button>`;
         } else if (s.status === "pending") {
           feeBadge = `<span class="sub-status-active">$0.50 USD Paid</span>`;
           actionHtml = `<button class="btn-action" style="padding: 5px 10px;" onclick="approveSubmission(${s.id})"><i class="fa-solid fa-check"></i> Approve & Publish</button>`;
@@ -326,120 +351,220 @@ async function approveSubmission(id) {
         icon: "success",
         title: "Published!",
         text: "Mix is now live in the main catalog.",
-        background: "#14141c",
-        color: "#fff",
+        background: "var(--panel-bg)",
+        color: "var(--text-main)",
       });
       loadSubmissionsQueue();
     }
   } catch (e) {}
 }
 
-// 📡 Native WebRTC Studio Logic (RESTORED)
+// ---------------------------------------------------------
+// 🔴 WEBRTC LIVESTREAM BROADCASTER LOGIC (STUDIO SIDE)
+// ---------------------------------------------------------
+const socket = (typeof io !== "undefined") ? io("https://dj-grey.onrender.com") : null;
 let localStream;
+const peerConnections = {};
+const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
 async function startNativeBroadcast() {
   const title =
     document.getElementById("stream-title-input")?.value ||
     "DJ GREY LIVE SESSION";
+
   try {
     localStream = await navigator.mediaDevices.getUserMedia({
       video: true,
       audio: true,
     });
-    const videoElement = document.getElementById("dj-broadcast-video");
+    const videoElement = document.getElementById("dj-broadcast-video") || document.getElementById("admin-video-preview");
     if (videoElement) videoElement.srcObject = localStream;
 
-    await fetch(`${API_URL}/admin/livestream`, {
+    const res = await fetch(`${API_URL}/admin/livestream`, {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify({ title: title, is_active: true }),
     });
-    Swal.fire({
-      icon: "success",
-      title: "You Are LIVE! 🔴",
-      text: "Streaming directly from your browser.",
-      background: "#14141c",
-      color: "#fff",
-    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      if (socket) socket.emit("broadcaster");
+      Swal.fire({
+        icon: "success",
+        title: "You Are LIVE! 🔴",
+        text: "Streaming directly from your browser to all connected fans.",
+        background: "var(--panel-bg)",
+        color: "var(--text-main)",
+      });
+    }
   } catch (err) {
     Swal.fire({
       icon: "error",
       title: "Camera/Mic Error",
       text: "Please allow camera and microphone permissions to broadcast.",
-      background: "#14141c",
-      color: "#fff",
+      background: "var(--panel-bg)",
+      color: "var(--text-main)",
     });
   }
 }
 
 async function stopNativeBroadcast() {
   if (localStream) localStream.getTracks().forEach((track) => track.stop());
-  const videoElement = document.getElementById("dj-broadcast-video");
+  const videoElement = document.getElementById("dj-broadcast-video") || document.getElementById("admin-video-preview");
   if (videoElement) videoElement.srcObject = null;
+
   await fetch(`${API_URL}/admin/livestream`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({ is_active: false }),
   });
+
   Swal.fire({
     icon: "info",
     title: "Broadcast Ended",
-    background: "#14141c",
-    color: "#fff",
+    background: "var(--panel-bg)",
+    color: "var(--text-main)",
+  });
+}
+
+// WebRTC Signaling Handlers
+if (socket) {
+  socket.on("watcher", (id) => {
+    const peerConnection = new RTCPeerConnection(rtcConfig);
+    peerConnections[id] = peerConnection;
+
+    if (localStream) {
+      localStream.getTracks().forEach((track) => peerConnection.addTrack(track, localStream));
+    }
+
+    peerConnection.onicecandidate = (event) => {
+      if (event.candidate) socket.emit("candidate", id, event.candidate);
+    };
+
+    peerConnection.createOffer()
+      .then((sdp) => peerConnection.setLocalDescription(sdp))
+      .then(() => socket.emit("offer", id, peerConnection.localDescription));
+  });
+
+  socket.on("answer", (id, description) => {
+    if (peerConnections[id]) peerConnections[id].setRemoteDescription(description);
+  });
+
+  socket.on("candidate", (id, candidate) => {
+    if (peerConnections[id]) peerConnections[id].addIceCandidate(new RTCIceCandidate(candidate));
+  });
+
+  socket.on("disconnectPeer", (id) => {
+    if (peerConnections[id]) {
+      peerConnections[id].close();
+      delete peerConnections[id];
+    }
   });
 }
 
 // 🗑️ ELEGANT SWEETALERT DELETE HANDLER
 async function deleteSubmission(id) {
-    const result = await Swal.fire({
-        title: 'Delete Abandoned Record?',
-        text: 'Are you sure you want to remove this submission? This action cannot be undone.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: 'var(--danger)',
-        cancelButtonColor: 'rgba(255, 255, 255, 0.1)',
-        confirmButtonText: '<i class="fa-solid fa-trash"></i> Delete',
-        cancelButtonText: 'Cancel',
-        background: 'var(--panel-bg)',
-        color: 'var(--text-main)',
-        backdrop: `rgba(0,0,0,0.75)`
+  const result = await Swal.fire({
+    title: "Delete Abandoned Record?",
+    text: "Are you sure you want to remove this submission? This action cannot be undone.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "var(--danger)",
+    cancelButtonColor: "rgba(255, 255, 255, 0.1)",
+    confirmButtonText: '<i class="fa-solid fa-trash"></i> Delete',
+    cancelButtonText: "Cancel",
+    background: "var(--panel-bg)",
+    color: "var(--text-main)",
+    backdrop: `rgba(0,0,0,0.75)`,
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    const res = await fetch(`${API_URL}/admin/submissions/${id}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
     });
 
-    if (!result.isConfirmed) return;
-
-    try {
-        const res = await fetch(`${API_URL}/admin/submissions/${id}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders()
-        });
-        
-        if (res.ok) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Record Cleared',
-                text: 'The abandoned submission has been permanently removed.',
-                background: 'var(--panel-bg)',
-                color: 'var(--text-main)',
-                confirmButtonColor: 'var(--primary)'
-            });
-            loadSubmissionsQueue();
-        } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Action Failed',
-                text: 'Unable to remove record from database.',
-                background: 'var(--panel-bg)',
-                color: 'var(--text-main)'
-            });
-        }
-    } catch (e) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Network Error',
-            text: 'Could not connect to the server.',
-            background: 'var(--panel-bg)',
-            color: 'var(--text-main)'
-        });
+    if (res.ok) {
+      Swal.fire({
+        icon: "success",
+        title: "Record Cleared",
+        text: "The abandoned submission has been permanently removed.",
+        background: "var(--panel-bg)",
+        color: "var(--text-main)",
+        confirmButtonColor: "var(--primary)",
+      });
+      loadSubmissionsQueue();
+    } else {
+      Swal.fire({
+        icon: "error",
+        title: "Action Failed",
+        text: "Unable to remove record from database.",
+        background: "var(--panel-bg)",
+        color: "var(--text-main)",
+      });
     }
+  } catch (e) {
+    Swal.fire({
+      icon: "error",
+      title: "Network Error",
+      text: "Could not connect to the server.",
+      background: "var(--panel-bg)",
+      color: "var(--text-main)",
+    });
+  }
+}
+
+async function manageSubscription(userId, username) {
+  const result = await Swal.fire({
+    title: `Manage VIP: ${username}`,
+    text: "Select an administrative action for this account:",
+    icon: "question",
+    showCancelButton: true,
+    showDenyButton: true,
+    confirmButtonText: '<i class="fa-solid fa-plus"></i> Extend +30 Days',
+    denyButtonText: '<i class="fa-solid fa-ban"></i> Revoke VIP',
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "var(--success)",
+    denyButtonColor: "var(--danger)",
+    background: "var(--panel-bg)",
+    color: "var(--text-main)",
+    backdrop: `rgba(0,0,0,0.8)`,
+  });
+
+  if (result.isConfirmed) {
+    const res = await fetch(`${API_URL}/admin/users/${userId}/extend-sub`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    });
+    if (res.ok) {
+      Swal.fire({
+        icon: "success",
+        title: "Extended!",
+        text: "Added 30 days to VIP access.",
+        background: "var(--panel-bg)",
+        color: "var(--text-main)",
+      });
+      loadSubscriptions();
+    }
+  } else if (result.isDenied) {
+    const res = await fetch(`${API_URL}/admin/users/${userId}/revoke-sub`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    });
+    if (res.ok) {
+      Swal.fire({
+        icon: "warning",
+        title: "Revoked!",
+        text: "VIP status expired and mixes hidden.",
+        background: "var(--panel-bg)",
+        color: "var(--text-main)",
+      });
+      loadSubscriptions();
+    }
+  }
 }
 
 window.onload = () => {
@@ -461,12 +586,16 @@ function toggleTheme() {
 
   if (html.getAttribute("data-theme") === "light") {
     html.setAttribute("data-theme", "dark");
-    icon.classList.remove("fa-moon");
-    icon.classList.add("fa-sun");
+    if (icon) {
+      icon.classList.remove("fa-moon");
+      icon.classList.add("fa-sun");
+    }
   } else {
     html.setAttribute("data-theme", "light");
-    icon.classList.remove("fa-sun");
-    icon.classList.add("fa-moon");
+    if (icon) {
+      icon.classList.remove("fa-sun");
+      icon.classList.add("fa-moon");
+    }
   }
 }
 
@@ -481,14 +610,13 @@ document.addEventListener("DOMContentLoaded", () => {
     adminMenuBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       if (window.innerWidth <= 768) {
-        sidebar.classList.toggle("open"); // Slide out on mobile
+        sidebar.classList.toggle("open");
       } else {
-        sidebar.classList.toggle("collapsed"); // Shrink on desktop
+        sidebar.classList.toggle("collapsed");
       }
     });
   }
 
-  // Auto-close sidebar when clicking outside of it on mobile
   document.addEventListener("click", (e) => {
     if (
       window.innerWidth <= 768 &&

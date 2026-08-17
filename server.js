@@ -800,6 +800,50 @@ app.get("/api/admin/subscriptions", authenticateAdmin, async (req, res) => {
   }
 });
 
+// ➕ MANUALLY EXTEND SUBSCRIPTION (+30 DAYS)
+app.post("/api/admin/users/:id/extend-sub", authenticateAdmin, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const subEnd = new Date();
+    subEnd.setDate(subEnd.getDate() + 30);
+
+    await pool.query(
+      `UPDATE users 
+       SET role = CASE WHEN role = 'admin' THEN 'admin' ELSE 'dj' END, 
+           sub_status = 'active', 
+           sub_end_date = $1 
+       WHERE id = $2`,
+      [subEnd, userId]
+    );
+
+    // Reactivate user's mixes
+    await pool.query("UPDATE mixes SET is_active = true WHERE user_id = $1", [userId]);
+
+    res.json({ success: true, message: "Subscription extended by 30 days." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ❌ MANUALLY REVOKE SUBSCRIPTION
+app.post("/api/admin/users/:id/revoke-sub", authenticateAdmin, async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    await pool.query(
+      "UPDATE users SET sub_status = 'expired' WHERE id = $1",
+      [userId]
+    );
+
+    // Hide user's mixes
+    await pool.query("UPDATE mixes SET is_active = false WHERE user_id = $1", [userId]);
+
+    res.json({ success: true, message: "Subscription revoked." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post(
   "/api/admin/subscriptions/engine",
   authenticateAdmin,
