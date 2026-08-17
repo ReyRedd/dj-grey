@@ -1,10 +1,16 @@
-const API_URL = "https://dj-grey.onrender.com/api";
-const DEFAULT_ARTWORK = "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1";
+// ---------------------------------------------------------
+// 🌐 SAFE GLOBAL DECLARATIONS (PREVENTS REDECLARATION ERRORS)
+// ---------------------------------------------------------
+window.API_URL = window.API_URL || "https://dj-grey.onrender.com/api";
+window.DEFAULT_ARTWORK = window.DEFAULT_ARTWORK || "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1";
+
+var API_URL = window.API_URL;
+var DEFAULT_ARTWORK = window.DEFAULT_ARTWORK;
 let playlist = [];
 let currentTab = "home";
 
-// Premium Success Toast Timer Configuration
-const Toast = Swal.mixin({
+// Premium Success Toast Timer
+const Toast = (typeof Swal !== "undefined") ? Swal.mixin({
   toast: true,
   position: 'top-end',
   showConfirmButton: false,
@@ -12,33 +18,44 @@ const Toast = Swal.mixin({
   timerProgressBar: true,
   background: 'rgba(20, 20, 28, 0.95)',
   color: '#fff'
-});
+}) : null;
 
 // ---------------------------------------------------------
-// 🔄 FETCH MIXES WITH AUTH (PERSISTENT SAVES & LIKES)
+// 🔄 FETCH MIXES & INITIALIZE CATALOG
 // ---------------------------------------------------------
 async function loadMixes() {
+  const grid = document.getElementById("mixes-grid");
+  
   try {
     const token = localStorage.getItem("dj_grey_token");
     const headers = token ? { "Authorization": `Bearer ${token}` } : {};
     
     const res = await fetch(`${API_URL}/mixes`, { headers });
-    playlist = await res.json();
+    
+    if (!res.ok) {
+        throw new Error(`Server returned status ${res.status}`);
+    }
+
+    const data = await res.json();
+    playlist = Array.isArray(data) ? data : [];
     renderGrid(playlist);
   } catch (error) {
     console.error("Error loading mixes:", error);
+    if (grid) {
+        grid.innerHTML = `<p style="color: var(--danger); font-weight: bold;"><i class="fa-solid fa-triangle-exclamation"></i> Unable to connect to music database. Please refresh.</p>`;
+    }
   }
 }
 
 // ---------------------------------------------------------
-// 🎨 RENDER GRID (WITH PERSISTENT BUTTON STYLES)
+// 🎨 RENDER GRID (WITH PERSISTENT BUTTONS)
 // ---------------------------------------------------------
 function renderGrid(mixes) {
   const grid = document.getElementById("mixes-grid");
   if (!grid) return;
   grid.innerHTML = "";
 
-  if (mixes.length === 0) {
+  if (!mixes || mixes.length === 0) {
     grid.innerHTML = `<p style="color: var(--text-muted);">No mixes found in this section.</p>`;
     return;
   }
@@ -81,7 +98,7 @@ function renderGrid(mixes) {
 }
 
 // ---------------------------------------------------------
-// 🔀 NAVIGATION & TAB SWITCHER
+// 🔀 NAVIGATION & TAB SWITCHER (EXPOSED TO WINDOW)
 // ---------------------------------------------------------
 function switchTab(tab) {
   currentTab = tab;
@@ -121,9 +138,13 @@ function switchTab(tab) {
 
   if (window.innerWidth <= 768) {
       const leftNav = document.getElementById("left-nav");
-      if(leftNav) leftNav.classList.remove("open");
+      if (leftNav) leftNav.classList.remove("open");
   }
 }
+
+// Explicitly bind navigation handlers to global window
+window.switchTab = switchTab;
+window.loadMixes = loadMixes;
 
 // ---------------------------------------------------------
 // 💿 EXTERNAL HUBS (HEARTHIS & SPOTIFY)
@@ -135,13 +156,13 @@ async function fetchHearthisMixes() {
     try {
         const res = await fetch(`${API_URL}/hearthis/sync/grey-george`); 
         const data = await res.json();
-        if(data.success && data.mixes.length > 0) {
+        if (data.success && data.mixes.length > 0) {
             playlist = data.mixes; 
             renderGrid(playlist);
         } else {
             grid.innerHTML = `<p style="color: var(--text-muted);">No public mixes found on Hearthis.at.</p>`;
         }
-    } catch(e) {
+    } catch (e) {
         console.error(e);
         grid.innerHTML = `<p style="color: #ff4d4d;">Failed to establish connection to Hearthis.at.</p>`;
     }
@@ -183,7 +204,7 @@ async function loadSpotifyHub() {
 }
 
 // ---------------------------------------------------------
-// 📺 WEBRTC LIVESTREAM WATCHER & LIVE CHAT
+// 📺 WEBRTC LIVESTREAM WATCHER & CHAT
 // ---------------------------------------------------------
 const socket = (typeof io !== "undefined") ? io("https://dj-grey.onrender.com") : null;
 let peerConnection;
@@ -294,139 +315,6 @@ async function sendChatMessage() {
 }
 
 // ---------------------------------------------------------
-// 🔴 TIKTOK STYLE BANNER
-// ---------------------------------------------------------
-async function checkLiveStatusBanner() {
-    try {
-        const res = await fetch(`${API_URL}/livestream/active`);
-        const data = await res.json();
-        
-        const existingBanner = document.getElementById("live-alert-banner");
-        if (existingBanner) existingBanner.remove();
-
-        if (data.active && data.stream) {
-            const container = document.querySelector(".main-content .container");
-            if (container) {
-                const banner = document.createElement("div");
-                banner.id = "live-alert-banner";
-                banner.className = "live-alert-banner";
-                banner.onclick = () => switchTab('livestream');
-                banner.innerHTML = `
-                    <div>
-                        <span class="live-dot-pulse"></span>
-                        <strong>DJ GREY IS LIVE NOW!</strong> - ${data.stream.title}
-                    </div>
-                    <span style="font-weight: bold; background: rgba(0,0,0,0.3); padding: 5px 12px; border-radius: 20px;">
-                        WATCH STREAM <i class="fa-solid fa-chevron-right"></i>
-                    </span>
-                `;
-                container.prepend(banner);
-            }
-        }
-    } catch (e) {}
-}
-
-// ---------------------------------------------------------
-// 💸 FLUTTERWAVE DJ PREMIUM UPLOAD
-// ---------------------------------------------------------
-function openSubmissionModal() {
-    const currentToken = localStorage.getItem("dj_grey_token");
-    if (!currentToken) {
-        return Swal.fire({ icon: 'warning', title: 'Login Required', text: 'You must log in before submitting a mix.' });
-    }
-    const modal = document.getElementById("upload-modal");
-    if(modal) {
-        modal.style.display = "flex";
-        setTimeout(() => modal.classList.add("show"), 10);
-    }
-}
-
-function closeUploadModal() {
-    const modal = document.getElementById("upload-modal");
-    if(modal) {
-        modal.classList.remove("show");
-        setTimeout(() => modal.style.display = "none", 400);
-    }
-}
-
-async function submitMixToGateway(e) {
-    if (e) e.preventDefault();
-    const currentToken = localStorage.getItem("dj_grey_token");
-    const title = document.getElementById("up-title") ? document.getElementById("up-title").value : "";
-    const audio_url = document.getElementById("up-audio") ? document.getElementById("up-audio").value : "";
-    const artwork_url = document.getElementById("up-artwork") ? document.getElementById("up-artwork").value : "";
-    
-    if (!title || !audio_url) {
-        return Swal.fire({ icon: 'error', title: 'Missing Info', text: 'Please provide a Title and Audio Link.' });
-    }
-
-    const btnFlw = document.getElementById("pay-flw-btn");
-    if (btnFlw) {
-        btnFlw.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Securely Loading...';
-        btnFlw.disabled = true;
-    }
-
-    try {
-        const res = await fetch(`${API_URL}/submissions/flutterwave/create`, {
-            method: 'POST',
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${currentToken}`
-            },
-            body: JSON.stringify({ 
-                title, 
-                audio_url: audio_url.includes('spotify.com') ? '' : audio_url, 
-                spotify_url: audio_url.includes('spotify.com') ? audio_url : '', 
-                artwork_url 
-            })
-        });
-        
-        const data = await res.json();
-        
-        if (data.url) {
-            window.location.href = data.url; 
-        } else {
-            Swal.fire({ icon: 'error', title: 'Checkout Failed', text: data.error || 'Gateway rejected request.' });
-            if (btnFlw) resetGatewayButton(btnFlw);
-        }
-    } catch (err) {
-        console.error(err);
-        Swal.fire({ icon: 'error', title: 'Network Error', text: 'Could not connect to payment gateway.' });
-        if (btnFlw) resetGatewayButton(btnFlw);
-    }
-}
-
-function resetGatewayButton(btn) {
-    if (!btn) return;
-    btn.innerHTML = '<i class="fa-solid fa-mobile-screen-button"></i> Pay with M-Pesa / Card';
-    btn.disabled = false;
-}
-
-// ---------------------------------------------------------
-// ☀️ / 🌙 THEME TOGGLE LOGIC
-// ---------------------------------------------------------
-function toggleTheme() {
-    const html = document.documentElement;
-    const icon = document.querySelector("#theme-toggle i");
-    
-    if (html.getAttribute("data-theme") === "light") {
-        html.setAttribute("data-theme", "dark");
-        if (icon) {
-            icon.classList.remove("fa-moon");
-            icon.classList.add("fa-sun");
-        }
-        localStorage.setItem("dj_grey_theme", "dark");
-    } else {
-        html.setAttribute("data-theme", "light");
-        if (icon) {
-            icon.classList.remove("fa-sun");
-            icon.classList.add("fa-moon");
-        }
-        localStorage.setItem("dj_grey_theme", "light");
-    }
-}
-
-// ---------------------------------------------------------
 // ❤️ LIKE & 📥 PLAYLIST LOGIC
 // ---------------------------------------------------------
 async function likeMix(id, element) {
@@ -487,7 +375,7 @@ async function downloadMix(id, element) {
 
         Swal.fire({
             icon: 'success', title: 'Added to Playlist! 🎧',
-            text: 'This mix has been securely saved to your personal platform playlist. You can listen to it anytime from the "My Playlist" tab.',
+            text: 'This mix has been securely saved to your personal platform playlist.',
             background: 'var(--glass-bg)', color: 'var(--text-main)', confirmButtonColor: 'var(--primary)',
             backdrop: `rgba(0,0,0,0.6)`
         });
@@ -496,52 +384,28 @@ async function downloadMix(id, element) {
     }
 }
 
+window.likeMix = likeMix;
+window.downloadMix = downloadMix;
+
 // ---------------------------------------------------------
-// 🚀 EVENT LISTENERS & DOM INITIALIZATION
+// 🚀 FAILSAFE INITIALIZATION & EVENT LISTENERS
 // ---------------------------------------------------------
-window.addEventListener('DOMContentLoaded', () => {
-    // Check for payment redirect flags
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('upload') === 'success') {
-        Swal.fire({
-            icon: 'success', title: 'Payment Successful!', text: 'Your subscription is active and your mix is in the review queue.', background: 'rgba(30, 41, 59, 0.95)', color: '#fff'
-        });
-        window.history.replaceState({}, document.title, window.location.pathname);
-    } else if (urlParams.get('upload') === 'failed') {
-         Swal.fire({
-            icon: 'error', title: 'Payment Failed', text: 'Your transaction could not be completed. Please try again.', background: 'rgba(30, 41, 59, 0.95)', color: '#fff'
-        });
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
+function initApp() {
+    loadMixes();
 
-    // Apply saved theme
-    const savedTheme = localStorage.getItem("dj_grey_theme");
-    if (savedTheme === "light") {
-        document.documentElement.setAttribute("data-theme", "light");
-        const icon = document.querySelector("#theme-toggle i");
-        if (icon) {
-            icon.classList.remove("fa-sun");
-            icon.classList.add("fa-moon");
-        }
-    }
-
-    // Live status banner polling
-    checkLiveStatusBanner();
-    setInterval(checkLiveStatusBanner, 10000);
-
-    // Sidebar navigation toggle
+    // Universal Sidebar Toggle
     const menuBtn = document.querySelector('.menu-toggle-btn');
     const leftNav = document.getElementById("left-nav");
 
     if (menuBtn && leftNav) {
-        menuBtn.addEventListener('click', (e) => {
+        menuBtn.onclick = (e) => {
             e.stopPropagation(); 
             if (window.innerWidth <= 768) {
                 leftNav.classList.toggle("open");
             } else {
                 leftNav.classList.toggle("collapsed");
             }
-        });
+        };
     }
 
     document.addEventListener('click', (e) => {
@@ -551,9 +415,11 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-});
+}
 
-// 🚀 RELIABLE PAGE LOAD INITIALIZATION
-window.addEventListener('DOMContentLoaded', () => {
-    loadMixes();
-});
+// Safe multi-state initialization trigger
+if (document.readyState === "complete" || document.readyState === "interactive") {
+    setTimeout(initApp, 1);
+} else {
+    document.addEventListener("DOMContentLoaded", initApp);
+}
