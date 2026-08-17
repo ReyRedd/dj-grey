@@ -156,9 +156,21 @@ async function loadAdminData() {
           <tr>
               <td><img src="${art}" class="art-thumb" onerror="this.src='${DEFAULT_ARTWORK}'"></td>
               <td style="font-weight: bold;">${mix.title}</td>
-              <td><span class="badge"><i class="fa-solid fa-heart"></i> ${mix.likes_count}</span></td>
-              <td><span class="badge"><i class="fa-solid fa-download"></i> ${mix.downloads_count}</span></td>
-              <td><button class="btn-delete" onclick="deleteMix(${mix.id}, '${mix.title.replace(/'/g, "\\'")}')"><i class="fa-solid fa-trash"></i> Delete</button></td>
+              <td>
+                  <span class="badge" style="white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;">
+                      <i class="fa-solid fa-heart" style="color: #ff4d4d;"></i> ${mix.likes_count || 0}
+                  </span>
+              </td>
+              <td>
+                  <span class="badge" style="white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;">
+                      <i class="fa-solid fa-download" style="color: var(--primary);"></i> ${mix.downloads_count || 0}
+                  </span>
+              </td>
+              <td>
+                  <button class="btn-delete" onclick="deleteMix(${mix.id}, '${mix.title.replace(/'/g, "\\'")}')">
+                      <i class="fa-solid fa-trash"></i> Delete
+                  </button>
+              </td>
           </tr>
       `;
     });

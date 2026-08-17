@@ -384,13 +384,10 @@
                     <input type="url" id="up-artwork" placeholder="Artwork Image URL (Optional)" style="width: 100%; padding: 14px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.15); color: #fff; border-radius: 8px; outline: none; font-size: 1rem; box-sizing: border-box;">
                 </div>
                 
-                <!-- Payment Buttons -->
+                <!-- Unified Flutterwave Payment Button -->
                 <div style="display: flex; gap: 15px;">
-                    <button type="button" id="pay-stripe-btn" onclick="submitMixToGateway(event, 'stripe')" style="flex: 1; background: #635bff; color: white; border: none; border-radius: 8px; padding: 14px; cursor: pointer; font-size: 1.05rem; font-weight: bold; display: flex; justify-content: center; align-items: center; gap: 8px;">
-                        <i class="fa-brands fa-stripe"></i> Stripe
-                    </button>
-                    <button type="button" id="pay-paypal-btn" onclick="submitMixToGateway(event, 'paypal')" style="flex: 1; background: #0070ba; color: white; border: none; border-radius: 8px; padding: 14px; cursor: pointer; font-size: 1.05rem; font-weight: bold; display: flex; justify-content: center; align-items: center; gap: 8px;">
-                        <i class="fa-brands fa-paypal"></i> PayPal
+                    <button type="button" id="pay-flw-btn" onclick="submitMixToGateway(event)" style="flex: 1; background: #f5a623; color: #1a1a20; border: none; border-radius: 8px; padding: 14px; cursor: pointer; font-size: 1.05rem; font-weight: bold; display: flex; justify-content: center; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-mobile-screen-button"></i> Pay with M-Pesa / Card
                     </button>
                 </div>
             </form>

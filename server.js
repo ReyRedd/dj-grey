@@ -191,7 +191,7 @@ app.get('/api/users/me/downloads', authenticateUser, async (req, res) => {
 });
 
 // ---------------------------------------------------------
-// 💸 DJ UPLOADS & PAYMENT INTEGRATION (STRIPE / PAYPAL)
+// 💸 FLUTTERWAVE INTEGRATION (M-PESA / CARDS)
 // ---------------------------------------------------------
 pool.query(`
     CREATE TABLE IF NOT EXISTS mix_submissions (
@@ -209,62 +209,83 @@ pool.query(`
     );
 `);
 
-app.post('/api/submissions/checkout', authenticateUser, async (req, res) => {
+const FLW_SECRET_KEY = process.env.FLW_SECRET_KEY || 'dummy_flw_secret';
+
+app.post('/api/submissions/flutterwave/create', authenticateUser, async (req, res) => {
     const { title, audio_url, artwork_url, spotify_url } = req.body;
+    if (!title || (!audio_url && !spotify_url)) return res.status(400).json({ error: "Details required." });
+
+    // Generate a unique transaction reference
+    const tx_ref = `djgrey-${Date.now()}-${req.user.id}`;
+
     try {
-        const session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
-            line_items: [{ price_data: { currency: 'usd', product_data: { name: 'Premium DJ Mix Upload', description: `Submission for: ${title}` }, unit_amount: 50 }, quantity: 1 }],
-            mode: 'payment',
-            success_url: `https://dj-grey.onrender.com/api/submissions/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `https://djgrey.wezer.me/#`,
+        const payload = {
+            tx_ref: tx_ref,
+            amount: "0.50",
+            currency: "USD", // Flutterwave will automatically convert this to local currency (KES) for M-Pesa users
+            redirect_url: `https://dj-grey.onrender.com/api/submissions/flutterwave/callback`,
+            meta: {
+                user_id: req.user.id,
+                title: title
+            },
+            customer: {
+                email: req.user.email || "dj@djgrey.com",
+                name: req.user.username
+            },
+            customizations: {
+                title: "DJ Grey Premium Upload",
+                description: `Submission for: ${title}`,
+                logo: "https://www.dropbox.com/scl/fi/sn5sapl4pr1uzc98kcpez/dj_grey.jpeg?rlkey=72jldl168nvtccasr0ekk2qy2&st=3yyulxhl&raw=1"
+            }
+        };
+
+        const response = await fetch("https://api.flutterwave.com/v3/payments", {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${FLW_SECRET_KEY}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
         });
 
-        await pool.query(
-            `INSERT INTO mix_submissions (user_id, dj_name, title, audio_url, artwork_url, spotify_url, fee_paid, status, stripe_session_id) VALUES ($1, $2, $3, $4, $5, $6, 0.50, 'awaiting_payment', $7)`,
-            [req.user.id, req.user.username, title, audio_url || '', artwork_url || '', spotify_url || '', session.id]
-        );
-        res.json({ url: session.url });
-    } catch (err) { res.status(500).json({ error: "Stripe error." }); }
+        const data = await response.json();
+
+        if (data.status === "success") {
+            await pool.query(
+                `INSERT INTO mix_submissions (user_id, dj_name, title, audio_url, artwork_url, spotify_url, fee_paid, status, stripe_session_id)
+                 VALUES ($1, $2, $3, $4, $5, $6, 0.50, 'awaiting_payment', $7)`,
+                [req.user.id, req.user.username, title, audio_url || '', artwork_url || '', spotify_url || '', tx_ref]
+            );
+            res.json({ url: data.data.link });
+        } else {
+            res.status(400).json({ error: "Failed to generate payment link. Check FLW API Keys." });
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Payment gateway error." });
+    }
 });
 
-app.get('/api/submissions/success', async (req, res) => {
-    try {
-        await pool.query("UPDATE mix_submissions SET status = 'pending' WHERE stripe_session_id = $1", [req.query.session_id]);
-        await pool.query(`UPDATE users SET role = 'dj' WHERE id = (SELECT user_id FROM mix_submissions WHERE stripe_session_id = $1)`, [req.query.session_id]);
-        res.redirect('https://djgrey.wezer.me/?upload=success');
-    } catch (err) { res.status(500).send("Payment verification failed."); }
-});
+app.get('/api/submissions/flutterwave/callback', async (req, res) => {
+    const { status, tx_ref } = req.query;
+    
+    if (status === 'successful') {
+        try {
+            await pool.query("UPDATE mix_submissions SET status = 'pending' WHERE stripe_session_id = $1", [tx_ref]);
+            
+            // 👑 UPGRADE USER TO 'DJ' ROLE UPON SUCCESSFUL PAYMENT
+            await pool.query(`
+                UPDATE users SET role = 'dj' 
+                WHERE id = (SELECT user_id FROM mix_submissions WHERE stripe_session_id = $1)
+            `, [tx_ref]);
 
-const PAYPAL_API = process.env.PAYPAL_MODE === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
-async function generatePayPalToken() {
-    const auth = Buffer.from((process.env.PAYPAL_CLIENT_ID || 'AWdummy') + ':' + (process.env.PAYPAL_SECRET || 'EEPdummy')).toString('base64');
-    const res = await fetch(`${PAYPAL_API}/v1/oauth2/token`, { method: 'POST', body: 'grant_type=client_credentials', headers: { Authorization: `Basic ${auth}` } });
-    return (await res.json()).access_token;
-}
-
-app.post('/api/submissions/paypal/create', authenticateUser, async (req, res) => {
-    const { title, audio_url, artwork_url, spotify_url } = req.body;
-    try {
-        const token = await generatePayPalToken();
-        const orderData = { intent: 'CAPTURE', purchase_units: [{ amount: { currency_code: 'USD', value: '0.50' }, description: `DJ Upload: ${title}` }], application_context: { return_url: `https://dj-grey.onrender.com/api/submissions/paypal/capture`, cancel_url: `https://djgrey.wezer.me/#` } };
-        const response = await fetch(`${PAYPAL_API}/v2/checkout/orders`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(orderData) });
-        const order = await response.json();
-        await pool.query(`INSERT INTO mix_submissions (user_id, dj_name, title, audio_url, artwork_url, spotify_url, fee_paid, status, stripe_session_id) VALUES ($1, $2, $3, $4, $5, $6, 0.50, 'awaiting_payment', $7)`, [req.user.id, req.user.username, title, audio_url || '', artwork_url || '', spotify_url || '', order.id]);
-        res.json({ url: order.links.find(l => l.rel === 'approve').href });
-    } catch (err) { res.status(500).json({ error: "PayPal gateway error." }); }
-});
-
-app.get('/api/submissions/paypal/capture', async (req, res) => {
-    try {
-        const token = await generatePayPalToken();
-        const response = await fetch(`${PAYPAL_API}/v2/checkout/orders/${req.query.token}/capture`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
-        if ((await response.json()).status === 'COMPLETED') {
-            await pool.query("UPDATE mix_submissions SET status = 'pending' WHERE stripe_session_id = $1", [req.query.token]);
-            await pool.query(`UPDATE users SET role = 'dj' WHERE id = (SELECT user_id FROM mix_submissions WHERE stripe_session_id = $1)`, [req.query.token]);
             res.redirect('https://djgrey.wezer.me/?upload=success');
-        } else res.redirect('https://djgrey.wezer.me/?upload=failed');
-    } catch (err) { res.status(500).send("PayPal Capture Error."); }
+        } catch (err) {
+            res.redirect('https://djgrey.wezer.me/?upload=failed');
+        }
+    } else {
+        res.redirect('https://djgrey.wezer.me/?upload=failed');
+    }
 });
 
 // ---------------------------------------------------------
@@ -372,9 +393,27 @@ app.post('/api/admin/submissions/:id/approve', authenticateAdmin, async (req, re
 
 app.get('/api/admin/analytics', authenticateAdmin, async (req, res) => {
     try {
-        const mixesRes = await pool.query(`SELECT COUNT(*) as count, COALESCE(SUM(plays_count), 0) as plays, COALESCE(SUM(likes_count), 0) as likes, COALESCE(SUM(downloads_count), 0) as downloads FROM mixes`);
-        res.json({ totalMixes: parseInt(mixesRes.rows[0].count), totalPlays: parseInt(mixesRes.rows[0].plays), totalLikes: parseInt(mixesRes.rows[0].likes), totalDownloads: parseInt(mixesRes.rows[0].downloads) });
-    } catch (err) {}
+        const mixesRes = await pool.query(`
+            SELECT COUNT(*) as count, 
+                   COALESCE(SUM(plays_count), 0) as plays, 
+                   COALESCE(SUM(likes_count), 0) as likes, 
+                   COALESCE(SUM(downloads_count), 0) as downloads 
+            FROM mixes
+        `);
+        
+        // 💬 Query total count from comments table
+        const commentsRes = await pool.query('SELECT COUNT(*) as count FROM comments');
+        
+        res.json({
+            totalMixes: parseInt(mixesRes.rows[0].count),
+            totalPlays: parseInt(mixesRes.rows[0].plays),
+            totalLikes: parseInt(mixesRes.rows[0].likes),
+            totalDownloads: parseInt(mixesRes.rows[0].downloads),
+            totalComments: parseInt(commentsRes.rows[0].count || 0)
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Analytics error' });
+    }
 });
 
 // 🎧 HEARTHIS & SPOTIFY ROUTES

@@ -380,7 +380,7 @@ function closeUploadModal() {
     }
 }
 
-async function submitMixToGateway(e, gateway) {
+async function submitMixToGateway(e) {
     e.preventDefault();
     const currentToken = localStorage.getItem("dj_grey_token");
     const title = document.getElementById("up-title").value;
@@ -391,23 +391,12 @@ async function submitMixToGateway(e, gateway) {
         return Swal.fire({ icon: 'error', title: 'Missing Info', text: 'Please provide a Title and Audio Link.' });
     }
 
-    const btnStripe = document.getElementById("pay-stripe-btn");
-    const btnPayPal = document.getElementById("pay-paypal-btn");
-
-    if (gateway === 'stripe') {
-        btnStripe.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
-        btnStripe.disabled = true;
-        btnPayPal.disabled = true;
-    } else {
-        btnPayPal.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
-        btnPayPal.disabled = true;
-        btnStripe.disabled = true;
-    }
-
-    const endpoint = gateway === 'stripe' ? '/submissions/checkout' : '/submissions/paypal/create';
+    const btnFlw = document.getElementById("pay-flw-btn");
+    btnFlw.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Securely Loading...';
+    btnFlw.disabled = true;
 
     try {
-        const res = await fetch(`${API_URL}${endpoint}`, {
+        const res = await fetch(`${API_URL}/submissions/flutterwave/create`, {
             method: 'POST',
             headers: {
                 "Content-Type": "application/json",
@@ -424,25 +413,22 @@ async function submitMixToGateway(e, gateway) {
         const data = await res.json();
         
         if (data.url) {
-            window.location.href = data.url;
+            window.location.href = data.url; // Redirects to Flutterwave Hosted Checkout
         } else {
             Swal.fire({ icon: 'error', title: 'Checkout Failed', text: data.error || 'Gateway rejected request.' });
-            resetGatewayButtons(btnStripe, btnPayPal);
+            resetGatewayButton(btnFlw);
         }
     } catch (err) {
         console.error(err);
         Swal.fire({ icon: 'error', title: 'Network Error', text: 'Could not connect to payment gateway.' });
-        resetGatewayButtons(btnStripe, btnPayPal);
+        resetGatewayButton(btnFlw);
     }
 }
 
-function resetGatewayButtons(stripeBtn, paypalBtn) {
-    stripeBtn.innerHTML = '<i class="fa-brands fa-stripe"></i> Stripe';
-    paypalBtn.innerHTML = '<i class="fa-brands fa-paypal"></i> PayPal';
-    stripeBtn.disabled = false;
-    paypalBtn.disabled = false;
+function resetGatewayButton(btn) {
+    btn.innerHTML = '<i class="fa-solid fa-mobile-screen-button"></i> Pay with M-Pesa / Card';
+    btn.disabled = false;
 }
-
 // 🎧 Check for Successful Payment Redirect on Page Load
 window.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
