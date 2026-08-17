@@ -553,4 +553,7 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-window.onload = loadMixes;
+// 🚀 RELIABLE PAGE LOAD INITIALIZATION
+window.addEventListener('DOMContentLoaded', () => {
+    loadMixes();
+});
