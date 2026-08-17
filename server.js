@@ -115,6 +115,9 @@ function authenticateUser(req, res, next) {
   });
 }
 
+// Alias for middleware compatibility
+const authenticateToken = authenticateUser;
+
 function authenticateDJOrAdmin(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -147,7 +150,7 @@ app.post("/api/auth/register", async (req, res) => {
 
     await pool.query(
       "INSERT INTO users (username, email, password_hash, role, status) VALUES ($1, $2, $3, 'user', 'pending')",
-      [username, email, hashedPassword],
+      [username, email, hashedPassword]
     );
 
     const verifyLink = `https://dj-grey.onrender.com/api/auth/verify/${verificationToken}`;
@@ -186,13 +189,13 @@ app.get("/api/auth/verify/:token", async (req, res) => {
       decoded.email,
     ]);
     res.send(
-      `<body style="background-color: #0a0a0c; color: #ffffff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;"><div style="text-align: center; padding: 40px; background: #1a1a20; border-radius: 12px; border-top: 4px solid #00a8ff;"><h1 style="color: #00a8ff; margin-top: 0;">Account Verified! 🎉</h1><p><a href="https://djgrey.wezer.me/login.html" style="background: #00a8ff; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration:none;">Log In Now</a></p></div></body>`,
+      `<body style="background-color: #0a0a0c; color: #ffffff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;"><div style="text-align: center; padding: 40px; background: #1a1a20; border-radius: 12px; border-top: 4px solid #00a8ff;"><h1 style="color: #00a8ff; margin-top: 0;">Account Verified! 🎉</h1><p><a href="https://djgrey.wezer.me/login.html" style="background: #00a8ff; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration:none;">Log In Now</a></p></div></body>`
     );
   } catch (err) {
     res
       .status(400)
       .send(
-        `<h1 style="color:red;text-align:center;margin-top:20%">Verification Failed</h1>`,
+        `<h1 style="color:red;text-align:center;margin-top:20%">Verification Failed</h1>`
       );
   }
 });
@@ -216,9 +219,9 @@ app.post("/api/auth/login", async (req, res) => {
         });
 
     const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role },
+      { id: user.id, username: user.username, email: user.email, role: user.role },
       JWT_SECRET,
-      { expiresIn: "24h" },
+      { expiresIn: "24h" }
     );
     res.json({ token, username: user.username, role: user.role });
   } catch (err) {
@@ -234,9 +237,9 @@ app.get("/api/mixes", async (req, res) => {
     res.json(
       (
         await pool.query(
-          "SELECT * FROM mixes WHERE is_active = true ORDER BY id ASC",
+          "SELECT * FROM mixes WHERE is_active = true ORDER BY id ASC"
         )
-      ).rows,
+      ).rows
     );
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -247,7 +250,7 @@ app.post("/api/mixes/:id/play", async (req, res) => {
   try {
     const result = await pool.query(
       "UPDATE mixes SET plays_count = plays_count + 1 WHERE id = $1 RETURNING plays_count",
-      [req.params.id],
+      [req.params.id]
     );
     res.json({ success: true, newPlays: result.rows[0].plays_count });
   } catch (err) {
@@ -261,38 +264,38 @@ app.post("/api/mixes/:id/like", authenticateUser, async (req, res) => {
     const userId = req.user.id;
 
     await pool.query(
-      `CREATE TABLE IF NOT EXISTS mix_likes (id SERIAL PRIMARY KEY, mix_id INT REFERENCES mixes(id) ON DELETE CASCADE, user_id INT REFERENCES users(id) ON DELETE CASCADE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE(mix_id, user_id));`,
+      `CREATE TABLE IF NOT EXISTS mix_likes (id SERIAL PRIMARY KEY, mix_id INT REFERENCES mixes(id) ON DELETE CASCADE, user_id INT REFERENCES users(id) ON DELETE CASCADE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE(mix_id, user_id));`
     );
 
     const existingLike = await pool.query(
       "SELECT * FROM mix_likes WHERE mix_id = $1 AND user_id = $2",
-      [mixId, userId],
+      [mixId, userId]
     );
     let liked = false;
     if (existingLike.rows.length > 0) {
       await pool.query(
         "DELETE FROM mix_likes WHERE mix_id = $1 AND user_id = $2",
-        [mixId, userId],
+        [mixId, userId]
       );
       await pool.query(
         "UPDATE mixes SET likes_count = GREATEST(likes_count - 1, 0) WHERE id = $1",
-        [mixId],
+        [mixId]
       );
     } else {
       await pool.query(
         "INSERT INTO mix_likes (mix_id, user_id) VALUES ($1, $2)",
-        [mixId, userId],
+        [mixId, userId]
       );
       await pool.query(
         "UPDATE mixes SET likes_count = likes_count + 1 WHERE id = $1",
-        [mixId],
+        [mixId]
       );
       liked = true;
     }
 
     const updatedMix = await pool.query(
       "SELECT likes_count FROM mixes WHERE id = $1",
-      [mixId],
+      [mixId]
     );
     res.json({
       success: true,
@@ -308,11 +311,11 @@ app.post("/api/mixes/:id/download", authenticateUser, async (req, res) => {
   try {
     const result = await pool.query(
       "UPDATE mixes SET downloads_count = downloads_count + 1 WHERE id = $1 RETURNING downloads_count",
-      [req.params.id],
+      [req.params.id]
     );
     await pool.query(
       "INSERT INTO user_downloads (user_id, mix_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-      [req.user.id, req.params.id],
+      [req.user.id, req.params.id]
     );
     res.json({ success: true, newDownloads: result.rows[0].downloads_count });
   } catch (err) {
@@ -330,7 +333,7 @@ app.get("/api/users/me/downloads", authenticateUser, async (req, res) => {
 });
 
 // ---------------------------------------------------------
-// 💬 COMMENT ROUTES (RESTORED)
+// 💬 COMMENT ROUTES
 // ---------------------------------------------------------
 app.get("/api/mixes/:mixId/comments", async (req, res) => {
   try {
@@ -341,7 +344,7 @@ app.get("/api/mixes/:mixId/comments", async (req, res) => {
             LEFT JOIN comment_likes cl ON c.id = cl.comment_id
             WHERE c.mix_id = $1 GROUP BY c.id, u.username ORDER BY c.created_at ASC
         `,
-      [req.params.mixId],
+      [req.params.mixId]
     );
     res.json(result.rows);
   } catch (err) {
@@ -360,7 +363,7 @@ app.post("/api/mixes/:mixId/comments", authenticateUser, async (req, res) => {
         req.user.id,
         req.body.parent_id || null,
         req.body.content.trim(),
-      ],
+      ]
     );
     res
       .status(201)
@@ -374,7 +377,7 @@ app.delete("/api/comments/:id", authenticateUser, async (req, res) => {
   try {
     const comment = await pool.query(
       "SELECT user_id FROM comments WHERE id = $1",
-      [req.params.id],
+      [req.params.id]
     );
     if (comment.rows.length === 0)
       return res.status(404).json({ error: "Not found" });
@@ -387,89 +390,91 @@ app.delete("/api/comments/:id", authenticateUser, async (req, res) => {
   }
 });
 
-// 🚨 Added authenticateToken middleware to parse user identity
-app.post('/api/submissions/flutterwave/create', authenticateToken, async (req, res) => {
-    try {
-        const { title, audio_url, spotify_url, artwork_url } = req.body;
-        
-        // Safely extract user properties populated by authenticateToken
-        const userId = req.user.id || req.user.userId;
-        const userEmail = req.user.email;
-        const userName = req.user.username || 'DJ Fan';
+// ---------------------------------------------------------
+// 💸 FLUTTERWAVE PAYMENT ROUTES
+// ---------------------------------------------------------
+app.post("/api/submissions/flutterwave/create", authenticateUser, async (req, res) => {
+  try {
+    const { title, audio_url, spotify_url, artwork_url } = req.body;
+    const userId = req.user.id;
 
-        const txRef = `DJGREY_SUB_${Date.now()}_${userId}`;
-
-        // Save submission as awaiting payment
-        await pool.query(
-            `INSERT INTO mix_submissions (user_id, title, audio_url, spotify_url, artwork_url, stripe_session_id, status) 
-             VALUES ($1, $2, $3, $4, $5, $6, 'awaiting_payment')`,
-            [userId, title, audio_url, spotify_url, artwork_url, txRef]
-        );
-
-        // Initialize Flutterwave Checkout session
-        const flwResponse = await fetch('https://api.flutterwave.com/v3/payments', {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                tx_ref: txRef,
-                amount: 65, // ~ $0.50 USD in KES
-                currency: 'KES', // Enables M-Pesa
-                payment_options: 'card, mpesa',
-                redirect_url: 'https://dj-grey.onrender.com/api/submissions/flutterwave/callback',
-                customer: {
-                    email: userEmail,
-                    name: userName
-                },
-                customizations: {
-                    title: 'DJ Grey Platform VIP',
-                    description: 'Mix Review & 30-Day VIP Subscription Access',
-                    logo: 'https://djgrey.wezer.me/assets/logo.png'
-                }
-            })
-        });
-
-        const data = await flwResponse.json();
-
-        if (data.status === 'success' && data.data.link) {
-            res.json({ url: data.data.link });
-        } else {
-            console.error("Flutterwave error response:", data);
-            res.status(400).json({ error: data.message || 'Failed to generate checkout link' });
-        }
-    } catch (err) {
-        console.error("Payment initialization failed:", err);
-        res.status(500).json({ error: 'Server error initializing checkout' });
+    // Fetch user details directly from DB to handle legacy tokens securely
+    const userQuery = await pool.query("SELECT email, username FROM users WHERE id = $1", [userId]);
+    if (userQuery.rows.length === 0) {
+      return res.status(404).json({ error: "User record not found." });
     }
+
+    const userEmail = userQuery.rows[0].email;
+    const userName = userQuery.rows[0].username || "DJ Fan";
+    const txRef = `DJGREY_SUB_${Date.now()}_${userId}`;
+
+    await pool.query(
+      `INSERT INTO mix_submissions (user_id, dj_name, title, audio_url, spotify_url, artwork_url, stripe_session_id, status) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'awaiting_payment')`,
+      [userId, userName, title, audio_url || "", spotify_url || "", artwork_url || "", txRef]
+    );
+
+    const flwResponse = await fetch("https://api.flutterwave.com/v3/payments", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        tx_ref: txRef,
+        amount: 65,
+        currency: "KES",
+        payment_options: "card, mpesa",
+        redirect_url: "https://dj-grey.onrender.com/api/submissions/flutterwave/callback",
+        customer: {
+          email: userEmail,
+          name: userName,
+        },
+        customizations: {
+          title: "DJ Grey Platform VIP",
+          description: "Mix Review & 30-Day VIP Subscription Access",
+          logo: "https://djgrey.wezer.me/assets/logo.png",
+        },
+      }),
+    });
+
+    const data = await flwResponse.json();
+
+    if (data.status === "success" && data.data && data.data.link) {
+      res.json({ url: data.data.link });
+    } else {
+      console.error("Flutterwave API Error:", data);
+      res.status(400).json({ error: data.message || "Failed to generate checkout link." });
+    }
+  } catch (err) {
+    console.error("Payment initialization error:", err);
+    res.status(500).json({ error: "Server error initializing checkout." });
+  }
 });
 
 app.get("/api/submissions/flutterwave/callback", async (req, res) => {
   const { status, tx_ref } = req.query;
 
-  // Flutterwave sometimes returns 'completed' instead of 'successful'
   if (status === "successful" || status === "completed") {
     try {
       await pool.query(
         "UPDATE mix_submissions SET status = 'pending' WHERE stripe_session_id = $1",
-        [tx_ref],
+        [tx_ref]
       );
 
       const subEnd = new Date();
       subEnd.setDate(subEnd.getDate() + 30);
 
-      // 👑 Upgrade to DJ & Grant Sub (Protects existing Admins from being downgraded!)
       const userRes = await pool.query(
         `
-                UPDATE users 
-                SET role = CASE WHEN role = 'admin' THEN 'admin' ELSE 'dj' END, 
-                    sub_status = 'active', 
-                    sub_end_date = $1 
-                WHERE id = (SELECT user_id FROM mix_submissions WHERE stripe_session_id = $2)
-                RETURNING email, username
-            `,
-        [subEnd, tx_ref],
+            UPDATE users 
+            SET role = CASE WHEN role = 'admin' THEN 'admin' ELSE 'dj' END, 
+                sub_status = 'active', 
+                sub_end_date = $1 
+            WHERE id = (SELECT user_id FROM mix_submissions WHERE stripe_session_id = $2)
+            RETURNING email, username
+        `,
+        [subEnd, tx_ref]
       );
 
       if (userRes.rows.length > 0) {
@@ -502,7 +507,7 @@ app.post("/api/admin/livestream", authenticateDJOrAdmin, async (req, res) => {
     if (is_active) {
       await pool.query(
         "INSERT INTO livestreams (title, is_active) VALUES ($1, true)",
-        [title || "LIVE SESSION"],
+        [title || "LIVE SESSION"]
       );
     }
     res.json({
@@ -514,7 +519,7 @@ app.post("/api/admin/livestream", authenticateDJOrAdmin, async (req, res) => {
   }
 });
 
-app.delete("/api/admin/submissions/:id", async (req, res) => {
+app.delete("/api/admin/submissions/:id", authenticateAdmin, async (req, res) => {
   try {
     await pool.query("DELETE FROM mix_submissions WHERE id = $1", [
       req.params.id,
@@ -528,7 +533,7 @@ app.delete("/api/admin/submissions/:id", async (req, res) => {
 app.get("/api/livestream/active", async (req, res) => {
   try {
     const stream = await pool.query(
-      "SELECT * FROM livestreams WHERE is_active = true ORDER BY id DESC LIMIT 1",
+      "SELECT * FROM livestreams WHERE is_active = true ORDER BY id DESC LIMIT 1"
     );
     res.json({
       active: stream.rows.length > 0,
@@ -544,7 +549,7 @@ app.get("/api/livestream/chat", async (req, res) => {
     res.json(
       (
         await pool.query("SELECT * FROM live_chat ORDER BY id DESC LIMIT 50")
-      ).rows.reverse(),
+      ).rows.reverse()
     );
   } catch (err) {}
 });
@@ -559,9 +564,9 @@ app.post("/api/livestream/chat", authenticateUser, async (req, res) => {
         (
           await pool.query(
             "INSERT INTO live_chat (user_id, username, message) VALUES ($1, $2, $3) RETURNING *",
-            [req.user.id, req.user.username, req.body.message.trim()],
+            [req.user.id, req.user.username, req.body.message.trim()]
           )
-        ).rows[0],
+        ).rows[0]
       );
   } catch (err) {}
 });
@@ -609,9 +614,9 @@ app.post("/api/mixes", authenticateAdmin, async (req, res) => {
         (
           await pool.query(
             "INSERT INTO mixes (title, audio_url, artwork_url) VALUES ($1, $2, $3) RETURNING *",
-            [title, audio_url, artwork_url],
+            [title, audio_url, artwork_url]
           )
-        ).rows[0],
+        ).rows[0]
       );
   } catch (err) {
     res.status(500).json({ error: "Failed" });
@@ -630,9 +635,9 @@ app.get("/api/admin/users", authenticateAdmin, async (req, res) => {
     res.json(
       (
         await pool.query(
-          "SELECT id, username, email, role, status FROM users ORDER BY CASE WHEN status = 'pending' THEN 1 ELSE 2 END, id DESC",
+          "SELECT id, username, email, role, status FROM users ORDER BY CASE WHEN status = 'pending' THEN 1 ELSE 2 END, id DESC"
         )
-      ).rows,
+      ).rows
     );
   } catch (err) {}
 });
@@ -647,7 +652,7 @@ app.delete("/api/admin/users/:id", authenticateAdmin, async (req, res) => {
 app.get("/api/admin/submissions", authenticateAdmin, async (req, res) => {
   try {
     res.json(
-      (await pool.query("SELECT * FROM mix_submissions ORDER BY id DESC")).rows,
+      (await pool.query("SELECT * FROM mix_submissions ORDER BY id DESC")).rows
     );
   } catch (err) {}
 });
@@ -664,7 +669,7 @@ app.post(
       ).rows[0];
       await pool.query(
         "UPDATE mix_submissions SET status = 'approved' WHERE id = $1",
-        [req.params.id],
+        [req.params.id]
       );
 
       await pool.query(
@@ -674,13 +679,13 @@ app.post(
           sub.audio_url || sub.spotify_url,
           sub.artwork_url || "",
           sub.user_id,
-        ],
+        ]
       );
       res.json({ success: true, message: "Mix published!" });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
-  },
+  }
 );
 
 app.get("/api/admin/analytics", authenticateAdmin, async (req, res) => {
@@ -694,7 +699,7 @@ app.get("/api/admin/analytics", authenticateAdmin, async (req, res) => {
         `);
 
     const commentsRes = await pool.query(
-      "SELECT COUNT(*) as count FROM comments",
+      "SELECT COUNT(*) as count FROM comments"
     );
 
     res.json({
@@ -716,7 +721,7 @@ app.get("/api/hearthis/sync/:username", async (req, res) => {
   try {
     const response = await fetch(
       `https://hearthis.at/${req.params.username || "grey-george"}/podcast/`,
-      { headers: { "User-Agent": "Mozilla/5.0" } },
+      { headers: { "User-Agent": "Mozilla/5.0" } }
     );
     const items =
       (await response.text()).match(/<item>[\s\S]*?<\/item>/gi) || [];
@@ -733,16 +738,16 @@ app.get("/api/hearthis/sync/:username", async (req, res) => {
 
       let dbCheck = await pool.query(
         "SELECT * FROM mixes WHERE title = $1 OR audio_url = $2",
-        [title, audio_url],
+        [title, audio_url]
       );
       if (dbCheck.rows.length === 0) {
         syncedMixes.push(
           (
             await pool.query(
               "INSERT INTO mixes (title, audio_url, artwork_url, likes_count, downloads_count) VALUES ($1, $2, $3, 0, 0) RETURNING *",
-              [title, audio_url, ""],
+              [title, audio_url, ""]
             )
-          ).rows[0],
+          ).rows[0]
         );
       } else syncedMixes.push(dbCheck.rows[0]);
     }
@@ -759,7 +764,7 @@ app.get("/api/spotify/sync", async (req, res) => {
       "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M";
     const urlParts = spotifyUrl.split("/");
     const typeIndex = urlParts.findIndex(
-      (p) => p === "playlist" || p === "track" || p === "album",
+      (p) => p === "playlist" || p === "track" || p === "album"
     );
     const embed_html = `<iframe style="border-radius:12px; box-shadow: 0 15px 35px rgba(0,0,0,0.5);" src="https://open.spotify.com/embed/${urlParts[typeIndex]}/${urlParts[typeIndex + 1].split("?")[0]}?utm_source=generator&theme=0" width="100%" height="400" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
 
@@ -771,7 +776,7 @@ app.get("/api/spotify/sync", async (req, res) => {
         ? (
             await pool.query(
               "INSERT INTO mixes (title, audio_url, artwork_url, likes_count, downloads_count) VALUES ($1, $2, $3, 0, 0) RETURNING *",
-              [req.query.title || "DJ Grey - Spotify Drop", spotifyUrl, ""],
+              [req.query.title || "DJ Grey - Spotify Drop", spotifyUrl, ""]
             )
           ).rows[0]
         : dbCheck.rows[0];
@@ -782,12 +787,12 @@ app.get("/api/spotify/sync", async (req, res) => {
 });
 
 // ---------------------------------------------------------
-// 🤖 SUBSCRIPTION ENGINE (ADMIN TRIGGERED)
+// 🤖 SUBSCRIPTION ENGINE
 // ---------------------------------------------------------
 app.get("/api/admin/subscriptions", authenticateAdmin, async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT id, username, email, sub_status, sub_end_date FROM users WHERE sub_status != 'none' ORDER BY sub_end_date ASC",
+      "SELECT id, username, email, sub_status, sub_end_date FROM users WHERE sub_status != 'none' ORDER BY sub_end_date ASC"
     );
     res.json(result.rows);
   } catch (err) {
@@ -801,12 +806,12 @@ app.post(
   async (req, res) => {
     try {
       const expiredUsers = await pool.query(
-        "UPDATE users SET sub_status = 'expired' WHERE sub_end_date < NOW() AND sub_status = 'active' RETURNING id, email, username",
+        "UPDATE users SET sub_status = 'expired' WHERE sub_end_date < NOW() AND sub_status = 'active' RETURNING id, email, username"
       );
       for (let user of expiredUsers.rows) {
         await pool.query(
           "UPDATE mixes SET is_active = false WHERE user_id = $1",
-          [user.id],
+          [user.id]
         );
         await resend.emails.send({
           from: "DJ Grey Vault <vip@djgrey.wezer.me>",
@@ -817,7 +822,7 @@ app.post(
       }
 
       const expiringUsers = await pool.query(
-        "UPDATE users SET sub_status = 'expiring' WHERE sub_end_date BETWEEN NOW() AND NOW() + INTERVAL '3 days' AND sub_status = 'active' RETURNING email, username",
+        "UPDATE users SET sub_status = 'expiring' WHERE sub_end_date BETWEEN NOW() AND NOW() + INTERVAL '3 days' AND sub_status = 'active' RETURNING email, username"
       );
       for (let user of expiringUsers.rows) {
         await resend.emails.send({
@@ -836,10 +841,10 @@ app.post(
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
-  },
+  }
 );
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () =>
-  console.log(`🔥 Free WebRTC Server running on port ${PORT}`),
+  console.log(`🔥 Free WebRTC Server running on port ${PORT}`)
 );
