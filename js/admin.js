@@ -255,3 +255,19 @@ window.onload = () => {
         switchAdminTab("dashboard-tab");
     }
 };
+
+// ☀️ / 🌙 THEME TOGGLE LOGIC
+function toggleTheme() {
+    const html = document.documentElement;
+    const icon = document.querySelector("#theme-toggle i");
+    
+    if (html.getAttribute("data-theme") === "light") {
+        html.setAttribute("data-theme", "dark");
+        icon.classList.remove("fa-moon");
+        icon.classList.add("fa-sun");
+    } else {
+        html.setAttribute("data-theme", "light");
+        icon.classList.remove("fa-sun");
+        icon.classList.add("fa-moon");
+    }
+}

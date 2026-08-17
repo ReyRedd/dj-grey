@@ -42,6 +42,7 @@ pool.query(`
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
+    ALTER TABLE mix_submissions ADD COLUMN IF NOT EXISTS stripe_session_id VARCHAR(255);
     ALTER TABLE users ADD COLUMN IF NOT EXISTS sub_status VARCHAR(20) DEFAULT 'none';
     ALTER TABLE users ADD COLUMN IF NOT EXISTS sub_end_date TIMESTAMP;
     ALTER TABLE mixes ADD COLUMN IF NOT EXISTS user_id INT REFERENCES users(id) ON DELETE CASCADE;

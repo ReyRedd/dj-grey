@@ -13,6 +13,27 @@
   --glass-blur: blur(16px);
 }
 
+/* ---------------------------------------------------------
+   ☀️ LIGHT THEME OVERRIDES
+--------------------------------------------------------- */
+[data-theme="light"] {
+  --bg-dark: #f0f2f5;
+  --panel-bg: rgba(255, 255, 255, 0.7);
+  --text-main: #1a1a2e;
+  --text-muted: #555555;
+  --border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] body {
+  background: radial-gradient(circle at top left, #ffffff, #e2e8f0);
+}
+
+[data-theme="light"] .bento-value, 
+[data-theme="light"] .header h1,
+[data-theme="light"] .fan-info h4 {
+  color: #1a1a2e;
+}
+
 body {
   margin: 0;
   font-family: 'Segoe UI', system-ui, sans-serif;

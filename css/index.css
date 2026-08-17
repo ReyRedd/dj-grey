@@ -28,13 +28,14 @@
 
 body {
   margin: 0;
-  padding: 0 0 110px 0;
-  color: var(--text-main);
-  font-family: var(--font-main);
-  background: var(--bg-gradient);
-  background-size: 400% 400%;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: radial-gradient(circle at top left, #1a1a2e, #0a0a0c, #12121a);
+  background-size: 200% 200%;
   animation: gradientBG 15s ease infinite;
-  transition: color 0.3s;
+  color: var(--text-main);
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
 }
 
 @keyframes gradientBG {
