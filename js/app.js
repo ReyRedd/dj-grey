@@ -544,7 +544,7 @@ async function downloadMix(id, element) {
         });
 
         Swal.fire({
-            icon: 'success', title: 'Added to Vault! 🎧',
+            icon: 'success', title: 'Added to Playlist! 🎧',
             text: 'This mix has been securely saved to your personal platform playlist. You can listen to it anytime from the "My Playlist" tab.',
             background: 'var(--glass-bg)', color: 'var(--text-main)', confirmButtonColor: 'var(--primary)',
             backdrop: `rgba(0,0,0,0.6)`

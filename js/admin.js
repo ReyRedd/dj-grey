@@ -95,23 +95,24 @@ async function deleteMix(id) {
     loadAdminData();
 }
 
-// 👑 AUTOMATED SUBSCRIPTIONS LOGIC
+// AUTOMATED SUBSCRIPTIONS HUB LOGIC
 async function loadSubscriptions() {
     const tbody = document.getElementById("subs-table-body");
     try {
-        // 1. Show a loading state while it syncs
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center;"><i class="fa-solid fa-spinner fa-spin"></i> Auto-syncing ledger & processing expirations...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i> Auto-syncing ledger...</td></tr>`;
         
-        // 2. Silently run the engine in the background!
-        await fetch(`${API_URL}/admin/subscriptions/engine`, { method: "POST", headers: getAuthHeaders() });
+        // Auto-run subscription engine check in background
+        await fetch(`${API_URL}/admin/subscriptions/engine`, { 
+            method: "POST", 
+            headers: getAuthHeaders() 
+        });
         
-        // 3. Fetch the newly updated data
         const res = await fetch(`${API_URL}/admin/subscriptions`, { headers: getAuthHeaders() });
         const subs = await res.json();
         
         let active = 0, expiring = 0, expired = 0;
         
-        if (subs.length === 0) {
+        if (!subs || subs.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No VIP subscriptions found yet.</td></tr>`;
         } else {
             tbody.innerHTML = subs.map(sub => {
@@ -119,14 +120,14 @@ async function loadSubscriptions() {
                 if(sub.sub_status === 'expiring') expiring++;
                 if(sub.sub_status === 'expired') expired++;
                 
-                const dateStr = new Date(sub.sub_end_date).toLocaleDateString();
+                const dateStr = sub.sub_end_date ? new Date(sub.sub_end_date).toLocaleDateString() : 'N/A';
                 return `
                 <tr>
                     <td><strong>${sub.username}</strong></td>
                     <td>${sub.email}</td>
                     <td><span class="sub-status-${sub.sub_status}">${sub.sub_status.toUpperCase()}</span></td>
                     <td>${dateStr}</td>
-                    <td><button class="btn-action" style="padding: 5px 10px;" onclick="alert('Feature coming soon')">Force Renew</button></td>
+                    <td><button class="btn-action" style="padding: 5px 10px;" onclick="alert('Manual renewal available soon')">Manage</button></td>
                 </tr>
             `}).join("");
         }
@@ -135,7 +136,7 @@ async function loadSubscriptions() {
         document.getElementById("sub-expiring").innerText = expiring;
         document.getElementById("sub-expired").innerText = expired;
     } catch(e) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--danger);">Failed to sync ledger.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--danger);">Failed to load subscription ledger.</td></tr>`;
     }
 }
 
@@ -188,28 +189,47 @@ async function deleteUser(id, username) {
     loadUsers();
 }
 
-// 🎧 Mix Queue ($0.50) Logic
+// MIX QUEUE LOGIC (ACCURATE PAYMENT BADGES)
 async function loadSubmissionsQueue() {
     const tbody = document.getElementById("submissions-table-body");
     try {
         const res = await fetch(`${API_URL}/admin/submissions`, { headers: getAuthHeaders() });
         const data = await res.json();
-        if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No pending DJ submissions.</td></tr>`;
+        
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No DJ submissions found.</td></tr>`;
             return;
         }
-        tbody.innerHTML = data.map(s => `
+        
+        tbody.innerHTML = data.map(s => {
+            let feeBadge = '';
+            let actionHtml = '';
+            
+            // Differentiate paid, pending, and abandoned checkouts
+            if (s.status === 'awaiting_payment' || s.status === 'failed') {
+                feeBadge = `<span class="sub-status-expired">Unpaid / Abandoned</span>`;
+                actionHtml = `<span style="color: var(--text-muted);">Checkout Not Finished</span>`;
+            } else if (s.status === 'pending') {
+                feeBadge = `<span class="sub-status-active">$0.50 USD Paid</span>`;
+                actionHtml = `<button class="btn-action" style="padding: 5px 10px;" onclick="approveSubmission(${s.id})"><i class="fa-solid fa-check"></i> Approve & Publish</button>`;
+            } else {
+                feeBadge = `<span class="sub-status-active">$0.50 USD Paid</span>`;
+                actionHtml = `<span style="color: var(--success); font-weight: bold;">Published</span>`;
+            }
+
+            return `
             <tr>
-                <td><strong>${s.dj_name}</strong></td>
+                <td><strong>${s.dj_name || s.username || 'Unknown'}</strong></td>
                 <td>${s.title}</td>
-                <td><span class="sub-status-active">$0.50 USD Paid</span></td>
-                <td><a href="${s.audio_url || s.spotify_url}" target="_blank" style="color: var(--primary);">Listen Link</a></td>
-                <td>
-                    ${s.status === "pending" ? `<button class="btn-action" style="padding:5px 10px;" onclick="approveSubmission(${s.id})"><i class="fa-solid fa-check"></i> Publish</button>` : `<span style="color: var(--text-muted);">Published</span>`}
-                </td>
+                <td>${feeBadge}</td>
+                <td><a href="${s.audio_url || s.spotify_url || '#'}" target="_blank" style="color: var(--primary);">Listen Link</a></td>
+                <td>${actionHtml}</td>
             </tr>
-        `).join("");
-    } catch (e) { console.error(e); }
+        `}).join("");
+    } catch (e) { 
+        console.error(e);
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--danger);">Error loading mix queue.</td></tr>`;
+    }
 }
 
 async function approveSubmission(id) {
