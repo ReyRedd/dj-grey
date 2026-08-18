@@ -317,15 +317,6 @@ div:where(.swal2-container) button:where(.swal2-styled.swal2-cancel) { backgroun
 div:where(.swal2-container) h2:where(.swal2-title) { color: var(--text-main); }
 div:where(.swal2-container) div:where(.swal2-html-container) { color: var(--text-muted); }
 
-/* ========================================= */
-/* 📱 MOBILE RESPONSIVE FIXES                */
-/* ========================================= */
-@media (max-width: 768px) {
-  .left-nav { position: fixed; height: 100vh; z-index: var(--z-sidebar); transform: translateX(-100%); display: flex; }
-  .left-nav.open { transform: translateX(0); box-shadow: 20px 0 50px rgba(0,0,0,0.8); }
-  .vault-sidebar, .comments-sidebar { width: 100%; }
-}
-
 /* ---------------------------------------------------------
    ☁️ UPLOAD MODAL LIGHT/DARK MODE FIX
 --------------------------------------------------------- */
@@ -345,4 +336,56 @@ div:where(.swal2-container) div:where(.swal2-html-container) { color: var(--text
 }
 #upload-modal input::placeholder {
     color: var(--text-muted) !important;
+}
+
+/* ========================================= */
+/* 📱 MOBILE RESPONSIVE FIXES                */
+/* ========================================= */
+@media (max-width: 768px) {
+  .app-container {
+    display: block !important;
+    width: 100vw;
+    overflow-x: hidden;
+  }
+  
+  .left-nav { 
+    position: fixed !important; 
+    top: 85px; /* Adjust for header height */
+    left: -100% !important; 
+    transform: none !important;
+    width: 280px !important;
+    height: calc(100vh - 85px) !important;
+    z-index: var(--z-sidebar); 
+    transition: left 0.3s ease-in-out;
+    box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+  }
+  
+  .left-nav.open { 
+    left: 0 !important; 
+  }
+  
+  .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding: 20px 15px !important;
+    box-sizing: border-box;
+  }
+  
+  .grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px;
+  }
+  
+  .vault-sidebar, .comments-sidebar { 
+    width: 100%; 
+  }
+  
+  .header-brand h1 {
+    font-size: 1.5rem;
+  }
+  
+  .auth-btn {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+  }
 }
