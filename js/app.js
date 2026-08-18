@@ -135,10 +135,11 @@ async function loadSpotifyHub() {
 }
 
 // ---------------------------------------------------------
-// 📺 WEBRTC LIVESTREAM WATCHER
+// 📺 WEBRTC LIVESTREAM WATCHER & LIVE CHAT
 // ---------------------------------------------------------
 const socket = (typeof io !== "undefined") ? io(window.DJ_API_URL.replace('/api', '')) : null;
 let peerConnection;
+let chatInterval = null;
 const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
 async function checkLiveStream() {
@@ -151,13 +152,32 @@ async function checkLiveStream() {
             container.innerHTML = `
                 <div style="background: var(--panel-bg); border-radius: 12px; padding: 20px; width: 100%;">
                     <h3 style="margin-top: 0; color: var(--danger);"><i class="fa-solid fa-circle-dot"></i> LIVE NOW: ${data.stream ? data.stream.title : 'DJ GREY SESSION'}</h3>
-                    <div style="background: #000; border-radius: 8px; overflow: hidden; height: 400px; margin-top: 15px;">
-                        <video id="remote-video" autoplay playsinline controls style="width: 100%; height: 100%; object-fit: cover;"></video>
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-top: 15px;">
+                        
+                        <!-- Video Player -->
+                        <div style="background: #000; border-radius: 8px; overflow: hidden; height: 400px;">
+                            <video id="remote-video" autoplay playsinline controls style="width: 100%; height: 100%; object-fit: cover;"></video>
+                        </div>
+                        
+                        <!-- Fan Chat Box -->
+                        <div style="display: flex; flex-direction: column; height: 400px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
+                            <h4 style="margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;"><i class="fa-solid fa-comments"></i> Live Chat</h4>
+                            <div id="chat-messages" style="flex: 1; overflow-y: auto; margin-bottom: 10px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px;"></div>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="chat-input" placeholder="Say something..." style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5); color: #fff; outline: none;">
+                                <button onclick="window.sendChatMessage()" style="padding: 0 15px; background: var(--primary); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-weight: bold;"><i class="fa-solid fa-paper-plane"></i></button>
+                            </div>
+                        </div>
+
                     </div>
                 </div>`;
             initWebRTCWatcher();
+            loadLiveChat();
+            if (chatInterval) clearInterval(chatInterval);
+            chatInterval = setInterval(loadLiveChat, 3000); // Auto-refresh chat every 3s
         } else {
             container.innerHTML = `<div style="text-align: center; padding: 60px 20px; width: 100%;"><i class="fa-solid fa-tower-broadcast" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 15px;"></i><h3>No Active Livestream</h3><p style="color: var(--text-muted);">DJ Grey is offline.</p></div>`;
+            if (chatInterval) clearInterval(chatInterval);
         }
     } catch (e) { console.error(e); }
 }
@@ -174,6 +194,40 @@ function initWebRTCWatcher() {
     socket.on("candidate", (id, candidate) => { if (peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(candidate)); });
     socket.on("broadcaster", () => { if (window.djCurrentTab === "livestream") checkLiveStream(); });
     socket.on("disconnectPeer", () => { if (peerConnection) peerConnection.close(); if (window.djCurrentTab === "livestream") checkLiveStream(); });
+}
+
+async function loadLiveChat() {
+    try {
+        const res = await fetch(`${window.DJ_API_URL}/livestream/chat`);
+        const messages = await res.json();
+        const box = document.getElementById("chat-messages");
+        if (box) {
+            box.innerHTML = messages.map(m => `
+                <div style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px; line-height: 1.3;">
+                    <strong style="color: var(--primary);">${m.username}:</strong> 
+                    <span style="color: var(--text-main);">${m.message}</span>
+                </div>
+            `).join("");
+            box.scrollTop = box.scrollHeight;
+        }
+    } catch (e) {}
+}
+
+async function sendChatMessage() {
+    const input = document.getElementById("chat-input");
+    if (!input || !input.value.trim()) return;
+    const token = localStorage.getItem("dj_grey_token");
+    if (!token) return Swal.fire({ icon: 'warning', title: 'Login Required', text: 'Log in to chat live!', background: 'var(--panel-bg)', color: '#fff' });
+
+    try {
+        await fetch(`${window.DJ_API_URL}/livestream/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ message: input.value.trim() })
+        });
+        input.value = "";
+        loadLiveChat();
+    } catch (e) {}
 }
 
 // ---------------------------------------------------------
@@ -246,6 +300,7 @@ window.likeMix = likeMix;
 window.downloadMix = downloadMix;
 window.fetchHearthisMixes = fetchHearthisMixes;
 window.loadSpotifyHub = loadSpotifyHub;
+window.sendChatMessage = sendChatMessage;
 
 document.addEventListener("DOMContentLoaded", () => {
     loadMixes();

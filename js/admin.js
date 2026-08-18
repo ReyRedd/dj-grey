@@ -258,7 +258,6 @@ async function startNativeBroadcast() {
     const title = titleInput ? titleInput.value || "DJ GREY LIVE SESSION" : "DJ GREY LIVE SESSION";
     
     try {
-        // Force camera initialization, halt if blocked
         if (!localStream) {
             const hasAccess = await initBroadcastStudio();
             if (!hasAccess) return;
@@ -272,11 +271,9 @@ async function startNativeBroadcast() {
         if (data.success) {
             if (socket) socket.emit("broadcaster");
             
-            // 🚨 Reveal the Chat Sidebar
             const chatSidebar = document.getElementById("admin-chat-sidebar");
             if (chatSidebar) chatSidebar.style.display = "flex";
 
-            // 🚨 Start Polling Chat
             fetchAdminChat();
             if (adminChatInterval) clearInterval(adminChatInterval);
             adminChatInterval = setInterval(fetchAdminChat, 3000);
@@ -295,7 +292,6 @@ async function stopNativeBroadcast() {
     
     await fetch(`${API_URL}/admin/livestream`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify({ is_active: false }) });
 
-    // 🚨 Hide Chat Sidebar
     const chatSidebar = document.getElementById("admin-chat-sidebar");
     if (chatSidebar) chatSidebar.style.display = "none";
     if (adminChatInterval) clearInterval(adminChatInterval);
@@ -303,7 +299,6 @@ async function stopNativeBroadcast() {
     Swal.fire({ icon: "info", title: "Broadcast Ended", background: "var(--panel-bg)", color: "#fff" });
 }
 
-// Admin Chat Functions
 async function fetchAdminChat() {
     const box = document.getElementById("admin-chat-messages");
     if (!box) return;

@@ -719,40 +719,44 @@ app.get("/api/admin/analytics", authenticateAdmin, async (req, res) => {
 // ---------------------------------------------------------
 app.get("/api/hearthis/sync/:username", async (req, res) => {
   try {
-    const response = await fetch(
-      `https://hearthis.at/${req.params.username || "george-grey"}/podcast/`,
-      { headers: { "User-Agent": "Mozilla/5.0" } }
-    );
-    const items =
-      (await response.text()).match(/<item>[\s\S]*?<\/item>/gi) || [];
+    const username = req.params.username || "george-grey";
+    
+    // 🚨 Request data from the Official Hearthis JSON API (Bypasses Podcast XML)
+    const response = await fetch(`https://api-v2.hearthis.at/${username}/?type=tracks&count=30`);
+    
+    if (!response.ok) {
+        return res.json({ success: true, mixes: [] });
+    }
 
+    const tracks = await response.json();
     const syncedMixes = [];
-    for (const item of items) {
-      let title =
-        (item.match(/<title>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/title>/i) ||
-          item.match(/<title>\s*([\s\S]*?)\s*<\/title>/i) ||
-          [])[1]?.trim() || "Unknown";
-      let audio_url =
-        (item.match(/<enclosure[^>]*url="([^"]+)"/i) || [])[1] || "";
+
+    for (const track of tracks) {
+      let title = track.title || "Unknown";
+      let audio_url = track.stream_url || "";
+      let artwork_url = track.artwork_url || track.thumb || "";
+
       if (!audio_url) continue;
 
       let dbCheck = await pool.query(
         "SELECT * FROM mixes WHERE title = $1 OR audio_url = $2",
         [title, audio_url]
       );
+      
       if (dbCheck.rows.length === 0) {
-        syncedMixes.push(
-          (
-            await pool.query(
-              "INSERT INTO mixes (title, audio_url, artwork_url, likes_count, downloads_count) VALUES ($1, $2, $3, 0, 0) RETURNING *",
-              [title, audio_url, ""]
-            )
-          ).rows[0]
+        const inserted = await pool.query(
+          "INSERT INTO mixes (title, audio_url, artwork_url, likes_count, downloads_count) VALUES ($1, $2, $3, 0, 0) RETURNING *",
+          [title, audio_url, artwork_url]
         );
-      } else syncedMixes.push(dbCheck.rows[0]);
+        syncedMixes.push(inserted.rows[0]);
+      } else {
+        syncedMixes.push(dbCheck.rows[0]);
+      }
     }
+    
     res.json({ success: true, mixes: syncedMixes });
   } catch (err) {
+    console.error("Hearthis sync error", err);
     res.status(500).json({ error: "Hearthis sync error" });
   }
 });
