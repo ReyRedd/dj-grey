@@ -721,16 +721,29 @@ app.get("/api/hearthis/sync/:username", async (req, res) => {
   try {
     const username = req.params.username || "george-grey";
     
-    // Request data using 'feed' to catch everything (we will filter duplicates below)
-    const response = await fetch(`https://api-v2.hearthis.at/${username}/?type=feed&count=30`);
+    // 🚨 Reverted to stable endpoint (Fetches standard uploads only)
+    const response = await fetch(`https://api-v2.hearthis.at/${username}/?type=tracks&count=30`);
     
     if (!response.ok) {
         return res.json({ success: true, mixes: [] });
     }
 
-    const tracks = await response.json();
+    // 🚨 BULLETPROOFING: Read as raw text first to prevent JSON crash
+    const textData = await response.text();
+    if (!textData) {
+        return res.json({ success: true, mixes: [] });
+    }
+
+    let tracks = [];
+    try {
+        tracks = JSON.parse(textData);
+    } catch (parseErr) {
+        console.error("Hearthis returned invalid data:", textData);
+        return res.json({ success: true, mixes: [] });
+    }
+
     const syncedMixes = [];
-    const seenIds = new Set(); // 🚨 Tracks unique Database IDs to prevent duplicates
+    const seenIds = new Set(); // Tracks unique Database IDs
 
     for (const track of tracks) {
       let title = track.title || "Unknown";
@@ -755,7 +768,6 @@ app.get("/api/hearthis/sync/:username", async (req, res) => {
         currentMix = dbCheck.rows[0];
       }
 
-      // 🚨 Only add the mix to the final array if we haven't rendered it yet
       if (!seenIds.has(currentMix.id)) {
         seenIds.add(currentMix.id);
         syncedMixes.push(currentMix);
