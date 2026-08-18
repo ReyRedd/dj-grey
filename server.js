@@ -720,7 +720,7 @@ app.get("/api/admin/analytics", authenticateAdmin, async (req, res) => {
 app.get("/api/hearthis/sync/:username", async (req, res) => {
   try {
     const response = await fetch(
-      `https://hearthis.at/${req.params.username || "grey-george"}/podcast/`,
+      `https://hearthis.at/${req.params.username || "george-grey"}/podcast/`,
       { headers: { "User-Agent": "Mozilla/5.0" } }
     );
     const items =

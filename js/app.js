@@ -110,7 +110,7 @@ async function fetchHearthisMixes() {
     if (!grid) return;
     grid.innerHTML = `<p style="font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-spinner fa-spin"></i> Syncing with Hearthis.at...</p>`;
     try {
-        const res = await fetch(`${window.DJ_API_URL}/hearthis/sync/grey-george`); 
+        const res = await fetch(`${window.DJ_API_URL}/hearthis/sync/george-grey`); 
         const data = await res.json();
         if (data.success && data.mixes.length > 0) { renderGrid(data.mixes); } 
         else { grid.innerHTML = `<p style="color: var(--text-muted);">No public mixes found.</p>`; }
