@@ -18,17 +18,21 @@ async function loadMixes() {
     const res = await fetch(`${window.DJ_API_URL}/mixes`, { headers });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    window.djCatalog = Array.isArray(data) ? data : [];
-    renderGrid(window.djCatalog);
+    const mixes = Array.isArray(data) ? data : [];
+    renderGrid(mixes);
   } catch (error) { grid.innerHTML = `<p style="color: #ff4d4d; text-align: center;"><i class="fa-solid fa-triangle-exclamation"></i> Network Error.</p>`; }
 }
 
 // ---------------------------------------------------------
-// 🎨 RENDER GRID
+// 🎨 RENDER GRID (UPDATES CATALOG DYNAMICALLY)
 // ---------------------------------------------------------
 function renderGrid(mixes) {
   const grid = document.getElementById("mixes-grid");
   if (!grid) return;
+  
+  // 🚨 CRITICAL FIX: Sync the global player catalog with whatever list is currently on screen!
+  window.djCatalog = mixes || [];
+  
   grid.innerHTML = "";
   if (!mixes || mixes.length === 0) { grid.innerHTML = `<p style="color: var(--text-muted); padding: 20px;">No mixes found.</p>`; return; }
 
@@ -73,7 +77,7 @@ function switchTab(tab) {
 
   if (tab === "home") {
     if (titleEl) titleEl.innerText = "LATEST DROPS";
-    renderGrid(window.djCatalog);
+    loadMixes();
   } else if (tab === "trending") {
     if (titleEl) titleEl.innerText = "🔥 TRENDING DROPS";
     const sorted = [...window.djCatalog].sort((a, b) => ((b.likes_count || 0) + (b.downloads_count || 0)) - ((a.likes_count || 0) + (a.downloads_count || 0)));
@@ -174,7 +178,7 @@ async function checkLiveStream() {
             initWebRTCWatcher();
             loadLiveChat();
             if (chatInterval) clearInterval(chatInterval);
-            chatInterval = setInterval(loadLiveChat, 3000); // Auto-refresh chat every 3s
+            chatInterval = setInterval(loadLiveChat, 3000);
         } else {
             container.innerHTML = `<div style="text-align: center; padding: 60px 20px; width: 100%;"><i class="fa-solid fa-tower-broadcast" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 15px;"></i><h3>No Active Livestream</h3><p style="color: var(--text-muted);">DJ Grey is offline.</p></div>`;
             if (chatInterval) clearInterval(chatInterval);
