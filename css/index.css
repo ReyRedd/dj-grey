@@ -390,8 +390,10 @@ div:where(.swal2-container) div:where(.swal2-html-container) { color: var(--text
     z-index: 4000 !important; 
     transition: left 0.3s ease-in-out !important;
     box-shadow: 10px 0 30px rgba(0,0,0,0.9) !important;
-    background: rgba(10, 10, 15, 0.98) !important; /* Solidify background */
-    backdrop-filter: blur(20px) !important;
+    /* 🚨 FIX: Swapped hardcoded dark background for theme variables */
+    background: var(--nav-bg) !important; 
+    backdrop-filter: blur(25px) !important;
+    -webkit-backdrop-filter: blur(25px) !important;
     padding-top: 20px !important;
   }
   .left-nav.open { 
@@ -403,8 +405,8 @@ div:where(.swal2-container) div:where(.swal2-html-container) { color: var(--text
     margin-left: 0 !important;
     width: 100vw !important;
     flex: 1 !important; /* Take remaining height */
-    overflow-y: auto !important; /* 🚨 THIS RESTORES YOUR SCROLLING 🚨 */
-    padding: 20px 15px 140px 15px !important; /* Extra bottom padding so player doesn't hide last card */
+    overflow-y: auto !important; /* Restores scrolling */
+    padding: 20px 15px 140px 15px !important; /* Extra bottom padding */
     box-sizing: border-box !important;
   }
   .grid {
@@ -422,7 +424,10 @@ div:where(.swal2-container) div:where(.swal2-html-container) { color: var(--text
     width: 100vw !important; 
     right: -100vw !important; /* Guarantee off-screen */
     height: 100vh !important;
-    background: rgba(10, 10, 15, 0.98) !important;
+    /* 🚨 FIX: Swapped hardcoded dark background for theme variables */
+    background: var(--glass-bg) !important;
+    backdrop-filter: blur(25px) !important;
+    -webkit-backdrop-filter: blur(25px) !important;
     z-index: 5000 !important;
   }
   .vault-sidebar.open { right: 0 !important; }
@@ -431,7 +436,10 @@ div:where(.swal2-container) div:where(.swal2-html-container) { color: var(--text
     width: 100vw !important; 
     left: -100vw !important; /* Guarantee off-screen */
     height: 100vh !important;
-    background: rgba(10, 10, 15, 0.98) !important;
+    /* 🚨 FIX: Swapped hardcoded dark background for theme variables */
+    background: var(--glass-bg) !important;
+    backdrop-filter: blur(25px) !important;
+    -webkit-backdrop-filter: blur(25px) !important;
     z-index: 5000 !important;
   }
   .comments-sidebar.open { left: 0 !important; }
