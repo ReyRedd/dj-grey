@@ -342,62 +342,69 @@ div:where(.swal2-container) div:where(.swal2-html-container) { color: var(--text
 /* 📱 BULLETPROOF MOBILE RESPONSIVE FIXES    */
 /* ========================================= */
 @media (max-width: 768px) {
-  /* 1. Stop horizontal scrolling & squishing */
+  /* 1. Restore Native App-like Scrolling Architecture */
   body {
-    overflow-x: hidden !important;
-    width: 100vw !important;
+    overflow: hidden !important; 
   }
   .app-container {
-    display: block !important;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
     width: 100vw !important;
-    overflow-x: hidden !important;
+    overflow: hidden !important;
   }
   
-  /* 2. Fix the Overcrowded Header */
+  /* 2. Fix Header Overcrowding */
   header {
-    padding: 10px 15px !important;
+    padding: 12px 15px !important;
     flex-wrap: wrap !important;
+    gap: 10px;
+    height: auto !important;
   }
   .header-brand h1 {
-    font-size: 1.2rem !important; /* Shrink title */
+    font-size: 1.3rem !important;
     letter-spacing: 1px !important;
   }
   .subtitle {
     font-size: 0.65rem !important;
   }
   .auth-container {
-    gap: 8px !important;
+    gap: 10px !important;
   }
-  /* Hide the "Welcome dj_greyyy" text on small screens to save space */
+  /* Hide "Welcome dj_greyyy" to save space */
   .auth-container > span {
     display: none !important; 
   }
   .auth-btn {
     padding: 6px 12px !important;
-    font-size: 0.75rem !important;
+    font-size: 0.8rem !important;
   }
 
-  /* 3. Convert Sidebar to Floating Drawer */
+  /* 3. Convert Main Menu to Floating Drawer */
   .left-nav { 
     position: fixed !important; 
     top: 0 !important; 
-    left: -100% !important; 
-    transform: none !important;
-    width: 260px !important;
+    left: -100vw !important; /* Move fully off-screen */
+    width: 280px !important;
     height: 100vh !important;
-    z-index: 3000 !important; 
+    z-index: 4000 !important; 
     transition: left 0.3s ease-in-out !important;
-    box-shadow: 10px 0 20px rgba(0,0,0,0.8) !important;
+    box-shadow: 10px 0 30px rgba(0,0,0,0.9) !important;
+    background: rgba(10, 10, 15, 0.98) !important; /* Solidify background */
+    backdrop-filter: blur(20px) !important;
+    padding-top: 20px !important;
   }
   .left-nav.open { 
     left: 0 !important; 
   }
   
-  /* 4. Fix Main Content & Grid */
+  /* 4. Fix Main Content Grid & Restoring the Scrollbar */
   .main-content {
     margin-left: 0 !important;
     width: 100vw !important;
-    padding: 20px 15px !important;
+    flex: 1 !important; /* Take remaining height */
+    overflow-y: auto !important; /* 🚨 THIS RESTORES YOUR SCROLLING 🚨 */
+    padding: 20px 15px 140px 15px !important; /* Extra bottom padding so player doesn't hide last card */
     box-sizing: border-box !important;
   }
   .grid {
@@ -407,12 +414,43 @@ div:where(.swal2-container) div:where(.swal2-html-container) { color: var(--text
     width: 100% !important;
   }
   .card-img {
-    height: 200px !important;
+    height: 220px !important;
   }
   
-  /* 5. Fix Sidebars (Vault & Comments) */
-  .vault-sidebar, .comments-sidebar { 
-    width: 100% !important; 
-    max-width: 100vw !important;
+  /* 5. Fix Sidebars (Vault & Comments) Full-Screen Overlays */
+  .vault-sidebar { 
+    width: 100vw !important; 
+    right: -100vw !important; /* Guarantee off-screen */
+    height: 100vh !important;
+    background: rgba(10, 10, 15, 0.98) !important;
+    z-index: 5000 !important;
   }
+  .vault-sidebar.open { right: 0 !important; }
+
+  .comments-sidebar { 
+    width: 100vw !important; 
+    left: -100vw !important; /* Guarantee off-screen */
+    height: 100vh !important;
+    background: rgba(10, 10, 15, 0.98) !important;
+    z-index: 5000 !important;
+  }
+  .comments-sidebar.open { left: 0 !important; }
+
+  /* 6. Clean up the Mobile Player Bar */
+  .player-bar {
+    padding: 15px !important;
+    flex-direction: column !important;
+    gap: 15px !important;
+    height: auto !important;
+  }
+  .now-playing { 
+    width: 100% !important; 
+    justify-content: flex-start !important; 
+  }
+  .player-controls-wrapper { 
+    width: 100% !important; 
+  }
+  .extra-controls { 
+    display: none !important; /* Hide volume/eq on mobile to save space */
+  } 
 }
