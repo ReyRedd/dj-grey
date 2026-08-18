@@ -1,33 +1,42 @@
 const audioPlayer = document.getElementById("audio-player");
 const customPlayBtn = document.getElementById("custom-play-btn");
 
-let playlist = [];
 let currentTrackIndex = -1;
 let isShuffle = false;
 let repeatState = 0;
 
 function playMix(index) {
+  // Sync the player's playlist with whatever tab you are currently viewing
+  const playlist = window.djCatalog || [];
+  
   if (index < 0 || index >= playlist.length) return;
   currentTrackIndex = index;
   const mix = playlist[currentTrackIndex];
 
   document.getElementById("np-title").innerText = mix.title;
-  document.getElementById("np-art").src = DEFAULT_ARTWORK;
+  
+  // Use the actual mix artwork, or fallback to the default
+  const artwork = mix.artwork_url || window.DJ_DEFAULT_ARTWORK;
+  document.getElementById("np-art").src = artwork;
   
   // 🪄 MAGIC: Reveal the player sliding up from the bottom!
   document.getElementById("player-ui").classList.add("active");
 
   // Set Fullscreen Backdrop Image
   const backdrop = document.getElementById("fullscreen-backdrop");
-  if (backdrop) backdrop.style.backgroundImage = `url('${DEFAULT_ARTWORK}')`;
+  if (backdrop) backdrop.style.backgroundImage = `url('${artwork}')`;
 
   audioPlayer.src = mix.audio_url;
   audioPlayer.play();
 
-  fetch(`${API_URL}/mixes/${mix.id}/play`, { method: "POST" }).catch(console.error);
+  // Fix API URL reference and push play count to the database
+  fetch(`${window.DJ_API_URL}/mixes/${mix.id}/play`, { 
+      method: "POST" 
+  }).catch(console.error);
 }
 
 function playNext() {
+  const playlist = window.djCatalog || [];
   if (playlist.length === 0) return;
   let nextIndex = isShuffle
     ? Math.floor(Math.random() * playlist.length)
@@ -36,12 +45,14 @@ function playNext() {
 }
 
 function playPrev() {
+  const playlist = window.djCatalog || [];
   if (playlist.length === 0) return;
   let prevIndex = currentTrackIndex - 1 < 0 ? playlist.length - 1 : currentTrackIndex - 1;
   playMix(prevIndex);
 }
 
 audioPlayer.addEventListener("ended", () => {
+  const playlist = window.djCatalog || [];
   if (audioPlayer.loop) return;
   if (repeatState === 1 || currentTrackIndex < playlist.length - 1) playNext();
 });
@@ -129,3 +140,16 @@ function updateMuteIcon(vol) {
   else if (vol < 0.5) muteIcon.className = "fa-solid fa-volume-low";
   else muteIcon.className = "fa-solid fa-volume-high";
 }
+
+// 🚨 BIND ALL FUNCTIONS TO THE GLOBAL WINDOW
+window.playMix = playMix;
+window.playNext = playNext;
+window.playPrev = playPrev;
+window.togglePlay = togglePlay;
+window.stopAudio = stopAudio;
+window.toggleLoop = toggleLoop;
+window.toggleShuffle = toggleShuffle;
+window.toggleFullScreen = toggleFullScreen;
+window.scrollToPlaylist = scrollToPlaylist;
+window.showEQMessage = showEQMessage;
+window.toggleMute = toggleMute;
