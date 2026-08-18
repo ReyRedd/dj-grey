@@ -721,8 +721,8 @@ app.get("/api/hearthis/sync/:username", async (req, res) => {
   try {
     const username = req.params.username || "george-grey";
     
-    // 🚨 Request data from the Official Hearthis JSON API (Bypasses Podcast XML)
-    const response = await fetch(`https://api-v2.hearthis.at/${username}/?type=tracks&count=30`);
+    // Request data using 'feed' to catch everything (we will filter duplicates below)
+    const response = await fetch(`https://api-v2.hearthis.at/${username}/?type=feed&count=30`);
     
     if (!response.ok) {
         return res.json({ success: true, mixes: [] });
@@ -730,6 +730,7 @@ app.get("/api/hearthis/sync/:username", async (req, res) => {
 
     const tracks = await response.json();
     const syncedMixes = [];
+    const seenIds = new Set(); // 🚨 Tracks unique Database IDs to prevent duplicates
 
     for (const track of tracks) {
       let title = track.title || "Unknown";
@@ -743,14 +744,21 @@ app.get("/api/hearthis/sync/:username", async (req, res) => {
         [title, audio_url]
       );
       
+      let currentMix;
       if (dbCheck.rows.length === 0) {
         const inserted = await pool.query(
           "INSERT INTO mixes (title, audio_url, artwork_url, likes_count, downloads_count) VALUES ($1, $2, $3, 0, 0) RETURNING *",
           [title, audio_url, artwork_url]
         );
-        syncedMixes.push(inserted.rows[0]);
+        currentMix = inserted.rows[0];
       } else {
-        syncedMixes.push(dbCheck.rows[0]);
+        currentMix = dbCheck.rows[0];
+      }
+
+      // 🚨 Only add the mix to the final array if we haven't rendered it yet
+      if (!seenIds.has(currentMix.id)) {
+        seenIds.add(currentMix.id);
+        syncedMixes.push(currentMix);
       }
     }
     
