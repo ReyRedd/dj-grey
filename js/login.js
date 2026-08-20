@@ -6,7 +6,7 @@ function toggleRegisterMode() {
 
     document.getElementById('submit-btn').innerHTML = isRegisterMode ? '<i class="fa-solid fa-user-plus"></i> Create Account' : '<i class="fa-solid fa-right-to-bracket"></i> Initialize 🔒';
     document.getElementById('form-subtitle').innerText = isRegisterMode ? 'Register Fan Account ✨' : 'Welcome to Madness 🤪';
-    document.getElementById('mode-text').innerHTML = isRegisterMode ? 'Already a fan? <span>Login here</span>' : 'No access? <span>Request Invite</span>';
+    document.getElementById('mode-text').innerHTML = isRegisterMode ? 'Already a fan? <span>Login here</span>' : 'No access? <span>Register</span>';
     document.getElementById('error-msg').style.display = 'none';
 
     const emailGroup = document.getElementById('email-group');
